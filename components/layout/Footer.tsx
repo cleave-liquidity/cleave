@@ -14,14 +14,9 @@ export function Footer() {
           <Link href="/markets" className="text-muted hover:text-foreground transition-colors">
             Markets
           </Link>
-          <a
-            href="https://github.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-muted hover:text-foreground transition-colors"
-          >
+          <Link href="/docs" className="text-muted hover:text-foreground transition-colors">
             Docs
-          </a>
+          </Link>
           <a
             href="https://x.com"
             target="_blank"

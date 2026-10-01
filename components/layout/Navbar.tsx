@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ConnectButton } from "@/components/wallet/ConnectButton";
+import { EnvironmentStrip } from "@/components/layout/EnvironmentStrip";
 
 export function Navbar({ isLanding = false }: { isLanding?: boolean }) {
   const pathname = usePathname();
@@ -12,8 +13,16 @@ export function Navbar({ isLanding = false }: { isLanding?: boolean }) {
 
   return (
     <header className={`${isLanding ? "absolute top-0 left-0 right-0 z-30" : "sticky top-0 z-30 bg-background/90 backdrop-blur-md border-b border-white/10"}`}>
+      {!isLanding && (
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-foreground focus:px-4 focus:py-2 focus:text-background"
+        >
+          Skip to content
+        </a>
+      )}
       <div className="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-10 py-5 sm:py-6 flex items-center justify-between gap-4 flex-wrap">
-        <Link href="/" aria-label="Cleave home" className="flex items-center gap-3.5 group">
+        <Link href="/" aria-label="Cleave home" className="flex items-center gap-3.5 group focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ice">
           <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true" className="shrink-0 transition-transform group-hover:scale-105">
             <circle cx="17" cy="17" r="8" fill="#F07A2B" />
             <ellipse
@@ -46,33 +55,34 @@ export function Navbar({ isLanding = false }: { isLanding?: boolean }) {
         <nav aria-label="Primary" className="hidden md:flex items-center gap-6 lg:gap-10 text-[15px]">
           <Link
             href="/markets"
-            className={`transition-colors ${isMarkets ? "text-foreground font-medium" : "text-muted hover:text-foreground"}`}
+            aria-current={isMarkets ? "page" : undefined}
+            className={`transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ice ${isMarkets ? "text-foreground font-medium" : "text-muted hover:text-foreground"}`}
           >
             Markets
           </Link>
           <Link
             href="/portfolio"
-            className={`transition-colors ${isPortfolio ? "text-foreground font-medium" : "text-muted hover:text-foreground"}`}
+            aria-current={isPortfolio ? "page" : undefined}
+            className={`transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ice ${isPortfolio ? "text-foreground font-medium" : "text-muted hover:text-foreground"}`}
           >
             Portfolio
           </Link>
           {isLanding ? (
-            <a href="#how" className="text-muted hover:text-foreground transition-colors">
+            <a href="#how" className="text-muted hover:text-foreground transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ice">
               How it works
             </a>
           ) : (
-            <Link href="/#how" className="text-muted hover:text-foreground transition-colors">
+            <Link href="/#how" className="text-muted hover:text-foreground transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ice">
               How it works
             </Link>
           )}
-          <a
-            href="https://github.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-muted hover:text-foreground transition-colors hidden sm:inline-block"
+          <Link
+            href="/docs"
+            aria-current={pathname === "/docs" ? "page" : undefined}
+            className="text-muted hover:text-foreground transition-colors hidden sm:inline-block focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ice"
           >
             Docs
-          </a>
+          </Link>
         </nav>
 
         <div className="flex items-center gap-3">
@@ -88,6 +98,7 @@ export function Navbar({ isLanding = false }: { isLanding?: boolean }) {
           )}
         </div>
       </div>
+      {!isLanding && <EnvironmentStrip />}
     </header>
   );
 }

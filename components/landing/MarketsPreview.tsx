@@ -50,11 +50,12 @@ export function MarketsPreview() {
   return (
     <section
       id="markets"
-      className="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-10 pt-24 sm:pt-32 lg:pt-40"
+      className="relative max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-10 pt-24 sm:pt-32 lg:pt-40"
     >
       <div className="flex justify-between items-end gap-6 flex-wrap">
         <div className="flex flex-col gap-5 sm:gap-6">
-          <div className="mono text-[12px] tracking-[0.18em] text-muted-dark">
+          <div className="mono flex items-center gap-2 text-[11px] tracking-[0.22em] text-muted-dark uppercase">
+            <span className="w-1 h-1 rounded-full bg-foreground/30 shrink-0" />
             03 — MARKETS
           </div>
           <h2 className="m-0 text-[36px] sm:text-[46px] lg:text-[60px] leading-[1.04] font-normal tracking-[-0.03em]">
@@ -62,22 +63,24 @@ export function MarketsPreview() {
             <br />a real yield source.
           </h2>
         </div>
-        <div className="flex items-center gap-4.5 flex-wrap">
-          <span className="mono text-[12px] tracking-[0.12em] text-[#0A0B0C] bg-[#B9BDBA] px-2.5 py-1.5 font-medium">
+        <div className="flex items-center gap-4 flex-wrap pb-2">
+          <span className="mono text-[11px] tracking-[0.12em] text-muted border border-white/15 px-2.5 py-1.5">
             SAMPLE DATA · NOT LIVE
           </span>
           <Link
             href="/markets"
-            className="text-[15px] inline-flex gap-2 items-center min-h-[44px] text-foreground hover:text-white transition-colors"
+            className="mono text-[13px] tracking-[0.1em] inline-flex gap-2 items-center min-h-[40px] text-foreground hover:text-white transition-colors"
           >
             All markets <span aria-hidden="true">→</span>
           </Link>
         </div>
       </div>
 
-      <div className="mt-12 overflow-x-auto">
+      {/* Table */}
+      <div className="mt-10 overflow-x-auto">
         <div className="min-w-[900px]">
-          <div className="mono grid grid-cols-[2.1fr_1.5fr_1fr_1fr_1.25fr_1fr_1.1fr] gap-4 px-5 pb-3.5 text-[12px] tracking-[0.12em] text-muted-dark border-b border-white/16">
+          {/* Header */}
+          <div className="mono grid grid-cols-[2.1fr_1.5fr_1fr_1fr_1.25fr_1fr_1.1fr] gap-4 px-5 pb-3.5 text-[11px] tracking-[0.14em] text-muted-dark border-b border-white/10">
             <span>ASSET</span>
             <span>YIELD SOURCE</span>
             <span className="text-right">FIXED RATE</span>
@@ -91,44 +94,42 @@ export function MarketsPreview() {
             <Link
               key={row.id}
               href={`/markets/${row.id}`}
-              className="grid grid-cols-[2.1fr_1.5fr_1fr_1fr_1.25fr_1fr_1.1fr] gap-4 items-center px-5 py-6 sm:py-6.5 border-b border-white/10 text-foreground hover:bg-white/[0.02] transition-colors group"
+              className="grid grid-cols-[2.1fr_1.5fr_1fr_1fr_1.25fr_1fr_1.1fr] gap-4 items-center px-5 py-5 sm:py-6 border-b border-white/8 text-foreground hover:bg-white/[0.025] transition-colors group"
             >
               <span className="flex items-center gap-3.5">
-                <span className="mono w-[38px] h-[38px] border border-white/30 rounded-full flex items-center justify-center text-[10px] text-muted group-hover:border-white/50 transition-colors">
-                  {row.symbol}
+                <span className="mono w-9 h-9 border border-white/20 flex items-center justify-center text-[9px] text-muted group-hover:border-white/40 transition-colors shrink-0">
+                  {row.symbol.slice(0, 4)}
                 </span>
-                <span className="flex flex-col gap-1">
-                  <span className="text-[18px] group-hover:text-white transition-colors">
+                <span className="flex flex-col gap-0.5">
+                  <span className="text-[17px] group-hover:text-white transition-colors">
                     {row.symbol}
                   </span>
-                  <span className="text-[13px] text-muted-dark">{row.name}</span>
+                  <span className="mono text-[12px] text-muted-dark">{row.name}</span>
                 </span>
               </span>
 
-              <span className="text-[15px] text-muted">{row.source}</span>
+              <span className="text-[14px] text-muted">{row.source}</span>
 
-              <span className="mono text-right text-[18px] text-ice">
+              <span className="mono text-right text-[17px] text-ice">
                 {row.fixedRate}
               </span>
 
-              <span className="mono text-right text-[16px] text-muted">
+              <span className="mono text-right text-[15px] text-muted">
                 {row.rateNow}
               </span>
 
-              <span className="text-right flex flex-col gap-1">
-                <span className="text-[15px]">{row.maturity}</span>
-                <span className="mono text-[12px] text-muted-dark">
-                  {row.days}
-                </span>
+              <span className="text-right flex flex-col gap-0.5">
+                <span className="text-[14px]">{row.maturity}</span>
+                <span className="mono text-[11px] text-muted-dark">{row.days}</span>
               </span>
 
-              <span className="mono text-right text-[15px] text-muted">
+              <span className="mono text-right text-[14px] text-muted">
                 {formatUsd(row.liquidity)}
               </span>
 
-              <span className="text-right flex justify-end items-center gap-2 text-[14px] text-muted-light">
+              <span className="text-right flex justify-end items-center gap-2 text-[13px] text-muted-light">
                 <span
-                  className="w-[7px] h-[7px] rounded-full"
+                  className="w-[6px] h-[6px] rounded-full shrink-0"
                   style={{ background: row.statusColor }}
                 />
                 {row.status}
@@ -138,9 +139,9 @@ export function MarketsPreview() {
         </div>
       </div>
 
-      <p className="mono m-0 mt-4.5 text-[12px] tracking-[0.06em] text-muted-faint">
+      <p className="mono m-0 mt-4 text-[11px] tracking-[0.06em] text-muted-dark">
         Fixed rate is the market rate before price impact. Rate now is today&apos;s
-        variable rate.
+        variable rate. Positions are illustrative.
       </p>
     </section>
   );

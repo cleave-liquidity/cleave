@@ -278,6 +278,36 @@ export function Hero() {
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
+      {/* ── DECORATIVE BACKGROUND ORBITS ── */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+        <svg
+          viewBox="0 0 1440 940"
+          className="absolute inset-0 w-full h-full"
+          preserveAspectRatio="xMidYMid slice"
+        >
+          {/* Outer slow ring — tilted, very faint */}
+          <g transform="translate(900 480) rotate(-18) scale(1 0.28)" className="orbit-slow-cw orbit-pulse">
+            <ellipse rx="560" ry="560" fill="none" stroke="rgba(169,200,238,0.06)" strokeWidth="1" />
+          </g>
+          {/* Second ring — opposite tilt, slightly smaller */}
+          <g transform="translate(860 500) rotate(12) scale(1 0.22)" className="orbit-slow-ccw">
+            <ellipse rx="440" ry="440" fill="none" stroke="rgba(236,237,234,0.04)" strokeWidth="0.8" strokeDasharray="4 12" />
+          </g>
+          {/* Inner ring — medium speed */}
+          <g transform="translate(920 460) rotate(-32) scale(1 0.18)" className="orbit-med-cw">
+            <ellipse rx="320" ry="320" fill="none" stroke="rgba(240,168,92,0.05)" strokeWidth="1.2" strokeDasharray="8 20" />
+          </g>
+          {/* Far background ring — almost horizontal, super slow */}
+          <g transform="translate(780 500) rotate(-8) scale(1 0.12)" className="orbit-slow-cw orbit-pulse" style={{ animationDuration: "110s", animationDelay: "4s" }}>
+            <ellipse rx="700" ry="700" fill="none" stroke="rgba(169,200,238,0.04)" strokeWidth="0.7" />
+          </g>
+          {/* Tight inner accent ring */}
+          <g transform="translate(930 470) rotate(22) scale(1 0.32)" className="orbit-slow-ccw" style={{ animationDuration: "90s" }}>
+            <ellipse rx="200" ry="200" fill="none" stroke="rgba(236,237,234,0.05)" strokeWidth="1.5" strokeDasharray="2 10" />
+          </g>
+        </svg>
+      </div>
+
       {/* Planet visual */}
       <div className="absolute inset-0 pointer-events-auto opacity-35 sm:opacity-50 lg:opacity-100 transition-opacity duration-500">
         <HeroVisual

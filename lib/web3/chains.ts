@@ -1,4 +1,5 @@
 import { defineChain } from "viem";
+import type { RobinhoodNetwork } from "@/types/market";
 
 export const ROBINHOOD_CHAIN_ID = 4663;
 export const ROBINHOOD_TESTNET_CHAIN_ID = 46630;
@@ -61,4 +62,10 @@ export const supportedChains = [robinhoodChain, robinhoodChainTestnet] as const;
 
 export function isSupportedRobinhoodChain(chainId?: number): boolean {
   return chainId === ROBINHOOD_CHAIN_ID || chainId === ROBINHOOD_TESTNET_CHAIN_ID;
+}
+
+export function getRobinhoodNetwork(chainId?: number): RobinhoodNetwork | undefined {
+  if (chainId === ROBINHOOD_CHAIN_ID) return "mainnet";
+  if (chainId === ROBINHOOD_TESTNET_CHAIN_ID) return "testnet";
+  return undefined;
 }
