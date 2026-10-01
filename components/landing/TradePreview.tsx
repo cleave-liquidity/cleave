@@ -167,7 +167,7 @@ export function TradePreview() {
               <span>YOU DEPOSIT</span>
               <span>WALLET: 2,500.00 USDG</span>
             </div>
-            <div className="flex items-center justify-between gap-3 border border-white/15 rounded-xl bg-surface-raised px-4.5 py-3.5 focus-within:border-white/40 transition-colors">
+            <div className="flex items-center justify-between gap-4 border border-white/15 rounded-xl bg-surface-raised px-5 py-4 focus-within:border-white/40 transition-colors">
               <input
                 id="pay-input"
                 type="number"
@@ -175,18 +175,18 @@ export function TradePreview() {
                 step="100"
                 value={payAmount}
                 onChange={(e) => setPayAmount(Math.max(10, parseFloat(e.target.value) || 0))}
-                className="mono flex-grow min-w-0 bg-transparent border-0 text-foreground text-[28px] font-medium outline-none"
+                className="mono flex-grow min-w-0 bg-transparent border-0 text-foreground text-[28px] font-medium outline-none py-1"
               />
               <div className="flex items-center gap-2 shrink-0">
-                <div className="flex gap-1">
+                <div className="flex gap-1.5">
                   {[500, 1000, 2500].map((v) => (
                     <button
                       key={v}
                       type="button"
                       onClick={() => setPayAmount(v)}
-                      className={`mono text-[10px] px-2 py-1 rounded border transition-all ${
+                      className={`mono text-[10px] px-2.5 py-1.5 rounded border transition-all ${
                         payAmount === v
-                          ? "border-white/40 bg-white/15 text-foreground"
+                          ? "border-white/40 bg-white/15 text-foreground font-medium"
                           : "border-white/10 text-muted hover:border-white/20"
                       }`}
                     >
@@ -194,7 +194,7 @@ export function TradePreview() {
                     </button>
                   ))}
                 </div>
-                <span className="mono text-[14px] font-medium text-foreground bg-white/10 px-2.5 py-1 rounded">
+                <span className="mono text-[13px] font-medium text-foreground bg-white/10 px-3 py-1.5 rounded">
                   USDG
                 </span>
               </div>
@@ -204,15 +204,16 @@ export function TradePreview() {
           {/* Strategy Output Area */}
           {isFixed ? (
             <div className="flex flex-col gap-5 pt-1">
-              <div className="p-4.5 rounded-xl bg-ice/8 border border-ice/20 flex flex-col gap-1.5">
-                <span className="mono text-[11px] text-muted tracking-[0.12em] uppercase">
+              <div className="p-6 rounded-xl bg-ice/10 border border-ice/25 flex flex-col gap-2.5">
+                <span className="mono text-[11px] text-muted tracking-[0.14em] uppercase">
                   Guaranteed Maturity Value (26 Mar 2027)
                 </span>
-                <div className="flex items-baseline gap-3">
-                  <span className="mono text-[36px] font-medium text-foreground">
-                    ${fixedPayout} <span className="text-[16px] text-muted font-normal">USDG</span>
+                <div className="flex items-baseline gap-2.5 flex-wrap pt-0.5">
+                  <span className="mono text-[36px] font-semibold text-foreground leading-none">
+                    ${fixedPayout}
                   </span>
-                  <span className="mono text-[13px] text-ice font-medium">
+                  <span className="text-[16px] text-muted font-normal">USDG</span>
+                  <span className="mono text-[13px] text-ice font-medium ml-2">
                     +${fixedGain} (+6.42% APY)
                   </span>
                 </div>
@@ -244,16 +245,16 @@ export function TradePreview() {
             </div>
           ) : (
             <div className="flex flex-col gap-5 pt-1">
-              <div className="p-4.5 rounded-xl bg-amber/8 border border-amber/20 flex flex-col gap-1.5">
-                <span className="mono text-[11px] text-muted tracking-[0.12em] uppercase">
+              <div className="p-6 rounded-xl bg-amber/10 border border-amber/25 flex flex-col gap-2.5">
+                <span className="mono text-[11px] text-muted tracking-[0.14em] uppercase">
                   Yield Exposure on Notional Capital
                 </span>
-                <div className="flex items-baseline gap-3">
-                  <span className="mono text-[36px] font-medium text-foreground">
-                    ~${longNotional.toLocaleString()}{" "}
-                    <span className="text-[16px] text-muted font-normal">USDG</span>
+                <div className="flex items-baseline gap-2.5 flex-wrap pt-0.5">
+                  <span className="mono text-[36px] font-semibold text-foreground leading-none">
+                    ~${longNotional.toLocaleString()}
                   </span>
-                  <span className="mono text-[13px] text-amber font-medium">~16.9x LEV</span>
+                  <span className="text-[16px] text-muted font-normal">USDG</span>
+                  <span className="mono text-[13px] text-amber font-medium ml-2">~16.9x LEV</span>
                 </div>
               </div>
 
