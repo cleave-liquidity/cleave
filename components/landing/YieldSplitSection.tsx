@@ -25,10 +25,7 @@ export function YieldSplitSection() {
   const svgRef = useRef<SVGSVGElement>(null);
 
   // Normalized progress: 0.0 = Today (fully split) -> 1.0 = Maturity (fully zipped / unified)
-  const progress = Math.max(
-    0,
-    Math.min(1, (splitX - START_X) / (END_X - START_X)),
-  );
+  const progress = Math.max(0, Math.min(1, (splitX - START_X) / (END_X - START_X)));
 
   // Current simulated stats
   const daysLeft = Math.round(175 * (1 - progress));
@@ -83,66 +80,62 @@ export function YieldSplitSection() {
   };
 
   // Generate dynamic smooth paths based on splitX
-  const { pathUnified, pathFixed, pathLong, fixedEndPt, longEndPt } =
-    useMemo(() => {
-      // 1. Unified line: from x=0 to x=splitX
-      const unified = `M 0 ${BASE_Y} L ${splitX} ${BASE_Y}`;
+  const { pathUnified, pathFixed, pathLong, fixedEndPt, longEndPt } = useMemo(() => {
+    // 1. Unified line: from x=0 to x=splitX
+    const unified = `M 0 ${BASE_Y} L ${splitX} ${BASE_Y}`;
 
-      // If fully zipped (at or very near maturity), lines merge completely into straight line
-      if (splitX >= END_X - 6) {
-        return {
-          pathUnified: `M 0 ${BASE_Y} L ${END_X} ${BASE_Y}`,
-          pathFixed: `M ${END_X} ${BASE_Y} L ${END_X} ${BASE_Y}`,
-          pathLong: `M ${END_X} ${BASE_Y} L ${END_X} ${BASE_Y}`,
-          fixedEndPt: { x: END_X, y: BASE_Y },
-          longEndPt: { x: END_X, y: BASE_Y },
-        };
-      }
-
-      // 2. Fixed Yield path: ramps up from (splitX, 330) toward y=232 -> y=214
-      const fixedPts: string[] = [`M ${splitX} ${BASE_Y}`];
-      const longPts: string[] = [`M ${splitX} ${BASE_Y}`];
-
-      const step = 14;
-      for (let x = splitX + step; x <= END_X; x += step) {
-        const normTotal = (x - START_X) / (END_X - START_X);
-        const targetFixedY = 232 - normTotal * 18;
-
-        // Smooth ease ramp from splitX
-        const rampFixed = Math.min(1, (x - splitX) / 85);
-        const smoothFixed = rampFixed * rampFixed * (3 - 2 * rampFixed);
-        const yFixed = BASE_Y + (targetFixedY - BASE_Y) * smoothFixed;
-        fixedPts.push(`L ${x.toFixed(1)} ${yFixed.toFixed(1)}`);
-
-        // Long yield wave
-        const wave =
-          Math.sin((x - START_X) / 38) * 26 + Math.cos((x - START_X) / 72) * 12;
-        const targetLongY = 430 + wave;
-        const rampLong = Math.min(1, (x - splitX) / 95);
-        const smoothLong = rampLong * rampLong * (3 - 2 * rampLong);
-        const yLong = BASE_Y + (targetLongY - BASE_Y) * smoothLong;
-        longPts.push(`L ${x.toFixed(1)} ${yLong.toFixed(1)}`);
-      }
-
-      // Ensure ending exactly at END_X
-      const finalNorm = 1;
-      const finalFixedY = 232 - finalNorm * 18;
-      fixedPts.push(`L ${END_X} ${finalFixedY}`);
-
-      const finalLongWave =
-        Math.sin((END_X - START_X) / 38) * 26 +
-        Math.cos((END_X - START_X) / 72) * 12;
-      const finalLongY = 430 + finalLongWave;
-      longPts.push(`L ${END_X} ${finalLongY}`);
-
+    // If fully zipped (at or very near maturity), lines merge completely into straight line
+    if (splitX >= END_X - 6) {
       return {
-        pathUnified: unified,
-        pathFixed: fixedPts.join(" "),
-        pathLong: longPts.join(" "),
-        fixedEndPt: { x: END_X, y: finalFixedY },
-        longEndPt: { x: END_X, y: finalLongY },
+        pathUnified: `M 0 ${BASE_Y} L ${END_X} ${BASE_Y}`,
+        pathFixed: `M ${END_X} ${BASE_Y} L ${END_X} ${BASE_Y}`,
+        pathLong: `M ${END_X} ${BASE_Y} L ${END_X} ${BASE_Y}`,
+        fixedEndPt: { x: END_X, y: BASE_Y },
+        longEndPt: { x: END_X, y: BASE_Y },
       };
-    }, [splitX]);
+    }
+
+    // 2. Fixed Yield path: ramps up from (splitX, 330) toward y=232 -> y=214
+    const fixedPts: string[] = [`M ${splitX} ${BASE_Y}`];
+    const longPts: string[] = [`M ${splitX} ${BASE_Y}`];
+
+    const step = 14;
+    for (let x = splitX + step; x <= END_X; x += step) {
+      const normTotal = (x - START_X) / (END_X - START_X);
+      const targetFixedY = 232 - normTotal * 18;
+
+      // Smooth ease ramp from splitX
+      const rampFixed = Math.min(1, (x - splitX) / 85);
+      const smoothFixed = rampFixed * rampFixed * (3 - 2 * rampFixed);
+      const yFixed = BASE_Y + (targetFixedY - BASE_Y) * smoothFixed;
+      fixedPts.push(`L ${x.toFixed(1)} ${yFixed.toFixed(1)}`);
+
+      // Long yield wave
+      const wave = Math.sin((x - START_X) / 38) * 26 + Math.cos((x - START_X) / 72) * 12;
+      const targetLongY = 430 + wave;
+      const rampLong = Math.min(1, (x - splitX) / 95);
+      const smoothLong = rampLong * rampLong * (3 - 2 * rampLong);
+      const yLong = BASE_Y + (targetLongY - BASE_Y) * smoothLong;
+      longPts.push(`L ${x.toFixed(1)} ${yLong.toFixed(1)}`);
+    }
+
+    // Ensure ending exactly at END_X
+    const finalNorm = 1;
+    const finalFixedY = 232 - finalNorm * 18;
+    fixedPts.push(`L ${END_X} ${finalFixedY}`);
+
+    const finalLongWave = Math.sin((END_X - START_X) / 38) * 26 + Math.cos((END_X - START_X) / 72) * 12;
+    const finalLongY = 430 + finalLongWave;
+    longPts.push(`L ${END_X} ${finalLongY}`);
+
+    return {
+      pathUnified: unified,
+      pathFixed: fixedPts.join(" "),
+      pathLong: longPts.join(" "),
+      fixedEndPt: { x: END_X, y: finalFixedY },
+      longEndPt: { x: END_X, y: finalLongY },
+    };
+  }, [splitX]);
 
   return (
     <section
@@ -159,8 +152,7 @@ export function YieldSplitSection() {
         <div
           className="absolute left-1/2 -translate-x-1/2 -top-6 w-96 h-12 pointer-events-none"
           style={{
-            background:
-              "radial-gradient(ellipse 100% 100%, rgba(169,200,238,0.14), transparent 70%)",
+            background: "radial-gradient(ellipse 100% 100%, rgba(169,200,238,0.14), transparent 70%)",
           }}
         />
       </div>
@@ -181,9 +173,8 @@ export function YieldSplitSection() {
 
         <div className="flex flex-col gap-4">
           <p className="m-0 text-[15px] sm:text-[17px] leading-[1.6] text-muted font-light">
-            USDG in a lending vault earns a rate that changes daily. We split
-            that position: one side holds steady to maturity, the other rides
-            the rate.
+            USDG in a lending vault earns a rate that changes daily. We split that position:
+            one side holds steady to maturity, the other rides the rate.
           </p>
 
           {/* Interactive Zipper Control & Preset buttons */}
@@ -238,21 +229,16 @@ export function YieldSplitSection() {
         {/* Live Simulation Stats Chip */}
         <div className="mono flex items-center gap-4 text-[11px] tracking-[0.12em] text-muted">
           <div>
-            DATE:{" "}
-            <span className="text-foreground font-medium">
-              {currentDateStr}
-            </span>
+            DATE: <span className="text-foreground font-medium">{currentDateStr}</span>
           </div>
           <div>
             REMAINING: <span className="text-ice font-medium">{daysLeft}d</span>
           </div>
           <div>
-            PT VALUE:{" "}
-            <span className="text-ice font-medium">${currentPtPrice}</span>
+            PT VALUE: <span className="text-ice font-medium">${currentPtPrice}</span>
           </div>
           <div>
-            STREAMED:{" "}
-            <span className="text-amber font-medium">${yieldStreamed}</span>
+            STREAMED: <span className="text-amber font-medium">${yieldStreamed}</span>
           </div>
         </div>
       </div>
@@ -297,19 +283,10 @@ export function YieldSplitSection() {
             </g>
 
             {/* Baseline horizontal rule */}
-            <path
-              d="M 0 550 H 1440"
-              stroke="rgba(236,237,234,0.12)"
-              strokeWidth="1"
-            />
+            <path d="M 0 550 H 1440" stroke="rgba(236,237,234,0.12)" strokeWidth="1" />
 
             {/* Month labels along bottom */}
-            <g
-              className="mono"
-              fontSize="11"
-              letterSpacing="0.12em"
-              fill="#6F7471"
-            >
+            <g className="mono" fontSize="11" letterSpacing="0.12em" fill="#6F7471">
               {MILESTONES.slice(0, -1).map((m) => (
                 <text
                   key={m.label}
@@ -332,11 +309,7 @@ export function YieldSplitSection() {
               strokeDasharray={isFullZipped ? "none" : "3 6"}
             />
             <g className="mono" fontSize="12" letterSpacing="0.14em">
-              <text
-                x={END_X + 16}
-                y="130"
-                fill={isFullZipped ? "#F0A85C" : "#ECEDEA"}
-              >
+              <text x={END_X + 16} y="130" fill={isFullZipped ? "#F0A85C" : "#ECEDEA"}>
                 MATURITY
               </text>
               <text x={END_X + 16} y="150" fill="#8E9390">
@@ -461,21 +434,8 @@ export function YieldSplitSection() {
             {isFullZipped && (
               <g className="mono" fontSize="12" letterSpacing="0.14em">
                 <circle cx={END_X} cy={BASE_Y} r="7" fill="#34D399" />
-                <circle
-                  cx={END_X}
-                  cy={BASE_Y}
-                  r="18"
-                  fill="none"
-                  stroke="#34D399"
-                  strokeWidth="1"
-                  strokeDasharray="3 3"
-                />
-                <text
-                  x={END_X + 24}
-                  y={BASE_Y - 8}
-                  fill="#34D399"
-                  fontWeight="600"
-                >
+                <circle cx={END_X} cy={BASE_Y} r="18" fill="none" stroke="#34D399" strokeWidth="1" strokeDasharray="3 3" />
+                <text x={END_X + 24} y={BASE_Y - 8} fill="#34D399" fontWeight="600">
                   REUNITED AT MATURITY
                 </text>
                 <text x={END_X + 24} y={BASE_Y + 14} fill="#ECEDEA">
@@ -493,13 +453,7 @@ export function YieldSplitSection() {
               className="cursor-ew-resize group select-none pointer-events-auto"
             >
               {/* Invisible wide hit area for easy drag */}
-              <rect
-                x="-30"
-                y="100"
-                width="60"
-                height="460"
-                fill="transparent"
-              />
+              <rect x="-30" y="100" width="60" height="460" fill="transparent" />
 
               {/* Vertical highlight line through handle */}
               <line
@@ -545,9 +499,7 @@ export function YieldSplitSection() {
                 cx="0"
                 cy={BASE_Y}
                 r={isDragging ? "42" : "32"}
-                fill={
-                  isFullZipped ? "url(#handleGlowAmber)" : "url(#handleGlow)"
-                }
+                fill={isFullZipped ? "url(#handleGlowAmber)" : "url(#handleGlow)"}
                 className="transition-all duration-200"
               />
 
@@ -557,9 +509,7 @@ export function YieldSplitSection() {
                 cy={BASE_Y}
                 r={isDragging ? "22" : "18"}
                 fill="#0A0C10"
-                stroke={
-                  isDragging ? "#FFFFFF" : isFullZipped ? "#F0A85C" : "#A9C8EE"
-                }
+                stroke={isDragging ? "#FFFFFF" : isFullZipped ? "#F0A85C" : "#A9C8EE"}
                 strokeWidth="1.6"
                 className="transition-all duration-150"
               />
@@ -584,10 +534,7 @@ export function YieldSplitSection() {
               />
 
               {/* Drag indicator arrows < > */}
-              <g
-                transform={`translate(0 ${BASE_Y + 34})`}
-                className="pointer-events-none"
-              >
+              <g transform={`translate(0 ${BASE_Y + 34})`} className="pointer-events-none">
                 <rect
                   x="-36"
                   y="-9"
@@ -622,15 +569,13 @@ export function YieldSplitSection() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-ice shrink-0" />
-              <span className="text-[16px] text-ice font-medium">
-                Fixed Yield (PT)
-              </span>
+              <span className="text-[16px] text-ice font-medium">Fixed Yield (PT)</span>
             </div>
             <span className="mono text-[13px] text-ice">${currentPtPrice}</span>
           </div>
           <span className="text-[14px] sm:text-[15px] leading-[1.6] text-muted font-light">
-            Worth exactly 1 USDG at maturity, bought below 1 today. The gap is
-            your locked return upfront with zero liquidation.
+            Worth exactly 1 USDG at maturity, bought below 1 today. The gap is your locked
+            return upfront with zero liquidation.
           </span>
           <div className="mono text-[11px] tracking-[0.12em] text-muted-dark mt-1 flex justify-between">
             <span>APY: 6.42% LOCKED</span>
@@ -642,17 +587,15 @@ export function YieldSplitSection() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-amber shrink-0" />
-              <span className="text-[16px] text-amber font-medium">
-                Long Yield (YT)
-              </span>
+              <span className="text-[16px] text-amber font-medium">Long Yield (YT)</span>
             </div>
             <span className="mono text-[13px] text-amber">
-              +{(((progress * 0.059) / 0.059) * 100).toFixed(0)}% paid
+              +{((progress * 0.059) / 0.059 * 100).toFixed(0)}% paid
             </span>
           </div>
           <span className="text-[14px] sm:text-[15px] leading-[1.6] text-muted font-light">
-            Collects streaming yield until maturity, then ends at zero. You win
-            if the variable rate stays above break-even.
+            Collects streaming yield until maturity, then ends at zero. You win if
+            the variable rate stays above break-even.
           </span>
           <div className="mono text-[11px] tracking-[0.12em] text-muted-dark mt-1 flex justify-between">
             <span>CLAIMED: ${yieldStreamed}</span>
@@ -667,7 +610,8 @@ export function YieldSplitSection() {
           <span className="mono text-[22px] text-foreground leading-[1.3]">
             <span className="text-ice">1 PT</span> +{" "}
             <span className="text-amber">1 YT</span>
-            <br />= 1 USDG Vault
+            <br />
+            = 1 USDG Vault
           </span>
           <span className="mono text-[11px] tracking-[0.1em] text-muted-dark">
             {isFullZipped
