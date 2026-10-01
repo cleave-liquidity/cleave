@@ -1,0 +1,253 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #030304;
+  --foreground: #ECEDEA;
+}
+
+body {
+  margin: 0;
+  background: #030304;
+  color: #ECEDEA;
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: #ECEDEA;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #ffffff;
+}
+
+.mono {
+  font-family: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Animations from Cleave Visual Design */
+.draw {
+  stroke-dasharray: 1400;
+  stroke-dashoffset: 1400;
+  animation: draw 2.4s cubic-bezier(0.6, 0, 0.2, 1) forwards;
+}
+
+.draw.d2 {
+  animation-delay: 0.9s;
+}
+
+.draw.d3 {
+  animation-delay: 1.1s;
+}
+
+.flow {
+  stroke-dasharray: 2 22;
+  animation: flow 2.2s linear infinite;
+  opacity: 0;
+  animation-delay: 2.6s;
+  animation-fill-mode: both;
+}
+
+.flow.slow {
+  animation-duration: 3.4s;
+}
+
+.fade {
+  opacity: 0;
+  animation: fade 0.8s ease forwards;
+  animation-delay: 2.2s;
+}
+
+.verb {
+  display: inline-block;
+  animation: verb 0.5s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.tw {
+  animation: tw 4.2s ease-in-out infinite;
+}
+
+.ringflow {
+  animation: ringflow 18s linear infinite;
+}
+
+.rise {
+  opacity: 0;
+  transform: translateY(24px);
+  animation: rise 1.6s cubic-bezier(0.2, 0.7, 0.2, 1) 0.2s forwards;
+}
+
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes flow {
+  0% {
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
+  100% {
+    opacity: 1;
+    stroke-dashoffset: -48;
+  }
+}
+
+@keyframes fade {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes verb {
+  from {
+    opacity: 0;
+    transform: translateY(0.18em);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes tw {
+  0%, 100% {
+    opacity: 0.15;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes ringflow {
+  to {
+    stroke-dashoffset: -600;
+  }
+}
+
+@keyframes rise {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.spin {
+  animation: spin 60s linear infinite;
+}
+
+.rev {
+  animation-name: spinrev;
+}
+
+.drift {
+  animation: drift 90s linear infinite;
+}
+
+.shoot {
+  opacity: 0;
+  animation: shoot 11s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes spinrev {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+@keyframes drift {
+  to {
+    transform: translateX(-1040px);
+  }
+}
+
+@keyframes shoot {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  3% {
+    opacity: 1;
+  }
+  10% {
+    opacity: 0;
+    transform: translate(-520px, 250px);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-520px, 250px);
+  }
+}
+
+.still .draw {
+  animation: none;
+  stroke-dashoffset: 0;
+}
+
+.still .flow,
+.still .verb,
+.still .tw,
+.still .ringflow,
+.still .spin,
+.still .drift {
+  animation: none;
+}
+
+.still .fade,
+.still .rise {
+  animation: none;
+  opacity: 1;
+  transform: none;
+}
+
+.still .shoot {
+  animation: none;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .draw {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+  .flow,
+  .verb,
+  .tw,
+  .ringflow,
+  .spin,
+  .drift {
+    animation: none;
+  }
+  .fade,
+  .rise {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .shoot {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible {
+  outline: 2px solid #ECEDEA;
+  outline-offset: 3px;
+}
