@@ -1,5 +1,6 @@
 export interface FixedYieldPosition {
   id: string;
+  owner: `0x${string}`;
   marketId: string;
   assetSymbol: string;
   strategy: "fixed";
@@ -7,15 +8,18 @@ export interface FixedYieldPosition {
   ptAmount: number;
   currentValue: number;
   pnl: number;
+  entryImpliedApy: number;
   quotedFixedApy: number;
   maturity: string;
   maturityDate: string;
   openedAt: string;
+  mockTxHash: `0x${string}`;
   status: "active" | "matured" | "redeemed" | "closed";
 }
 
 export interface LongYieldPosition {
   id: string;
+  owner: `0x${string}`;
   marketId: string;
   assetSymbol: string;
   strategy: "long";
@@ -24,12 +28,15 @@ export interface LongYieldPosition {
   currentValue: number;
   pnl: number;
   claimableYield: number;
-  underlyingApyAtOpen: number;
-  impliedApyAtOpen: number;
+  entryUnderlyingApy: number;
+  entryImpliedApy: number;
+  breakEvenApy: number;
   currentUnderlyingApy: number;
   maturity: string;
   maturityDate: string;
   openedAt: string;
+  lastClaimedAt: string;
+  mockTxHash: `0x${string}`;
   status: "active" | "matured" | "closed";
 }
 
