@@ -219,14 +219,8 @@ export function YieldSplitSection() {
         </div>
       </div>
 
-      {/* Interactive Drag instruction pill */}
-      <div className="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-10 mt-8 flex items-center justify-between gap-4 flex-wrap">
-        <div className="mono flex items-center gap-2.5 text-[11px] tracking-[0.14em] text-muted-light bg-surface/90 border border-white/10 px-3.5 py-1.5 rounded-full backdrop-blur-sm">
-          <span className="w-2 h-2 rounded-full bg-ice animate-pulse" />
-          <span>DRAG THE SPLIT NODE &larr; &rarr; TO SIMULATE THE ZIPPER</span>
-        </div>
-
-        {/* Live Simulation Stats Chip */}
+      {/* Live Simulation Stats Bar */}
+      <div className="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-10 mt-8 flex items-center justify-end gap-4 flex-wrap">
         <div className="mono flex items-center gap-4 text-[11px] tracking-[0.12em] text-muted">
           <div>
             DATE: <span className="text-foreground font-medium">{currentDateStr}</span>
@@ -466,39 +460,11 @@ export function YieldSplitSection() {
                 strokeDasharray="2 4"
               />
 
-              {/* Top floating HUD Badge */}
-              <g transform="translate(0 150)" className="pointer-events-none">
-                <rect
-                  x="-72"
-                  y="-14"
-                  width="144"
-                  height="26"
-                  rx="4"
-                  fill="#0E1015"
-                  stroke={isDragging ? "#A9C8EE" : "rgba(255,255,255,0.25)"}
-                  strokeWidth="1"
-                />
-                <text
-                  x="0"
-                  y="3"
-                  textAnchor="middle"
-                  className="mono"
-                  fontSize="10"
-                  fill="#ECEDEA"
-                  letterSpacing="0.12em"
-                  fontWeight="500"
-                >
-                  {isFullZipped
-                    ? "MATURITY: ZIPPED"
-                    : `SPLIT · ${(progress * 100).toFixed(0)}%`}
-                </text>
-              </g>
-
               {/* Ambient handle glow */}
               <circle
                 cx="0"
                 cy={BASE_Y}
-                r={isDragging ? "42" : "32"}
+                r={isDragging ? "36" : "28"}
                 fill={isFullZipped ? "url(#handleGlowAmber)" : "url(#handleGlow)"}
                 className="transition-all duration-200"
               />
@@ -507,7 +473,7 @@ export function YieldSplitSection() {
               <circle
                 cx="0"
                 cy={BASE_Y}
-                r={isDragging ? "22" : "18"}
+                r={isDragging ? "20" : "16"}
                 fill="#0A0C10"
                 stroke={isDragging ? "#FFFFFF" : isFullZipped ? "#F0A85C" : "#A9C8EE"}
                 strokeWidth="1.6"
@@ -518,7 +484,7 @@ export function YieldSplitSection() {
               <circle
                 cx="0"
                 cy={BASE_Y}
-                r="13"
+                r="11"
                 fill="none"
                 stroke="rgba(255,255,255,0.4)"
                 strokeWidth="1"
@@ -532,32 +498,6 @@ export function YieldSplitSection() {
                 r="5"
                 fill={isFullZipped ? "#F0A85C" : "#ECEDEA"}
               />
-
-              {/* Drag indicator arrows < > */}
-              <g transform={`translate(0 ${BASE_Y + 34})`} className="pointer-events-none">
-                <rect
-                  x="-36"
-                  y="-9"
-                  width="72"
-                  height="18"
-                  rx="3"
-                  fill="#030304"
-                  stroke="rgba(255,255,255,0.2)"
-                  strokeWidth="0.8"
-                />
-                <text
-                  x="0"
-                  y="4"
-                  textAnchor="middle"
-                  className="mono"
-                  fontSize="9"
-                  fill={isDragging ? "#FFFFFF" : "#A9C8EE"}
-                  letterSpacing="0.14em"
-                  fontWeight="600"
-                >
-                  &larr; DRAG &rarr;
-                </text>
-              </g>
             </g>
           </svg>
         </div>

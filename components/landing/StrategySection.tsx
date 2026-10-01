@@ -51,7 +51,9 @@ export function StrategySection() {
 
     const points: string[] = [];
     for (let x = 10; x <= 510; x += 15) {
-      const wave = Math.sin((x - 10) / 32) * baseAmp * 0.7 + Math.cos((x - 10) / 64) * (baseAmp * 0.4);
+      const wave =
+        Math.sin((x - 10) / 32) * baseAmp * 0.7 +
+        Math.cos((x - 10) / 64) * (baseAmp * 0.4);
       const y = Math.max(15, Math.min(115, centerY + wave));
       points.push(`${x === 10 ? "M" : "L"} ${x} ${y.toFixed(1)}`);
     }
@@ -76,8 +78,8 @@ export function StrategySection() {
             <span className="text-muted">Or bet on it.</span>
           </h2>
           <p className="m-0 text-[15px] sm:text-[17px] leading-[1.6] text-muted font-light">
-            Slide the variable lending rate to test how Fixed (PT) and Long (YT) positions react
-            under different market conditions.
+            Slide the variable lending rate to test how Fixed (PT) and Long (YT)
+            positions react under different market conditions.
           </p>
         </div>
 
@@ -116,7 +118,8 @@ export function StrategySection() {
             </span>
           </div>
           <span className="mono text-[11px] text-muted-dark">
-            Break-even threshold for Long Yield: <span className="text-amber">6.23%</span>
+            Break-even threshold for Long Yield:{" "}
+            <span className="text-amber">6.23%</span>
           </span>
         </div>
 
@@ -181,7 +184,11 @@ export function StrategySection() {
               </span>
               <div className="flex items-baseline gap-3">
                 <span className="mono text-[32px] sm:text-[36px] font-medium text-foreground">
-                  ${fixedGrossReturn.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  $
+                  {fixedGrossReturn.toLocaleString("en-US", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
                 </span>
                 <span className="mono text-[14px] text-ice font-medium">
                   +${fixedNetProfit.toFixed(2)} (+{fixedRoiPct.toFixed(2)}%)
@@ -194,39 +201,85 @@ export function StrategySection() {
 
             {/* Steady Chart Illustration */}
             <div className="relative py-2">
-              <svg viewBox="0 0 520 120" className="w-full h-auto block" aria-hidden="true">
-                <path d="M 0 100 H 520" stroke="rgba(236,237,234,0.08)" strokeWidth="1" />
-                <path d="M 470 10 V 100" stroke="rgba(236,237,234,0.3)" strokeWidth="1" strokeDasharray="3 5" />
+              <svg
+                viewBox="0 0 520 120"
+                className="w-full h-auto block"
+                aria-hidden="true"
+              >
+                <path
+                  d="M 0 100 H 520"
+                  stroke="rgba(236,237,234,0.08)"
+                  strokeWidth="1"
+                />
+                <path
+                  d="M 470 10 V 100"
+                  stroke="rgba(236,237,234,0.3)"
+                  strokeWidth="1"
+                  strokeDasharray="3 5"
+                />
                 {/* Steady ascent */}
-                <path d="M 10 88 C 150 76, 320 44, 470 20" stroke="#A9C8EE" strokeWidth="2" fill="none" />
-                <path d="M 10 88 C 150 76, 320 44, 470 20 L 470 100 L 10 100 Z" fill="rgba(169,200,238,0.06)" />
+                <path
+                  d="M 10 88 C 150 76, 320 44, 470 20"
+                  stroke="#A9C8EE"
+                  strokeWidth="2"
+                  fill="none"
+                />
+                <path
+                  d="M 10 88 C 150 76, 320 44, 470 20 L 470 100 L 10 100 Z"
+                  fill="rgba(169,200,238,0.06)"
+                />
                 <circle cx="470" cy="20" r="4.5" fill="#A9C8EE" />
-                <text className="mono" x="476" y="16" fontSize="11" fill="#A9C8EE" fontWeight="500">
+                <text
+                  className="mono"
+                  x="476"
+                  y="16"
+                  fontSize="11"
+                  fill="#A9C8EE"
+                  fontWeight="500"
+                >
                   $1.00 USDG
                 </text>
-                <text className="mono" x="12" y="80" fontSize="11" fill="#8E9390">
+                <text
+                  className="mono"
+                  x="12"
+                  y="80"
+                  fontSize="11"
+                  fill="#8E9390"
+                >
                   $0.941
                 </text>
-                <text className="mono" x="12" y="20" fontSize="10" fill="#6F7471" letterSpacing="0.1em">
+                <text
+                  className="mono"
+                  x="12"
+                  y="20"
+                  fontSize="10"
+                  fill="#6F7471"
+                  letterSpacing="0.1em"
+                >
                   PREDICTABLE VALUE ACCRUAL
                 </text>
               </svg>
             </div>
 
             <p className="m-0 text-[14px] sm:text-[15px] leading-[1.6] text-muted font-light">
-              Your effective return is locked the moment you enter. Whether borrow demand
-              collapses or skyrockets, you redeem 1:1 in USDG at maturity.
+              Your effective return is locked the moment you enter. Whether
+              borrow demand collapses or skyrockets, you redeem 1:1 in USDG at
+              maturity.
             </p>
           </div>
 
           <div className="flex flex-col gap-2 pt-4 border-t border-white/10">
             <div className="flex justify-between text-[13px]">
               <span className="text-muted">Best for</span>
-              <span className="text-foreground font-medium">Corporate treasuries &amp; risk-off yield</span>
+              <span className="text-foreground font-medium">
+                Corporate treasuries &amp; risk-off yield
+              </span>
             </div>
             <div className="flex justify-between text-[13px]">
               <span className="text-muted">Early Exit</span>
-              <span className="text-foreground">Sell PT anytime on AMM at market price</span>
+              <span className="text-foreground">
+                Sell PT anytime on AMM at market price
+              </span>
             </div>
             <Link
               href="/trade?market=usdg-morpho-26mar27&side=fixed"
@@ -259,28 +312,57 @@ export function StrategySection() {
               </span>
               <div className="flex items-baseline gap-3">
                 <span className="mono text-[32px] sm:text-[36px] font-medium text-foreground">
-                  ${longGrossYield.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  $
+                  {longGrossYield.toLocaleString("en-US", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
                 </span>
                 <span
                   className={`mono text-[14px] font-medium ${
                     isLongProfitable ? "text-positive" : "text-negative"
                   }`}
                 >
-                  {isLongProfitable ? "+" : ""}${longNetProfit.toFixed(2)} ({isLongProfitable ? "+" : ""}{longRoiPct.toFixed(1)}%)
+                  {isLongProfitable ? "+" : ""}${longNetProfit.toFixed(2)} (
+                  {isLongProfitable ? "+" : ""}
+                  {longRoiPct.toFixed(1)}%)
                 </span>
               </div>
               <span className="mono text-[11px] text-muted-dark">
-                Exposure to <span className="text-foreground">${longEffectiveNotional.toLocaleString()}</span> USDG vault interest
+                Exposure to{" "}
+                <span className="text-foreground">
+                  ${longEffectiveNotional.toLocaleString()}
+                </span>{" "}
+                USDG vault interest
               </span>
             </div>
 
             {/* Dynamic Wavy Chart Illustration reacting to slider */}
             <div className="relative py-2">
-              <svg viewBox="0 0 520 120" className="w-full h-auto block" aria-hidden="true">
-                <path d="M 0 100 H 520" stroke="rgba(236,237,234,0.08)" strokeWidth="1" />
+              <svg
+                viewBox="0 0 520 120"
+                className="w-full h-auto block"
+                aria-hidden="true"
+              >
+                <path
+                  d="M 0 100 H 520"
+                  stroke="rgba(236,237,234,0.08)"
+                  strokeWidth="1"
+                />
                 {/* Break-even dotted line */}
-                <path d="M 0 65 H 520" stroke="rgba(236,237,234,0.3)" strokeWidth="1" strokeDasharray="4 5" />
-                <text className="mono" x="330" y="58" fontSize="10" fill="#8E9390">
+                <path
+                  d="M 0 65 H 520"
+                  stroke="rgba(236,237,234,0.3)"
+                  strokeWidth="1"
+                  strokeDasharray="4 5"
+                />
+                <text
+                  className="mono"
+                  x="330"
+                  y="58"
+                  fontSize="10"
+                  fill="#8E9390"
+                >
                   BREAK-EVEN 6.23%
                 </text>
                 {/* Reactive wave */}
@@ -291,26 +373,40 @@ export function StrategySection() {
                   fill="none"
                   className="transition-all duration-300"
                 />
-                <text className="mono" x="12" y="20" fontSize="10" fill="#F0A85C" letterSpacing="0.1em">
-                  {simulatedRate >= BREAK_EVEN_RATE ? "NET POSITIVE STREAM" : "RATE BELOW BREAK-EVEN"}
+                <text
+                  className="mono"
+                  x="12"
+                  y="20"
+                  fontSize="10"
+                  fill="#F0A85C"
+                  letterSpacing="0.1em"
+                >
+                  {simulatedRate >= BREAK_EVEN_RATE
+                    ? "NET POSITIVE STREAM"
+                    : "RATE BELOW BREAK-EVEN"}
                 </text>
               </svg>
             </div>
 
             <p className="m-0 text-[14px] sm:text-[15px] leading-[1.6] text-muted font-light">
-              Because YT costs ~$0.059 per token, you gain ~16.9x capital efficiency. When lending demand
-              surges, your yield claimable multiplies dramatically.
+              Because YT costs ~$0.059 per token, you gain ~16.9x capital
+              efficiency. When lending demand surges, your yield claimable
+              multiplies dramatically.
             </p>
           </div>
 
           <div className="flex flex-col gap-2 pt-4 border-t border-white/10">
             <div className="flex justify-between text-[13px]">
               <span className="text-muted">Best for</span>
-              <span className="text-foreground font-medium">Yield speculation &amp; rate hedging</span>
+              <span className="text-foreground font-medium">
+                Yield speculation &amp; rate hedging
+              </span>
             </div>
             <div className="flex justify-between text-[13px]">
               <span className="text-muted">Payout mechanism</span>
-              <span className="text-foreground">Claim streaming USDG continuously</span>
+              <span className="text-foreground">
+                Claim streaming USDG continuously
+              </span>
             </div>
             <Link
               href="/trade?market=usdg-morpho-26mar27&side=long"
