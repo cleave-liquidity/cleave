@@ -1,12 +1,6 @@
 "use client";
 
-import React, {
-  useState,
-  useRef,
-  useEffect,
-  useMemo,
-  useCallback,
-} from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 
 export interface HeroVisualProps {
   pointerX?: number;
@@ -21,800 +15,785 @@ const R = 345;
 
 const RAW_STAR_NODES = [
   {
-    lat: 70.05,
-    lon: 0.0,
-    r: 2.4,
-    col: "#FFFFFF",
-    twinkle: true,
-    delay: "0.0s",
-  },
-  {
-    lat: 66.96,
-    lon: 137.51,
-    r: 1.3,
-    col: "#FFFFFF",
-    twinkle: false,
-    delay: "0.2s",
-  },
-  {
-    lat: 64.21,
-    lon: 275.02,
-    r: 1.3,
-    col: "#DDE8F8",
-    twinkle: false,
-    delay: "0.5s",
-  },
-  {
-    lat: 61.72,
-    lon: 52.52,
-    r: 1.8,
-    col: "#FFFFFF",
-    twinkle: true,
-    delay: "0.8s",
-  },
-  {
-    lat: 59.41,
-    lon: 190.03,
-    r: 1.3,
-    col: "#A9C8EE",
-    twinkle: false,
-    delay: "1.0s",
-  },
-  {
-    lat: 57.25,
-    lon: 327.54,
-    r: 1.3,
-    col: "#FFFFFF",
-    twinkle: false,
-    delay: "1.2s",
-  },
-  {
-    lat: 55.21,
-    lon: 105.05,
-    r: 1.8,
-    col: "#FFE2C4",
-    twinkle: true,
-    delay: "1.5s",
-  },
-  {
-    lat: 53.27,
-    lon: 242.55,
-    r: 1.3,
-    col: "#FFFFFF",
-    twinkle: false,
-    delay: "1.8s",
-  },
-  {
-    lat: 51.42,
-    lon: 20.06,
-    r: 1.3,
-    col: "#FFFFFF",
-    twinkle: false,
-    delay: "2.0s",
-  },
-  {
-    lat: 49.63,
-    lon: 157.57,
-    r: 1.8,
-    col: "#FFFFFF",
-    twinkle: true,
-    delay: "2.2s",
-  },
-  {
-    lat: 47.91,
-    lon: 295.08,
-    r: 1.3,
-    col: "#DDE8F8",
-    twinkle: false,
-    delay: "2.5s",
-  },
-  {
-    lat: 46.25,
-    lon: 72.59,
-    r: 1.3,
-    col: "#FFFFFF",
-    twinkle: false,
-    delay: "2.8s",
-  },
-  {
-    lat: 44.63,
-    lon: 210.09,
-    r: 1.8,
-    col: "#A9C8EE",
-    twinkle: true,
-    delay: "3.0s",
+    "lat": 70.05,
+    "lon": 0.0,
+    "r": 2.4,
+    "col": "#FFFFFF",
+    "twinkle": true,
+    "delay": "0.0s"
+  },
+  {
+    "lat": 66.96,
+    "lon": 137.51,
+    "r": 1.3,
+    "col": "#FFFFFF",
+    "twinkle": false,
+    "delay": "0.2s"
+  },
+  {
+    "lat": 64.21,
+    "lon": 275.02,
+    "r": 1.3,
+    "col": "#DDE8F8",
+    "twinkle": false,
+    "delay": "0.5s"
+  },
+  {
+    "lat": 61.72,
+    "lon": 52.52,
+    "r": 1.8,
+    "col": "#FFFFFF",
+    "twinkle": true,
+    "delay": "0.8s"
+  },
+  {
+    "lat": 59.41,
+    "lon": 190.03,
+    "r": 1.3,
+    "col": "#A9C8EE",
+    "twinkle": false,
+    "delay": "1.0s"
+  },
+  {
+    "lat": 57.25,
+    "lon": 327.54,
+    "r": 1.3,
+    "col": "#FFFFFF",
+    "twinkle": false,
+    "delay": "1.2s"
+  },
+  {
+    "lat": 55.21,
+    "lon": 105.05,
+    "r": 1.8,
+    "col": "#FFE2C4",
+    "twinkle": true,
+    "delay": "1.5s"
+  },
+  {
+    "lat": 53.27,
+    "lon": 242.55,
+    "r": 1.3,
+    "col": "#FFFFFF",
+    "twinkle": false,
+    "delay": "1.8s"
+  },
+  {
+    "lat": 51.42,
+    "lon": 20.06,
+    "r": 1.3,
+    "col": "#FFFFFF",
+    "twinkle": false,
+    "delay": "2.0s"
+  },
+  {
+    "lat": 49.63,
+    "lon": 157.57,
+    "r": 1.8,
+    "col": "#FFFFFF",
+    "twinkle": true,
+    "delay": "2.2s"
+  },
+  {
+    "lat": 47.91,
+    "lon": 295.08,
+    "r": 1.3,
+    "col": "#DDE8F8",
+    "twinkle": false,
+    "delay": "2.5s"
+  },
+  {
+    "lat": 46.25,
+    "lon": 72.59,
+    "r": 1.3,
+    "col": "#FFFFFF",
+    "twinkle": false,
+    "delay": "2.8s"
+  },
+  {
+    "lat": 44.63,
+    "lon": 210.09,
+    "r": 1.8,
+    "col": "#A9C8EE",
+    "twinkle": true,
+    "delay": "3.0s"
   },
   {
-    lat: 43.06,
-    lon: 347.6,
-    r: 1.3,
-    col: "#FFFFFF",
-    twinkle: false,
-    delay: "3.2s",
+    "lat": 43.06,
+    "lon": 347.6,
+    "r": 1.3,
+    "col": "#FFFFFF",
+    "twinkle": false,
+    "delay": "3.2s"
   },
   {
-    lat: 41.53,
-    lon: 125.11,
-    r: 1.3,
-    col: "#FFE2C4",
-    twinkle: false,
-    delay: "3.5s",
+    "lat": 41.53,
+    "lon": 125.11,
+    "r": 1.3,
+    "col": "#FFE2C4",
+    "twinkle": false,
+    "delay": "3.5s"
   },
   {
-    lat: 40.03,
-    lon: 262.62,
-    r: 1.8,
-    col: "#FFFFFF",
-    twinkle: true,
-    delay: "3.8s",
+    "lat": 40.03,
+    "lon": 262.62,
+    "r": 1.8,
+    "col": "#FFFFFF",
+    "twinkle": true,
+    "delay": "3.8s"
   },
   {
-    lat: 38.56,
-    lon: 40.12,
-    r: 1.3,
-    col: "#FFFFFF",
-    twinkle: false,
-    delay: "0.0s",
+    "lat": 38.56,
+    "lon": 40.12,
+    "r": 1.3,
+    "col": "#FFFFFF",
+    "twinkle": false,
+    "delay": "0.0s"
   },
   {
-    lat: 37.13,
-    lon: 177.63,
-    r: 1.3,
-    col: "#FFFFFF",
-    twinkle: false,
-    delay: "0.2s",
+    "lat": 37.13,
+    "lon": 177.63,
+    "r": 1.3,
+    "col": "#FFFFFF",
+    "twinkle": false,
+    "delay": "0.2s"
   },
   {
-    lat: 35.72,
-    lon: 315.14,
-    r: 1.8,
-    col: "#DDE8F8",
-    twinkle: true,
-    delay: "0.5s",
+    "lat": 35.72,
+    "lon": 315.14,
+    "r": 1.8,
+    "col": "#DDE8F8",
+    "twinkle": true,
+    "delay": "0.5s"
   },
   {
-    lat: 34.33,
-    lon: 92.65,
-    r: 1.3,
-    col: "#FFFFFF",
-    twinkle: false,
-    delay: "0.8s",
+    "lat": 34.33,
+    "lon": 92.65,
+    "r": 1.3,
+    "col": "#FFFFFF",
+    "twinkle": false,
+    "delay": "0.8s"
   },
   {
-    lat: 32.97,
-    lon: 230.16,
-    r: 1.3,
-    col: "#A9C8EE",
-    twinkle: false,
-    delay: "1.0s",
+    "lat": 32.97,
+    "lon": 230.16,
+    "r": 1.3,
+    "col": "#A9C8EE",
+    "twinkle": false,
+    "delay": "1.0s"
   },
   {
-    lat: 31.63,
-    lon: 7.66,
-    r: 1.8,
-    col: "#FFFFFF",
-    twinkle: true,
-    delay: "1.2s",
+    "lat": 31.63,
+    "lon": 7.66,
+    "r": 1.8,
+    "col": "#FFFFFF",
+    "twinkle": true,
+    "delay": "1.2s"
   },
   {
-    lat: 30.31,
-    lon: 145.17,
-    r: 1.3,
-    col: "#FFE2C4",
-    twinkle: false,
-    delay: "1.5s",
+    "lat": 30.31,
+    "lon": 145.17,
+    "r": 1.3,
+    "col": "#FFE2C4",
+    "twinkle": false,
+    "delay": "1.5s"
   },
   {
-    lat: 29.0,
-    lon: 282.68,
-    r: 1.3,
-    col: "#FFFFFF",
-    twinkle: false,
-    delay: "1.8s",
+    "lat": 29.0,
+    "lon": 282.68,
+    "r": 1.3,
+    "col": "#FFFFFF",
+    "twinkle": false,
+    "delay": "1.8s"
   },
   {
-    lat: 27.71,
-    lon: 60.19,
-    r: 2.4,
-    col: "#FFFFFF",
-    twinkle: true,
-    delay: "2.0s",
+    "lat": 27.71,
+    "lon": 60.19,
+    "r": 2.4,
+    "col": "#FFFFFF",
+    "twinkle": true,
+    "delay": "2.0s"
   },
   {
-    lat: 26.44,
-    lon: 197.69,
-    r: 1.3,
-    col: "#FFFFFF",
-    twinkle: false,
-    delay: "2.2s",
+    "lat": 26.44,
+    "lon": 197.69,
+    "r": 1.3,
+    "col": "#FFFFFF",
+    "twinkle": false,
+    "delay": "2.2s"
   },
   {
-    lat: 25.18,
-    lon: 335.2,
-    r: 1.3,
-    col: "#DDE8F8",
-    twinkle: false,
-    delay: "2.5s",
+    "lat": 25.18,
+    "lon": 335.2,
+    "r": 1.3,
+    "col": "#DDE8F8",
+    "twinkle": false,
+    "delay": "2.5s"
   },
   {
-    lat: 23.93,
-    lon: 112.71,
-    r: 1.8,
-    col: "#FFFFFF",
-    twinkle: true,
-    delay: "2.8s",
+    "lat": 23.93,
+    "lon": 112.71,
+    "r": 1.8,
+    "col": "#FFFFFF",
+    "twinkle": true,
+    "delay": "2.8s"
   },
   {
-    lat: 22.7,
-    lon: 250.22,
-    r: 1.3,
-    col: "#A9C8EE",
-    twinkle: false,
-    delay: "3.0s",
+    "lat": 22.7,
+    "lon": 250.22,
+    "r": 1.3,
+    "col": "#A9C8EE",
+    "twinkle": false,
+    "delay": "3.0s"
   },
   {
-    lat: 21.48,
-    lon: 27.73,
-    r: 1.3,
-    col: "#FFFFFF",
-    twinkle: false,
-    delay: "3.2s",
+    "lat": 21.48,
+    "lon": 27.73,
+    "r": 1.3,
+    "col": "#FFFFFF",
+    "twinkle": false,
+    "delay": "3.2s"
   },
   {
-    lat: 20.26,
-    lon: 165.23,
-    r: 1.8,
-    col: "#FFE2C4",
-    twinkle: true,
-    delay: "3.5s",
+    "lat": 20.26,
+    "lon": 165.23,
+    "r": 1.8,
+    "col": "#FFE2C4",
+    "twinkle": true,
+    "delay": "3.5s"
   },
   {
-    lat: 19.06,
-    lon: 302.74,
-    r: 1.3,
-    col: "#FFFFFF",
-    twinkle: false,
-    delay: "3.8s",
+    "lat": 19.06,
+    "lon": 302.74,
+    "r": 1.3,
+    "col": "#FFFFFF",
+    "twinkle": false,
+    "delay": "3.8s"
   },
   {
-    lat: 17.86,
-    lon: 80.25,
-    r: 1.3,
-    col: "#FFFFFF",
-    twinkle: false,
-    delay: "0.0s",
+    "lat": 17.86,
+    "lon": 80.25,
+    "r": 1.3,
+    "col": "#FFFFFF",
+    "twinkle": false,
+    "delay": "0.0s"
   },
   {
-    lat: 16.68,
-    lon: 217.76,
-    r: 1.8,
-    col: "#FFFFFF",
-    twinkle: true,
-    delay: "0.2s",
+    "lat": 16.68,
+    "lon": 217.76,
+    "r": 1.8,
+    "col": "#FFFFFF",
+    "twinkle": true,
+    "delay": "0.2s"
   },
   {
-    lat: 15.5,
-    lon: 355.26,
-    r: 1.3,
-    col: "#DDE8F8",
-    twinkle: false,
-    delay: "0.5s",
+    "lat": 15.5,
+    "lon": 355.26,
+    "r": 1.3,
+    "col": "#DDE8F8",
+    "twinkle": false,
+    "delay": "0.5s"
   },
   {
-    lat: 14.32,
-    lon: 132.77,
-    r: 1.3,
-    col: "#FFFFFF",
-    twinkle: false,
-    delay: "0.8s",
+    "lat": 14.32,
+    "lon": 132.77,
+    "r": 1.3,
+    "col": "#FFFFFF",
+    "twinkle": false,
+    "delay": "0.8s"
   },
   {
-    lat: 13.15,
-    lon: 270.28,
-    r: 1.8,
-    col: "#A9C8EE",
-    twinkle: true,
-    delay: "1.0s",
+    "lat": 13.15,
+    "lon": 270.28,
+    "r": 1.8,
+    "col": "#A9C8EE",
+    "twinkle": true,
+    "delay": "1.0s"
   },
   {
-    lat: 11.99,
-    lon: 47.79,
-    r: 1.3,
-    col: "#FFFFFF",
-    twinkle: false,
-    delay: "1.2s",
+    "lat": 11.99,
+    "lon": 47.79,
+    "r": 1.3,
+    "col": "#FFFFFF",
+    "twinkle": false,
+    "delay": "1.2s"
   },
   {
-    lat: 10.84,
-    lon: 185.3,
-    r: 1.3,
-    col: "#FFE2C4",
-    twinkle: false,
-    delay: "1.5s",
+    "lat": 10.84,
+    "lon": 185.3,
+    "r": 1.3,
+    "col": "#FFE2C4",
+    "twinkle": false,
+    "delay": "1.5s"
   },
   {
-    lat: 9.68,
-    lon: 322.8,
-    r: 1.8,
-    col: "#FFFFFF",
-    twinkle: true,
-    delay: "1.8s",
+    "lat": 9.68,
+    "lon": 322.8,
+    "r": 1.8,
+    "col": "#FFFFFF",
+    "twinkle": true,
+    "delay": "1.8s"
   },
   {
-    lat: 8.54,
-    lon: 100.31,
-    r: 1.3,
-    col: "#FFFFFF",
-    twinkle: false,
-    delay: "2.0s",
+    "lat": 8.54,
+    "lon": 100.31,
+    "r": 1.3,
+    "col": "#FFFFFF",
+    "twinkle": false,
+    "delay": "2.0s"
   },
   {
-    lat: 7.39,
-    lon: 237.82,
-    r: 1.3,
-    col: "#FFFFFF",
-    twinkle: false,
-    delay: "2.2s",
+    "lat": 7.39,
+    "lon": 237.82,
+    "r": 1.3,
+    "col": "#FFFFFF",
+    "twinkle": false,
+    "delay": "2.2s"
   },
   {
-    lat: 6.25,
-    lon: 15.33,
-    r: 1.8,
-    col: "#DDE8F8",
-    twinkle: true,
-    delay: "2.5s",
+    "lat": 6.25,
+    "lon": 15.33,
+    "r": 1.8,
+    "col": "#DDE8F8",
+    "twinkle": true,
+    "delay": "2.5s"
   },
   {
-    lat: 5.11,
-    lon: 152.83,
-    r: 1.3,
-    col: "#FFFFFF",
-    twinkle: false,
-    delay: "2.8s",
+    "lat": 5.11,
+    "lon": 152.83,
+    "r": 1.3,
+    "col": "#FFFFFF",
+    "twinkle": false,
+    "delay": "2.8s"
   },
   {
-    lat: 3.97,
-    lon: 290.34,
-    r: 1.3,
-    col: "#A9C8EE",
-    twinkle: false,
-    delay: "3.0s",
+    "lat": 3.97,
+    "lon": 290.34,
+    "r": 1.3,
+    "col": "#A9C8EE",
+    "twinkle": false,
+    "delay": "3.0s"
   },
   {
-    lat: 2.84,
-    lon: 67.85,
-    r: 1.8,
-    col: "#FFFFFF",
-    twinkle: true,
-    delay: "3.2s",
+    "lat": 2.84,
+    "lon": 67.85,
+    "r": 1.8,
+    "col": "#FFFFFF",
+    "twinkle": true,
+    "delay": "3.2s"
   },
   {
-    lat: 1.7,
-    lon: 205.36,
-    r: 1.3,
-    col: "#FFE2C4",
-    twinkle: false,
-    delay: "3.5s",
+    "lat": 1.7,
+    "lon": 205.36,
+    "r": 1.3,
+    "col": "#FFE2C4",
+    "twinkle": false,
+    "delay": "3.5s"
   },
   {
-    lat: 0.57,
-    lon: 342.86,
-    r: 1.3,
-    col: "#FFFFFF",
-    twinkle: false,
-    delay: "3.8s",
+    "lat": 0.57,
+    "lon": 342.86,
+    "r": 1.3,
+    "col": "#FFFFFF",
+    "twinkle": false,
+    "delay": "3.8s"
   },
   {
-    lat: -0.57,
-    lon: 120.37,
-    r: 2.4,
-    col: "#FFFFFF",
-    twinkle: true,
-    delay: "0.0s",
+    "lat": -0.57,
+    "lon": 120.37,
+    "r": 2.4,
+    "col": "#FFFFFF",
+    "twinkle": true,
+    "delay": "0.0s"
   },
   {
-    lat: -1.7,
-    lon: 257.88,
-    r: 1.3,
-    col: "#FFFFFF",
-    twinkle: false,
-    delay: "0.2s",
+    "lat": -1.7,
+    "lon": 257.88,
+    "r": 1.3,
+    "col": "#FFFFFF",
+    "twinkle": false,
+    "delay": "0.2s"
   },
   {
-    lat: -2.84,
-    lon: 35.39,
-    r: 1.3,
-    col: "#DDE8F8",
-    twinkle: false,
-    delay: "0.5s",
+    "lat": -2.84,
+    "lon": 35.39,
+    "r": 1.3,
+    "col": "#DDE8F8",
+    "twinkle": false,
+    "delay": "0.5s"
   },
   {
-    lat: -3.97,
-    lon: 172.9,
-    r: 1.8,
-    col: "#FFFFFF",
-    twinkle: true,
-    delay: "0.8s",
+    "lat": -3.97,
+    "lon": 172.9,
+    "r": 1.8,
+    "col": "#FFFFFF",
+    "twinkle": true,
+    "delay": "0.8s"
   },
   {
-    lat: -5.11,
-    lon: 310.4,
-    r: 1.3,
-    col: "#A9C8EE",
-    twinkle: false,
-    delay: "1.0s",
+    "lat": -5.11,
+    "lon": 310.4,
+    "r": 1.3,
+    "col": "#A9C8EE",
+    "twinkle": false,
+    "delay": "1.0s"
   },
   {
-    lat: -6.25,
-    lon: 87.91,
-    r: 1.3,
-    col: "#FFFFFF",
-    twinkle: false,
-    delay: "1.2s",
+    "lat": -6.25,
+    "lon": 87.91,
+    "r": 1.3,
+    "col": "#FFFFFF",
+    "twinkle": false,
+    "delay": "1.2s"
   },
   {
-    lat: -7.39,
-    lon: 225.42,
-    r: 1.8,
-    col: "#FFE2C4",
-    twinkle: true,
-    delay: "1.5s",
+    "lat": -7.39,
+    "lon": 225.42,
+    "r": 1.8,
+    "col": "#FFE2C4",
+    "twinkle": true,
+    "delay": "1.5s"
   },
   {
-    lat: -8.54,
-    lon: 2.93,
-    r: 1.3,
-    col: "#FFFFFF",
-    twinkle: false,
-    delay: "1.8s",
+    "lat": -8.54,
+    "lon": 2.93,
+    "r": 1.3,
+    "col": "#FFFFFF",
+    "twinkle": false,
+    "delay": "1.8s"
   },
   {
-    lat: -9.68,
-    lon: 140.43,
-    r: 1.3,
-    col: "#FFFFFF",
-    twinkle: false,
-    delay: "2.0s",
+    "lat": -9.68,
+    "lon": 140.43,
+    "r": 1.3,
+    "col": "#FFFFFF",
+    "twinkle": false,
+    "delay": "2.0s"
   },
   {
-    lat: -10.84,
-    lon: 277.94,
-    r: 1.8,
-    col: "#FFFFFF",
-    twinkle: true,
-    delay: "2.2s",
+    "lat": -10.84,
+    "lon": 277.94,
+    "r": 1.8,
+    "col": "#FFFFFF",
+    "twinkle": true,
+    "delay": "2.2s"
   },
   {
-    lat: -11.99,
-    lon: 55.45,
-    r: 1.3,
-    col: "#DDE8F8",
-    twinkle: false,
-    delay: "2.5s",
+    "lat": -11.99,
+    "lon": 55.45,
+    "r": 1.3,
+    "col": "#DDE8F8",
+    "twinkle": false,
+    "delay": "2.5s"
   },
   {
-    lat: -13.15,
-    lon: 192.96,
-    r: 1.3,
-    col: "#FFFFFF",
-    twinkle: false,
-    delay: "2.8s",
+    "lat": -13.15,
+    "lon": 192.96,
+    "r": 1.3,
+    "col": "#FFFFFF",
+    "twinkle": false,
+    "delay": "2.8s"
   },
   {
-    lat: -14.32,
-    lon: 330.47,
-    r: 1.8,
-    col: "#A9C8EE",
-    twinkle: true,
-    delay: "3.0s",
+    "lat": -14.32,
+    "lon": 330.47,
+    "r": 1.8,
+    "col": "#A9C8EE",
+    "twinkle": true,
+    "delay": "3.0s"
   },
   {
-    lat: -15.5,
-    lon: 107.97,
-    r: 1.3,
-    col: "#FFFFFF",
-    twinkle: false,
-    delay: "3.2s",
+    "lat": -15.5,
+    "lon": 107.97,
+    "r": 1.3,
+    "col": "#FFFFFF",
+    "twinkle": false,
+    "delay": "3.2s"
   },
   {
-    lat: -16.68,
-    lon: 245.48,
-    r: 1.3,
-    col: "#FFE2C4",
-    twinkle: false,
-    delay: "3.5s",
+    "lat": -16.68,
+    "lon": 245.48,
+    "r": 1.3,
+    "col": "#FFE2C4",
+    "twinkle": false,
+    "delay": "3.5s"
   },
   {
-    lat: -17.86,
-    lon: 22.99,
-    r: 1.8,
-    col: "#FFFFFF",
-    twinkle: true,
-    delay: "3.8s",
+    "lat": -17.86,
+    "lon": 22.99,
+    "r": 1.8,
+    "col": "#FFFFFF",
+    "twinkle": true,
+    "delay": "3.8s"
   },
   {
-    lat: -19.06,
-    lon: 160.5,
-    r: 1.3,
-    col: "#FFFFFF",
-    twinkle: false,
-    delay: "0.0s",
+    "lat": -19.06,
+    "lon": 160.5,
+    "r": 1.3,
+    "col": "#FFFFFF",
+    "twinkle": false,
+    "delay": "0.0s"
   },
   {
-    lat: -20.26,
-    lon: 298.0,
-    r: 1.3,
-    col: "#FFFFFF",
-    twinkle: false,
-    delay: "0.2s",
+    "lat": -20.26,
+    "lon": 298.0,
+    "r": 1.3,
+    "col": "#FFFFFF",
+    "twinkle": false,
+    "delay": "0.2s"
   },
   {
-    lat: -21.48,
-    lon: 75.51,
-    r: 1.8,
-    col: "#DDE8F8",
-    twinkle: true,
-    delay: "0.5s",
+    "lat": -21.48,
+    "lon": 75.51,
+    "r": 1.8,
+    "col": "#DDE8F8",
+    "twinkle": true,
+    "delay": "0.5s"
   },
   {
-    lat: -22.7,
-    lon: 213.02,
-    r: 1.3,
-    col: "#FFFFFF",
-    twinkle: false,
-    delay: "0.8s",
+    "lat": -22.7,
+    "lon": 213.02,
+    "r": 1.3,
+    "col": "#FFFFFF",
+    "twinkle": false,
+    "delay": "0.8s"
   },
   {
-    lat: -23.93,
-    lon: 350.53,
-    r: 1.3,
-    col: "#A9C8EE",
-    twinkle: false,
-    delay: "1.0s",
+    "lat": -23.93,
+    "lon": 350.53,
+    "r": 1.3,
+    "col": "#A9C8EE",
+    "twinkle": false,
+    "delay": "1.0s"
   },
   {
-    lat: -25.18,
-    lon: 128.04,
-    r: 1.8,
-    col: "#FFFFFF",
-    twinkle: true,
-    delay: "1.2s",
+    "lat": -25.18,
+    "lon": 128.04,
+    "r": 1.8,
+    "col": "#FFFFFF",
+    "twinkle": true,
+    "delay": "1.2s"
   },
   {
-    lat: -26.44,
-    lon: 265.54,
-    r: 1.3,
-    col: "#FFE2C4",
-    twinkle: false,
-    delay: "1.5s",
+    "lat": -26.44,
+    "lon": 265.54,
+    "r": 1.3,
+    "col": "#FFE2C4",
+    "twinkle": false,
+    "delay": "1.5s"
   },
   {
-    lat: -27.71,
-    lon: 43.05,
-    r: 1.3,
-    col: "#FFFFFF",
-    twinkle: false,
-    delay: "1.8s",
+    "lat": -27.71,
+    "lon": 43.05,
+    "r": 1.3,
+    "col": "#FFFFFF",
+    "twinkle": false,
+    "delay": "1.8s"
   },
   {
-    lat: -29.0,
-    lon: 180.56,
-    r: 2.4,
-    col: "#FFFFFF",
-    twinkle: true,
-    delay: "2.0s",
+    "lat": -29.0,
+    "lon": 180.56,
+    "r": 2.4,
+    "col": "#FFFFFF",
+    "twinkle": true,
+    "delay": "2.0s"
   },
   {
-    lat: -30.31,
-    lon: 318.07,
-    r: 1.3,
-    col: "#FFFFFF",
-    twinkle: false,
-    delay: "2.2s",
+    "lat": -30.31,
+    "lon": 318.07,
+    "r": 1.3,
+    "col": "#FFFFFF",
+    "twinkle": false,
+    "delay": "2.2s"
   },
   {
-    lat: -31.63,
-    lon: 95.57,
-    r: 1.3,
-    col: "#DDE8F8",
-    twinkle: false,
-    delay: "2.5s",
+    "lat": -31.63,
+    "lon": 95.57,
+    "r": 1.3,
+    "col": "#DDE8F8",
+    "twinkle": false,
+    "delay": "2.5s"
   },
   {
-    lat: -32.97,
-    lon: 233.08,
-    r: 1.8,
-    col: "#FFFFFF",
-    twinkle: true,
-    delay: "2.8s",
+    "lat": -32.97,
+    "lon": 233.08,
+    "r": 1.8,
+    "col": "#FFFFFF",
+    "twinkle": true,
+    "delay": "2.8s"
   },
   {
-    lat: -34.33,
-    lon: 10.59,
-    r: 1.3,
-    col: "#A9C8EE",
-    twinkle: false,
-    delay: "3.0s",
+    "lat": -34.33,
+    "lon": 10.59,
+    "r": 1.3,
+    "col": "#A9C8EE",
+    "twinkle": false,
+    "delay": "3.0s"
   },
   {
-    lat: -35.72,
-    lon: 148.1,
-    r: 1.3,
-    col: "#FFFFFF",
-    twinkle: false,
-    delay: "3.2s",
+    "lat": -35.72,
+    "lon": 148.1,
+    "r": 1.3,
+    "col": "#FFFFFF",
+    "twinkle": false,
+    "delay": "3.2s"
   },
   {
-    lat: -37.13,
-    lon: 285.61,
-    r: 1.8,
-    col: "#FFE2C4",
-    twinkle: true,
-    delay: "3.5s",
+    "lat": -37.13,
+    "lon": 285.61,
+    "r": 1.8,
+    "col": "#FFE2C4",
+    "twinkle": true,
+    "delay": "3.5s"
   },
   {
-    lat: -38.56,
-    lon: 63.11,
-    r: 1.3,
-    col: "#FFFFFF",
-    twinkle: false,
-    delay: "3.8s",
+    "lat": -38.56,
+    "lon": 63.11,
+    "r": 1.3,
+    "col": "#FFFFFF",
+    "twinkle": false,
+    "delay": "3.8s"
   },
   {
-    lat: -40.03,
-    lon: 200.62,
-    r: 1.3,
-    col: "#FFFFFF",
-    twinkle: false,
-    delay: "0.0s",
+    "lat": -40.03,
+    "lon": 200.62,
+    "r": 1.3,
+    "col": "#FFFFFF",
+    "twinkle": false,
+    "delay": "0.0s"
   },
   {
-    lat: -41.53,
-    lon: 338.13,
-    r: 1.8,
-    col: "#FFFFFF",
-    twinkle: true,
-    delay: "0.2s",
+    "lat": -41.53,
+    "lon": 338.13,
+    "r": 1.8,
+    "col": "#FFFFFF",
+    "twinkle": true,
+    "delay": "0.2s"
   },
   {
-    lat: -43.06,
-    lon: 115.64,
-    r: 1.3,
-    col: "#DDE8F8",
-    twinkle: false,
-    delay: "0.5s",
+    "lat": -43.06,
+    "lon": 115.64,
+    "r": 1.3,
+    "col": "#DDE8F8",
+    "twinkle": false,
+    "delay": "0.5s"
   },
   {
-    lat: -44.63,
-    lon: 253.14,
-    r: 1.3,
-    col: "#FFFFFF",
-    twinkle: false,
-    delay: "0.8s",
-  },
-  {
-    lat: -46.25,
-    lon: 30.65,
-    r: 1.8,
-    col: "#A9C8EE",
-    twinkle: true,
-    delay: "1.0s",
-  },
-  {
-    lat: -47.91,
-    lon: 168.16,
-    r: 1.3,
-    col: "#FFFFFF",
-    twinkle: false,
-    delay: "1.2s",
-  },
-  {
-    lat: -49.63,
-    lon: 305.67,
-    r: 1.3,
-    col: "#FFE2C4",
-    twinkle: false,
-    delay: "1.5s",
-  },
-  {
-    lat: -51.42,
-    lon: 83.18,
-    r: 1.8,
-    col: "#FFFFFF",
-    twinkle: true,
-    delay: "1.8s",
-  },
-  {
-    lat: -53.27,
-    lon: 220.68,
-    r: 1.3,
-    col: "#FFFFFF",
-    twinkle: false,
-    delay: "2.0s",
-  },
-  {
-    lat: -55.21,
-    lon: 358.19,
-    r: 1.3,
-    col: "#FFFFFF",
-    twinkle: false,
-    delay: "2.2s",
-  },
-  {
-    lat: -57.25,
-    lon: 135.7,
-    r: 1.8,
-    col: "#DDE8F8",
-    twinkle: true,
-    delay: "2.5s",
-  },
-  {
-    lat: -59.41,
-    lon: 273.21,
-    r: 1.3,
-    col: "#FFFFFF",
-    twinkle: false,
-    delay: "2.8s",
-  },
-  {
-    lat: -61.72,
-    lon: 50.71,
-    r: 1.3,
-    col: "#A9C8EE",
-    twinkle: false,
-    delay: "3.0s",
-  },
-  {
-    lat: -64.21,
-    lon: 188.22,
-    r: 1.8,
-    col: "#FFFFFF",
-    twinkle: true,
-    delay: "3.2s",
-  },
-  {
-    lat: -66.96,
-    lon: 325.73,
-    r: 1.3,
-    col: "#FFE2C4",
-    twinkle: false,
-    delay: "3.5s",
-  },
-  {
-    lat: -70.05,
-    lon: 103.24,
-    r: 1.3,
-    col: "#FFFFFF",
-    twinkle: false,
-    delay: "3.8s",
-  },
+    "lat": -44.63,
+    "lon": 253.14,
+    "r": 1.3,
+    "col": "#FFFFFF",
+    "twinkle": false,
+    "delay": "0.8s"
+  },
+  {
+    "lat": -46.25,
+    "lon": 30.65,
+    "r": 1.8,
+    "col": "#A9C8EE",
+    "twinkle": true,
+    "delay": "1.0s"
+  },
+  {
+    "lat": -47.91,
+    "lon": 168.16,
+    "r": 1.3,
+    "col": "#FFFFFF",
+    "twinkle": false,
+    "delay": "1.2s"
+  },
+  {
+    "lat": -49.63,
+    "lon": 305.67,
+    "r": 1.3,
+    "col": "#FFE2C4",
+    "twinkle": false,
+    "delay": "1.5s"
+  },
+  {
+    "lat": -51.42,
+    "lon": 83.18,
+    "r": 1.8,
+    "col": "#FFFFFF",
+    "twinkle": true,
+    "delay": "1.8s"
+  },
+  {
+    "lat": -53.27,
+    "lon": 220.68,
+    "r": 1.3,
+    "col": "#FFFFFF",
+    "twinkle": false,
+    "delay": "2.0s"
+  },
+  {
+    "lat": -55.21,
+    "lon": 358.19,
+    "r": 1.3,
+    "col": "#FFFFFF",
+    "twinkle": false,
+    "delay": "2.2s"
+  },
+  {
+    "lat": -57.25,
+    "lon": 135.7,
+    "r": 1.8,
+    "col": "#DDE8F8",
+    "twinkle": true,
+    "delay": "2.5s"
+  },
+  {
+    "lat": -59.41,
+    "lon": 273.21,
+    "r": 1.3,
+    "col": "#FFFFFF",
+    "twinkle": false,
+    "delay": "2.8s"
+  },
+  {
+    "lat": -61.72,
+    "lon": 50.71,
+    "r": 1.3,
+    "col": "#A9C8EE",
+    "twinkle": false,
+    "delay": "3.0s"
+  },
+  {
+    "lat": -64.21,
+    "lon": 188.22,
+    "r": 1.8,
+    "col": "#FFFFFF",
+    "twinkle": true,
+    "delay": "3.2s"
+  },
+  {
+    "lat": -66.96,
+    "lon": 325.73,
+    "r": 1.3,
+    "col": "#FFE2C4",
+    "twinkle": false,
+    "delay": "3.5s"
+  },
+  {
+    "lat": -70.05,
+    "lon": 103.24,
+    "r": 1.3,
+    "col": "#FFFFFF",
+    "twinkle": false,
+    "delay": "3.8s"
+  }
 ];
 
 // 3D Cube Definition (for Split Engine Tesseract Vault Core)
 const CUBE_VERTICES = [
-  [-1, -1, -1],
-  [1, -1, -1],
-  [1, 1, -1],
-  [-1, 1, -1],
-  [-1, -1, 1],
-  [1, -1, 1],
-  [1, 1, 1],
-  [-1, 1, 1],
+  [-1, -1, -1], [1, -1, -1], [1, 1, -1], [-1, 1, -1],
+  [-1, -1,  1], [1, -1,  1], [1, 1,  1], [-1, 1,  1],
 ];
 
 const CUBE_EDGES = [
-  [0, 1],
-  [1, 2],
-  [2, 3],
-  [3, 0], // back square
-  [4, 5],
-  [5, 6],
-  [6, 7],
-  [7, 4], // front square
-  [0, 4],
-  [1, 5],
-  [2, 6],
-  [3, 7], // connectors
+  [0, 1], [1, 2], [2, 3], [3, 0], // back square
+  [4, 5], [5, 6], [6, 7], [7, 4], // front square
+  [0, 4], [1, 5], [2, 6], [3, 7], // connectors
 ];
 
 export function HeroVisual({
@@ -973,11 +952,7 @@ export function HeroVisual({
 
   const fixedBias = Math.max(0, -pointerX);
   const longBias = Math.max(0, pointerX);
-  const fixedOp = fixedActive
-    ? 1.0
-    : longActive
-      ? 0.35
-      : 0.72 + fixedBias * 0.28;
+  const fixedOp = fixedActive ? 1.0 : longActive ? 0.35 : 0.72 + fixedBias * 0.28;
   const longOp = longActive ? 1.0 : fixedActive ? 0.35 : 0.72 + longBias * 0.28;
 
   // Camera zoom & pan focusing precisely on points of interest per stage
@@ -1018,9 +993,7 @@ export function HeroVisual({
         cx: 0,
         rx: Number(rx.toFixed(2)),
         ry: Number(ry.toFixed(2)),
-        opacity: isEquator
-          ? Number((op * 1.35).toFixed(2))
-          : Number(op.toFixed(2)),
+        opacity: isEquator ? Number((op * 1.35).toFixed(2)) : Number(op.toFixed(2)),
         strokeWidth: isEquator ? 1.1 : 0.65,
       };
     });
@@ -1078,12 +1051,7 @@ export function HeroVisual({
     const cosRy = Math.cos(ry);
     const sinRy = Math.sin(ry);
 
-    const projectVertex = (
-      vx: number,
-      vy: number,
-      vz: number,
-      scale: number,
-    ) => {
+    const projectVertex = (vx: number, vy: number, vz: number, scale: number) => {
       const x = vx * scale;
       const y = vy * scale;
       const z = vz * scale;
@@ -1091,22 +1059,14 @@ export function HeroVisual({
       const z1 = -x * sinRy + z * cosRy;
       const y1 = y * cosRx - z1 * sinRx;
       const z2 = y * sinRx + z1 * cosRx;
-      return {
-        x: Number(x1.toFixed(2)),
-        y: Number(y1.toFixed(2)),
-        z: Number(z2.toFixed(2)),
-      };
+      return { x: Number(x1.toFixed(2)), y: Number(y1.toFixed(2)), z: Number(z2.toFixed(2)) };
     };
 
     const S_OUTER = engineActive ? 80 : 68;
-    const outerVertices = CUBE_VERTICES.map(([vx, vy, vz]) =>
-      projectVertex(vx, vy, vz, S_OUTER),
-    );
+    const outerVertices = CUBE_VERTICES.map(([vx, vy, vz]) => projectVertex(vx, vy, vz, S_OUTER));
 
     const S_INNER = engineActive ? 42 : 35;
-    const innerVertices = CUBE_VERTICES.map(([vx, vy, vz]) =>
-      projectVertex(vx, vy, vz, S_INNER),
-    );
+    const innerVertices = CUBE_VERTICES.map(([vx, vy, vz]) => projectVertex(vx, vy, vz, S_INNER));
 
     const outerEdgesProj = CUBE_EDGES.map(([i1, i2]) => {
       const v1 = outerVertices[i1];
@@ -1212,23 +1172,9 @@ export function HeroVisual({
         </filter>
 
         {/* High-intensity bloom filter for major star bodies & vault core */}
-        <filter
-          id="majorStarGlow"
-          x="-100%"
-          y="-100%"
-          width="300%"
-          height="300%"
-        >
-          <feGaussianBlur
-            in="SourceGraphic"
-            stdDeviation="5.0"
-            result="bigBlur"
-          />
-          <feGaussianBlur
-            in="SourceGraphic"
-            stdDeviation="1.8"
-            result="tightBlur"
-          />
+        <filter id="majorStarGlow" x="-100%" y="-100%" width="300%" height="300%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="5.0" result="bigBlur" />
+          <feGaussianBlur in="SourceGraphic" stdDeviation="1.8" result="tightBlur" />
           <feMerge>
             <feMergeNode in="bigBlur" />
             <feMergeNode in="tightBlur" />
@@ -1237,13 +1183,7 @@ export function HeroVisual({
         </filter>
 
         {/* Directional Lighting Mask: Bright crisp white at top-left, fading to dark at bottom-right */}
-        <linearGradient
-          id="planetLightGrad"
-          x1="18%"
-          y1="0%"
-          x2="42%"
-          y2="100%"
-        >
+        <linearGradient id="planetLightGrad" x1="18%" y1="0%" x2="42%" y2="100%">
           <stop offset="0%" stopColor="#FFFFFF" stopOpacity="1" />
           <stop offset="32%" stopColor="#FFFFFF" stopOpacity="0.88" />
           <stop offset="62%" stopColor="#FFFFFF" stopOpacity="0.55" />
@@ -1251,13 +1191,7 @@ export function HeroVisual({
           <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.1" />
         </linearGradient>
         <mask id="planetMeshMask">
-          <rect
-            x="-1000"
-            y="-1000"
-            width="2000"
-            height="2000"
-            fill="url(#planetLightGrad)"
-          />
+          <rect x="-1000" y="-1000" width="2000" height="2000" fill="url(#planetLightGrad)" />
         </mask>
 
         {/* Top-left razor-sharp crescent rim arc lighting */}
@@ -1294,109 +1228,39 @@ export function HeroVisual({
       <rect width="1440" height="940" fill="transparent" pointerEvents="all" />
 
       {/* Subtle deep cosmic sky background */}
-      <rect
-        width="1440"
-        height="940"
-        fill="url(#skyGrad)"
-        pointerEvents="none"
-      />
+      <rect width="1440" height="940" fill="url(#skyGrad)" pointerEvents="none" />
 
       {/* Top-Left Distant Black Hole Feature */}
       <g transform="translate(160 145)" opacity="0.35" pointerEvents="none">
         <circle r="42" fill="#010204" />
         <g className="spin" style={{ animationDuration: "85s" }}>
-          <circle
-            r="52"
-            fill="none"
-            stroke="#2A3546"
-            strokeWidth="0.8"
-            strokeDasharray="14 12"
-            opacity="0.4"
-          />
-          <circle
-            r="68"
-            fill="none"
-            stroke="#A9C8EE"
-            strokeWidth="0.5"
-            strokeDasharray="4 18"
-            opacity="0.25"
-          />
+          <circle r="52" fill="none" stroke="#2A3546" strokeWidth="0.8" strokeDasharray="14 12" opacity="0.4" />
+          <circle r="68" fill="none" stroke="#A9C8EE" strokeWidth="0.5" strokeDasharray="4 18" opacity="0.25" />
           <circle cx="52" cy="0" r="1.5" fill="#A9C8EE" opacity="0.7" />
         </g>
       </g>
 
       {/* Active Shooting Meteors */}
       <g transform="translate(1180 140) rotate(-32)" pointerEvents="none">
-        <g
-          className="shoot"
-          style={{ animationDelay: "0.8s", animationDuration: "8.5s" }}
-        >
-          <line
-            x1="0"
-            y1="0"
-            x2="-160"
-            y2="0"
-            stroke="url(#meteorTailA)"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-          />
-          <circle
-            cx="0"
-            cy="0"
-            r="2.6"
-            fill="#FFFFFF"
-            filter="url(#starGlow)"
-          />
+        <g className="shoot" style={{ animationDelay: "0.8s", animationDuration: "8.5s" }}>
+          <line x1="0" y1="0" x2="-160" y2="0" stroke="url(#meteorTailA)" strokeWidth="2.2" strokeLinecap="round" />
+          <circle cx="0" cy="0" r="2.6" fill="#FFFFFF" filter="url(#starGlow)" />
           <circle cx="0" cy="0" r="5.5" fill="#A9C8EE" opacity="0.45" />
         </g>
       </g>
 
       <g transform="translate(380 90) rotate(-26)" pointerEvents="none">
-        <g
-          className="shoot"
-          style={{ animationDelay: "4.8s", animationDuration: "10.5s" }}
-        >
-          <line
-            x1="0"
-            y1="0"
-            x2="-180"
-            y2="0"
-            stroke="url(#meteorTailA)"
-            strokeWidth="2.0"
-            strokeLinecap="round"
-          />
-          <circle
-            cx="0"
-            cy="0"
-            r="2.8"
-            fill="#FFFFFF"
-            filter="url(#starGlow)"
-          />
+        <g className="shoot" style={{ animationDelay: "4.8s", animationDuration: "10.5s" }}>
+          <line x1="0" y1="0" x2="-180" y2="0" stroke="url(#meteorTailA)" strokeWidth="2.0" strokeLinecap="round" />
+          <circle cx="0" cy="0" r="2.8" fill="#FFFFFF" filter="url(#starGlow)" />
           <circle cx="0" cy="0" r="6" fill="#DDE8F8" opacity="0.4" />
         </g>
       </g>
 
       <g transform="translate(980 340) rotate(-35)" pointerEvents="none">
-        <g
-          className="shoot"
-          style={{ animationDelay: "8.2s", animationDuration: "12s" }}
-        >
-          <line
-            x1="0"
-            y1="0"
-            x2="-130"
-            y2="0"
-            stroke="url(#meteorTailA)"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-          />
-          <circle
-            cx="0"
-            cy="0"
-            r="2.0"
-            fill="#FFFFFF"
-            filter="url(#starGlow)"
-          />
+        <g className="shoot" style={{ animationDelay: "8.2s", animationDuration: "12s" }}>
+          <line x1="0" y1="0" x2="-130" y2="0" stroke="url(#meteorTailA)" strokeWidth="1.6" strokeLinecap="round" />
+          <circle cx="0" cy="0" r="2.0" fill="#FFFFFF" filter="url(#starGlow)" />
         </g>
       </g>
 
@@ -1418,28 +1282,11 @@ export function HeroVisual({
         />
 
         {/* Moving Orbital System (Back of Planet) */}
-        <g
-          transform="rotate(-8) scale(1 0.22)"
-          clipPath="url(#oback)"
-          pointerEvents="none"
-        >
-          <circle
-            r="390"
-            fill="none"
-            stroke="#A9C8EE"
-            strokeWidth="0.55"
-            opacity="0.3"
-            strokeDasharray="6 14"
-          />
-          <g
-            className="spin"
-            style={{ animationDuration: "19s", animationDelay: "-3s" }}
-          >
+        <g transform="rotate(-8) scale(1 0.22)" clipPath="url(#oback)" pointerEvents="none">
+          <circle r="390" fill="none" stroke="#A9C8EE" strokeWidth="0.55" opacity="0.3" strokeDasharray="6 14" />
+          <g className="spin" style={{ animationDuration: "19s", animationDelay: "-3s" }}>
             <g transform="translate(390 0)">
-              <g
-                className="spin rev"
-                style={{ animationDuration: "19s", animationDelay: "-3s" }}
-              >
+              <g className="spin rev" style={{ animationDuration: "19s", animationDelay: "-3s" }}>
                 <circle r="3.2" fill="#FFFFFF" filter="url(#starGlow)" />
                 <circle r="8" fill="#A9C8EE" opacity="0.35" />
               </g>
@@ -1448,77 +1295,20 @@ export function HeroVisual({
         </g>
 
         {/* Fixed Yield Orbit Track (Ice Blue, -15 deg) - Back */}
-        <g
-          transform="rotate(-15) scale(1 0.23)"
-          clipPath="url(#oback)"
-          pointerEvents="none"
-        >
-          <circle
-            r="428"
-            fill="none"
-            stroke="#A9C8EE"
-            strokeWidth="0.6"
-            opacity="0.35"
-          />
-          <circle
-            r="445"
-            fill="none"
-            stroke="#A9C8EE"
-            strokeWidth="1.6"
-            opacity={fixedOp}
-          />
-          <circle
-            className="ringflow"
-            r="445"
-            fill="none"
-            stroke="#FFFFFF"
-            strokeWidth="2.4"
-            strokeDasharray="180 80 40 80"
-            opacity={fixedOp}
-            style={{ animationDuration: "55s" }}
-          />
-          <circle
-            r="462"
-            fill="none"
-            stroke="#A9C8EE"
-            strokeWidth="0.8"
-            opacity="0.4"
-          />
-          <circle
-            className="ringflow"
-            r="462"
-            fill="none"
-            stroke="#DDE8F8"
-            strokeWidth="0.6"
-            strokeDasharray="2 12"
-            opacity="0.6"
-            style={{ animationDuration: "75s" }}
-          />
+        <g transform="rotate(-15) scale(1 0.23)" clipPath="url(#oback)" pointerEvents="none">
+          <circle r="428" fill="none" stroke="#A9C8EE" strokeWidth="0.6" opacity="0.35" />
+          <circle r="445" fill="none" stroke="#A9C8EE" strokeWidth="1.6" opacity={fixedOp} />
+          <circle className="ringflow" r="445" fill="none" stroke="#FFFFFF" strokeWidth="2.4" strokeDasharray="180 80 40 80" opacity={fixedOp} style={{ animationDuration: "55s" }} />
+          <circle r="462" fill="none" stroke="#A9C8EE" strokeWidth="0.8" opacity="0.4" />
+          <circle className="ringflow" r="462" fill="none" stroke="#DDE8F8" strokeWidth="0.6" strokeDasharray="2 12" opacity="0.6" style={{ animationDuration: "75s" }} />
         </g>
 
         {/* Celestial Orbit Track (+24 deg) - Back */}
-        <g
-          transform="rotate(24) scale(1 0.24)"
-          clipPath="url(#oback)"
-          pointerEvents="none"
-        >
-          <circle
-            r="490"
-            fill="none"
-            stroke="#ECEDEA"
-            strokeWidth="0.65"
-            opacity="0.25"
-            strokeDasharray="10 16"
-          />
-          <g
-            className="spin"
-            style={{ animationDuration: "22s", animationDelay: "-5s" }}
-          >
+        <g transform="rotate(24) scale(1 0.24)" clipPath="url(#oback)" pointerEvents="none">
+          <circle r="490" fill="none" stroke="#ECEDEA" strokeWidth="0.65" opacity="0.25" strokeDasharray="10 16" />
+          <g className="spin" style={{ animationDuration: "22s", animationDelay: "-5s" }}>
             <g transform="translate(490 0)">
-              <g
-                className="spin rev"
-                style={{ animationDuration: "22s", animationDelay: "-5s" }}
-              >
+              <g className="spin rev" style={{ animationDuration: "22s", animationDelay: "-5s" }}>
                 <circle r="3.8" fill="#FFFFFF" filter="url(#starGlow)" />
                 <circle r="10" fill="#DDE8F8" opacity="0.35" />
               </g>
@@ -1527,77 +1317,18 @@ export function HeroVisual({
         </g>
 
         {/* Long Yield Orbit Track (Amber, -15 deg) - Back */}
-        <g
-          transform="rotate(-15) scale(1 0.23)"
-          clipPath="url(#oback)"
-          pointerEvents="none"
-        >
-          <circle
-            r="525"
-            fill="none"
-            stroke="#F0A85C"
-            strokeWidth="0.6"
-            opacity="0.35"
-          />
-          <circle
-            r="545"
-            fill="none"
-            stroke="#F0A85C"
-            strokeWidth="1.8"
-            opacity={longOp}
-          />
-          <circle
-            className="ringflow"
-            r="545"
-            fill="none"
-            stroke="#FFF2D6"
-            strokeWidth="2.5"
-            strokeDasharray="240 100 50 100"
-            opacity={longOp}
-            style={{ animationDuration: "42s" }}
-          />
-          <circle
-            r="568"
-            fill="none"
-            stroke="#F0A85C"
-            strokeWidth="0.8"
-            opacity="0.4"
-          />
-          <circle
-            className="ringflow"
-            r="568"
-            fill="none"
-            stroke="#F0A85C"
-            strokeWidth="0.6"
-            strokeDasharray="4 16"
-            opacity="0.5"
-            style={{ animationDuration: "60s" }}
-          />
+        <g transform="rotate(-15) scale(1 0.23)" clipPath="url(#oback)" pointerEvents="none">
+          <circle r="525" fill="none" stroke="#F0A85C" strokeWidth="0.6" opacity="0.35" />
+          <circle r="545" fill="none" stroke="#F0A85C" strokeWidth="1.8" opacity={longOp} />
+          <circle className="ringflow" r="545" fill="none" stroke="#FFF2D6" strokeWidth="2.5" strokeDasharray="240 100 50 100" opacity={longOp} style={{ animationDuration: "42s" }} />
+          <circle r="568" fill="none" stroke="#F0A85C" strokeWidth="0.8" opacity="0.4" />
+          <circle className="ringflow" r="568" fill="none" stroke="#F0A85C" strokeWidth="0.6" strokeDasharray="4 16" opacity="0.5" style={{ animationDuration: "60s" }} />
         </g>
 
         {/* Sweeping Celestial Outer Ring (-26 deg) - Back */}
-        <g
-          transform="rotate(-26) scale(1 0.25)"
-          clipPath="url(#oback)"
-          pointerEvents="none"
-        >
-          <circle
-            r="650"
-            fill="none"
-            stroke="#ECEDEA"
-            strokeWidth="0.75"
-            opacity="0.25"
-          />
-          <circle
-            className="ringflow"
-            r="650"
-            fill="none"
-            stroke="#FFFFFF"
-            strokeWidth="1.6"
-            strokeDasharray="300 160 40 100"
-            opacity="0.85"
-            style={{ animationDuration: "32s" }}
-          />
+        <g transform="rotate(-26) scale(1 0.25)" clipPath="url(#oback)" pointerEvents="none">
+          <circle r="650" fill="none" stroke="#ECEDEA" strokeWidth="0.75" opacity="0.25" />
+          <circle className="ringflow" r="650" fill="none" stroke="#FFFFFF" strokeWidth="1.6" strokeDasharray="300 160 40 100" opacity="0.85" style={{ animationDuration: "32s" }} />
         </g>
 
         {/* ============================================================== */}
@@ -1609,18 +1340,10 @@ export function HeroVisual({
           <circle
             r="345"
             fill="none"
-            stroke={
-              fixedActive
-                ? "#A9C8EE"
-                : longActive
-                  ? "#F0A85C"
-                  : "rgba(255,255,255,0.12)"
-            }
+            stroke={fixedActive ? "#A9C8EE" : longActive ? "#F0A85C" : "rgba(255,255,255,0.12)"}
             strokeWidth={fixedActive || longActive ? "1.4" : "0.8"}
             opacity={fixedActive || longActive ? "0.6" : "0.3"}
-            style={{
-              transition: "stroke 0.6s ease-out, stroke-width 0.6s ease-out",
-            }}
+            style={{ transition: "stroke 0.6s ease-out, stroke-width 0.6s ease-out" }}
           />
 
           {/* Crisp Wireframe Net with Directional Lighting */}
@@ -1635,9 +1358,7 @@ export function HeroVisual({
                   rx={lat.rx}
                   ry={lat.ry}
                   fill="none"
-                  stroke={
-                    fixedActive ? "#DDE8F8" : longActive ? "#FFE2C4" : "#FFFFFF"
-                  }
+                  stroke={fixedActive ? "#DDE8F8" : longActive ? "#FFE2C4" : "#FFFFFF"}
                   strokeWidth={lat.strokeWidth}
                   opacity={lat.opacity}
                   style={{ transition: "stroke 0.5s ease-out" }}
@@ -1654,9 +1375,7 @@ export function HeroVisual({
                   ry={mer.ry}
                   transform={`rotate(${mer.angle})`}
                   fill="none"
-                  stroke={
-                    fixedActive ? "#DDE8F8" : longActive ? "#FFE2C4" : "#FFFFFF"
-                  }
+                  stroke={fixedActive ? "#DDE8F8" : longActive ? "#FFE2C4" : "#FFFFFF"}
                   strokeWidth={mer.strokeWidth}
                   opacity={mer.opacity}
                   style={{ transition: "stroke 0.5s ease-out" }}
@@ -1664,31 +1383,28 @@ export function HeroVisual({
               ))}
 
               {/* Star Constellation Nodes on Surface */}
-              {starNodes.map(
-                (st, i) =>
-                  st.opacity > 0 && (
-                    <g key={`star-${i}`}>
-                      <circle
-                        cx={st.x}
-                        cy={st.y}
-                        r={st.r}
-                        fill={st.col}
-                        opacity={st.opacity}
-                        className={st.twinkle ? "tw" : undefined}
-                        style={
-                          st.twinkle ? { animationDelay: st.delay } : undefined
-                        }
-                      />
-                      <circle
-                        cx={st.x}
-                        cy={st.y}
-                        r={st.r * 2.2}
-                        fill={st.col}
-                        opacity={st.opacity * 0.28}
-                      />
-                    </g>
-                  ),
-              )}
+              {starNodes.map((st, i) => (
+                st.opacity > 0 && (
+                  <g key={`star-${i}`}>
+                    <circle
+                      cx={st.x}
+                      cy={st.y}
+                      r={st.r}
+                      fill={st.col}
+                      opacity={st.opacity}
+                      className={st.twinkle ? "tw" : undefined}
+                      style={st.twinkle ? { animationDelay: st.delay } : undefined}
+                    />
+                    <circle
+                      cx={st.x}
+                      cy={st.y}
+                      r={st.r * 2.2}
+                      fill={st.col}
+                      opacity={st.opacity * 0.28}
+                    />
+                  </g>
+                )
+              ))}
             </g>
           </g>
 
@@ -1703,38 +1419,10 @@ export function HeroVisual({
 
           {/* Outer boundary tick marks */}
           <g opacity="0.35">
-            <line
-              x1="-345"
-              y1="0"
-              x2="-335"
-              y2="0"
-              stroke="#FFFFFF"
-              strokeWidth="0.8"
-            />
-            <line
-              x1="345"
-              y1="0"
-              x2="335"
-              y2="0"
-              stroke="#FFFFFF"
-              strokeWidth="0.8"
-            />
-            <line
-              x1="0"
-              y1="-345"
-              x2="0"
-              y2="-335"
-              stroke="#FFFFFF"
-              strokeWidth="0.8"
-            />
-            <line
-              x1="0"
-              y1="345"
-              x2="0"
-              y2="335"
-              stroke="#FFFFFF"
-              strokeWidth="0.8"
-            />
+            <line x1="-345" y1="0" x2="-335" y2="0" stroke="#FFFFFF" strokeWidth="0.8" />
+            <line x1="345" y1="0" x2="335" y2="0" stroke="#FFFFFF" strokeWidth="0.8" />
+            <line x1="0" y1="-345" x2="0" y2="-335" stroke="#FFFFFF" strokeWidth="0.8" />
+            <line x1="0" y1="345" x2="0" y2="335" stroke="#FFFFFF" strokeWidth="0.8" />
           </g>
 
           {/* ============================================================== */}
@@ -1746,9 +1434,7 @@ export function HeroVisual({
               <circle
                 r="115"
                 fill="none"
-                stroke={
-                  fixedActive ? "#A9C8EE" : longActive ? "#F0A85C" : "#FFFFFF"
-                }
+                stroke={fixedActive ? "#A9C8EE" : longActive ? "#F0A85C" : "#FFFFFF"}
                 strokeWidth="0.65"
                 opacity={engineActive ? 0.85 : 0.28}
                 strokeDasharray="8 10"
@@ -1758,9 +1444,7 @@ export function HeroVisual({
               <circle
                 r="92"
                 fill="none"
-                stroke={
-                  fixedActive ? "#A9C8EE" : longActive ? "#F0A85C" : "#A9C8EE"
-                }
+                stroke={fixedActive ? "#A9C8EE" : longActive ? "#F0A85C" : "#A9C8EE"}
                 strokeWidth="0.6"
                 opacity={engineActive ? 0.9 : 0.3}
                 strokeDasharray="5 8"
@@ -1775,19 +1459,9 @@ export function HeroVisual({
                 y1={e.y1}
                 x2={e.x2}
                 y2={e.y2}
-                stroke={
-                  engineActive
-                    ? "#A9C8EE"
-                    : fixedActive
-                      ? "#A9C8EE"
-                      : longActive
-                        ? "#F0A85C"
-                        : "#FFFFFF"
-                }
+                stroke={engineActive ? "#A9C8EE" : fixedActive ? "#A9C8EE" : longActive ? "#F0A85C" : "#FFFFFF"}
                 strokeWidth={e.strokeWidth}
-                opacity={
-                  engineActive ? Math.min(1, e.opacity * 1.5) : e.opacity
-                }
+                opacity={engineActive ? Math.min(1, e.opacity * 1.5) : e.opacity}
               />
             ))}
 
@@ -1799,19 +1473,9 @@ export function HeroVisual({
                 y1={e.y1}
                 x2={e.x2}
                 y2={e.y2}
-                stroke={
-                  engineActive
-                    ? "#F0A85C"
-                    : fixedActive
-                      ? "#DDE8F8"
-                      : longActive
-                        ? "#FFF2D6"
-                        : "#DDE8F8"
-                }
+                stroke={engineActive ? "#F0A85C" : fixedActive ? "#DDE8F8" : longActive ? "#FFF2D6" : "#DDE8F8"}
                 strokeWidth={e.strokeWidth}
-                opacity={
-                  engineActive ? Math.min(1, e.opacity * 1.6) : e.opacity
-                }
+                opacity={engineActive ? Math.min(1, e.opacity * 1.6) : e.opacity}
               />
             ))}
 
@@ -1829,26 +1493,11 @@ export function HeroVisual({
             ))}
 
             {/* Radiant Central Yield Token Nucleus (USDG Anchor) */}
-            <circle
-              r="12"
-              fill="none"
-              stroke="#FFFFFF"
-              strokeWidth="0.6"
-              opacity="0.35"
-              strokeDasharray="3 3"
-            />
+            <circle r="12" fill="none" stroke="#FFFFFF" strokeWidth="0.6" opacity="0.35" strokeDasharray="3 3" />
             <circle r="5.5" fill="#FFFFFF" filter="url(#majorStarGlow)" />
             <circle
               r="16"
-              fill={
-                fixedActive
-                  ? "#A9C8EE"
-                  : longActive
-                    ? "#F0A85C"
-                    : engineActive
-                      ? "#A9C8EE"
-                      : "#F0A85C"
-              }
+              fill={fixedActive ? "#A9C8EE" : longActive ? "#F0A85C" : engineActive ? "#A9C8EE" : "#F0A85C"}
               opacity={engineActive ? 0.5 : 0.25}
               filter="url(#starGlow)"
             />
@@ -1856,45 +1505,13 @@ export function HeroVisual({
             {/* Laser Split Vector (Active in Stage 3) */}
             {engineActive && (
               <g>
-                <line
-                  x1="-12"
-                  y1="0"
-                  x2="-120"
-                  y2="0"
-                  stroke="#A9C8EE"
-                  strokeWidth="1.8"
-                  filter="url(#starGlow)"
-                />
+                <line x1="-12" y1="0" x2="-120" y2="0" stroke="#A9C8EE" strokeWidth="1.8" filter="url(#starGlow)" />
                 <polygon points="-120,-4 -130,0 -120,4" fill="#A9C8EE" />
-                <text
-                  x="-136"
-                  y="4"
-                  textAnchor="end"
-                  className="mono text-[9px] tracking-[0.18em]"
-                  fill="#A9C8EE"
-                >
-                  PT (PRINCIPAL)
-                </text>
+                <text x="-136" y="4" textAnchor="end" className="mono text-[9px] tracking-[0.18em]" fill="#A9C8EE">PT (PRINCIPAL)</text>
 
-                <line
-                  x1="12"
-                  y1="0"
-                  x2="120"
-                  y2="0"
-                  stroke="#F0A85C"
-                  strokeWidth="1.8"
-                  filter="url(#starGlow)"
-                />
+                <line x1="12" y1="0" x2="120" y2="0" stroke="#F0A85C" strokeWidth="1.8" filter="url(#starGlow)" />
                 <polygon points="120,-4 130,0 120,4" fill="#F0A85C" />
-                <text
-                  x="136"
-                  y="4"
-                  textAnchor="start"
-                  className="mono text-[9px] tracking-[0.18em]"
-                  fill="#F0A85C"
-                >
-                  YT (YIELD)
-                </text>
+                <text x="136" y="4" textAnchor="start" className="mono text-[9px] tracking-[0.18em]" fill="#F0A85C">YT (YIELD)</text>
               </g>
             )}
 
@@ -1914,80 +1531,21 @@ export function HeroVisual({
 
         {/* Tactical HUD Overlay for Stage 4 */}
         {vaultsActive && (
-          <g
-            pointerEvents="none"
-            className="transition-opacity duration-700 ease-out"
-          >
-            <circle
-              r="220"
-              fill="none"
-              stroke="#34D399"
-              strokeWidth="0.6"
-              opacity="0.35"
-              strokeDasharray="8 12"
-            />
-            <line
-              x1="-360"
-              y1="0"
-              x2="-330"
-              y2="0"
-              stroke="#34D399"
-              strokeWidth="1.2"
-              opacity="0.6"
-            />
-            <line
-              x1="330"
-              y1="0"
-              x2="360"
-              y2="0"
-              stroke="#34D399"
-              strokeWidth="1.2"
-              opacity="0.6"
-            />
-            <line
-              x1="0"
-              y1="-360"
-              x2="0"
-              y2="-330"
-              stroke="#34D399"
-              strokeWidth="1.2"
-              opacity="0.6"
-            />
-            <line
-              x1="0"
-              y1="330"
-              x2="0"
-              y2="360"
-              stroke="#34D399"
-              strokeWidth="1.2"
-              opacity="0.6"
-            />
+          <g pointerEvents="none" className="transition-opacity duration-700 ease-out">
+            <circle r="220" fill="none" stroke="#34D399" strokeWidth="0.6" opacity="0.35" strokeDasharray="8 12" />
+            <line x1="-360" y1="0" x2="-330" y2="0" stroke="#34D399" strokeWidth="1.2" opacity="0.6" />
+            <line x1="330" y1="0" x2="360" y2="0" stroke="#34D399" strokeWidth="1.2" opacity="0.6" />
+            <line x1="0" y1="-360" x2="0" y2="-330" stroke="#34D399" strokeWidth="1.2" opacity="0.6" />
+            <line x1="0" y1="330" x2="0" y2="360" stroke="#34D399" strokeWidth="1.2" opacity="0.6" />
           </g>
         )}
 
         {/* Moving Orbital System (Foreground - in Front of Planet) */}
-        <g
-          transform="rotate(-8) scale(1 0.22)"
-          clipPath="url(#ofront)"
-          pointerEvents="none"
-        >
-          <circle
-            r="390"
-            fill="none"
-            stroke="#A9C8EE"
-            strokeWidth="0.55"
-            opacity="0.3"
-            strokeDasharray="6 14"
-          />
-          <g
-            className="spin"
-            style={{ animationDuration: "19s", animationDelay: "-3s" }}
-          >
+        <g transform="rotate(-8) scale(1 0.22)" clipPath="url(#ofront)" pointerEvents="none">
+          <circle r="390" fill="none" stroke="#A9C8EE" strokeWidth="0.55" opacity="0.3" strokeDasharray="6 14" />
+          <g className="spin" style={{ animationDuration: "19s", animationDelay: "-3s" }}>
             <g transform="translate(390 0)">
-              <g
-                className="spin rev"
-                style={{ animationDuration: "19s", animationDelay: "-3s" }}
-              >
+              <g className="spin rev" style={{ animationDuration: "19s", animationDelay: "-3s" }}>
                 <circle r="3.2" fill="#FFFFFF" filter="url(#starGlow)" />
                 <circle r="8" fill="#A9C8EE" opacity="0.35" />
               </g>
@@ -1996,63 +1554,17 @@ export function HeroVisual({
         </g>
 
         {/* Fixed Yield Orbit Track (Ice Blue, -15 deg) - Front */}
-        <g
-          transform="rotate(-15) scale(1 0.23)"
-          clipPath="url(#ofront)"
-          pointerEvents="none"
-        >
-          <circle
-            r="428"
-            fill="none"
-            stroke="#A9C8EE"
-            strokeWidth="0.6"
-            opacity="0.35"
-          />
-          <circle
-            r="445"
-            fill="none"
-            stroke="#A9C8EE"
-            strokeWidth="1.6"
-            opacity={fixedOp}
-          />
-          <circle
-            className="ringflow"
-            r="445"
-            fill="none"
-            stroke="#FFFFFF"
-            strokeWidth="2.4"
-            strokeDasharray="180 80 40 80"
-            opacity={fixedOp}
-            style={{ animationDuration: "55s" }}
-          />
-          <circle
-            r="462"
-            fill="none"
-            stroke="#A9C8EE"
-            strokeWidth="0.8"
-            opacity="0.4"
-          />
-          <circle
-            className="ringflow"
-            r="462"
-            fill="none"
-            stroke="#DDE8F8"
-            strokeWidth="0.6"
-            strokeDasharray="2 12"
-            opacity="0.6"
-            style={{ animationDuration: "75s" }}
-          />
+        <g transform="rotate(-15) scale(1 0.23)" clipPath="url(#ofront)" pointerEvents="none">
+          <circle r="428" fill="none" stroke="#A9C8EE" strokeWidth="0.6" opacity="0.35" />
+          <circle r="445" fill="none" stroke="#A9C8EE" strokeWidth="1.6" opacity={fixedOp} />
+          <circle className="ringflow" r="445" fill="none" stroke="#FFFFFF" strokeWidth="2.4" strokeDasharray="180 80 40 80" opacity={fixedOp} style={{ animationDuration: "55s" }} />
+          <circle r="462" fill="none" stroke="#A9C8EE" strokeWidth="0.8" opacity="0.4" />
+          <circle className="ringflow" r="462" fill="none" stroke="#DDE8F8" strokeWidth="0.6" strokeDasharray="2 12" opacity="0.6" style={{ animationDuration: "75s" }} />
 
           {/* Primary Fixed Yield Star Satellite */}
-          <g
-            className="spin"
-            style={{ animationDuration: "26s", animationDelay: "-6.5s" }}
-          >
+          <g className="spin" style={{ animationDuration: "26s", animationDelay: "-6.5s" }}>
             <g transform="translate(445 0)">
-              <g
-                className="spin rev"
-                style={{ animationDuration: "26s", animationDelay: "-6.5s" }}
-              >
+              <g className="spin rev" style={{ animationDuration: "26s", animationDelay: "-6.5s" }}>
                 <circle r="5.0" fill="#FFFFFF" filter="url(#majorStarGlow)" />
                 <circle r="14" fill="#A9C8EE" opacity="0.45" />
                 <circle r="24" fill="#A9C8EE" opacity="0.18" />
@@ -2062,63 +1574,17 @@ export function HeroVisual({
         </g>
 
         {/* Long Yield Orbit Track (Amber, -15 deg) - Front */}
-        <g
-          transform="rotate(-15) scale(1 0.23)"
-          clipPath="url(#ofront)"
-          pointerEvents="none"
-        >
-          <circle
-            r="525"
-            fill="none"
-            stroke="#F0A85C"
-            strokeWidth="0.6"
-            opacity="0.35"
-          />
-          <circle
-            r="545"
-            fill="none"
-            stroke="#F0A85C"
-            strokeWidth="1.8"
-            opacity={longOp}
-          />
-          <circle
-            className="ringflow"
-            r="545"
-            fill="none"
-            stroke="#FFF2D6"
-            strokeWidth="2.5"
-            strokeDasharray="240 100 50 100"
-            opacity={longOp}
-            style={{ animationDuration: "42s" }}
-          />
-          <circle
-            r="568"
-            fill="none"
-            stroke="#F0A85C"
-            strokeWidth="0.8"
-            opacity="0.4"
-          />
-          <circle
-            className="ringflow"
-            r="568"
-            fill="none"
-            stroke="#F0A85C"
-            strokeWidth="0.6"
-            strokeDasharray="4 16"
-            opacity="0.5"
-            style={{ animationDuration: "60s" }}
-          />
+        <g transform="rotate(-15) scale(1 0.23)" clipPath="url(#ofront)" pointerEvents="none">
+          <circle r="525" fill="none" stroke="#F0A85C" strokeWidth="0.6" opacity="0.35" />
+          <circle r="545" fill="none" stroke="#F0A85C" strokeWidth="1.8" opacity={longOp} />
+          <circle className="ringflow" r="545" fill="none" stroke="#FFF2D6" strokeWidth="2.5" strokeDasharray="240 100 50 100" opacity={longOp} style={{ animationDuration: "42s" }} />
+          <circle r="568" fill="none" stroke="#F0A85C" strokeWidth="0.8" opacity="0.4" />
+          <circle className="ringflow" r="568" fill="none" stroke="#F0A85C" strokeWidth="0.6" strokeDasharray="4 16" opacity="0.5" style={{ animationDuration: "60s" }} />
 
           {/* Primary Long Yield Star Satellite */}
-          <g
-            className="spin"
-            style={{ animationDuration: "38s", animationDelay: "-14s" }}
-          >
+          <g className="spin" style={{ animationDuration: "38s", animationDelay: "-14s" }}>
             <g transform="translate(545 0)">
-              <g
-                className="spin rev"
-                style={{ animationDuration: "38s", animationDelay: "-14s" }}
-              >
+              <g className="spin rev" style={{ animationDuration: "38s", animationDelay: "-14s" }}>
                 <circle r="5.5" fill="#FFFFFF" filter="url(#majorStarGlow)" />
                 <circle r="15" fill="#F0A85C" opacity="0.45" />
                 <circle r="26" fill="#F0A85C" opacity="0.18" />
@@ -2128,28 +1594,9 @@ export function HeroVisual({
         </g>
 
         {/* Sweeping Outer Celestial Ring (-26 deg) - Front */}
-        <g
-          transform="rotate(-26) scale(1 0.25)"
-          clipPath="url(#ofront)"
-          pointerEvents="none"
-        >
-          <circle
-            r="650"
-            fill="none"
-            stroke="#ECEDEA"
-            strokeWidth="0.75"
-            opacity="0.25"
-          />
-          <circle
-            className="ringflow"
-            r="650"
-            fill="none"
-            stroke="#FFFFFF"
-            strokeWidth="1.6"
-            strokeDasharray="300 160 40 100"
-            opacity="0.85"
-            style={{ animationDuration: "32s" }}
-          />
+        <g transform="rotate(-26) scale(1 0.25)" clipPath="url(#ofront)" pointerEvents="none">
+          <circle r="650" fill="none" stroke="#ECEDEA" strokeWidth="0.75" opacity="0.25" />
+          <circle className="ringflow" r="650" fill="none" stroke="#FFFFFF" strokeWidth="1.6" strokeDasharray="300 160 40 100" opacity="0.85" style={{ animationDuration: "32s" }} />
         </g>
 
         {/* ============================================================== */}
@@ -2166,46 +1613,12 @@ export function HeroVisual({
           }}
         >
           {fixedActive && (
-            <circle
-              r="26"
-              fill="none"
-              stroke="#A9C8EE"
-              strokeWidth="1.2"
-              opacity="0.5"
-              className="animate-ping"
-              style={{ animationDuration: "2.4s" }}
-            />
+            <circle r="26" fill="none" stroke="#A9C8EE" strokeWidth="1.2" opacity="0.5" className="animate-ping" style={{ animationDuration: "2.4s" }} />
           )}
-          <circle
-            r="16"
-            fill="rgba(6,10,18,0.75)"
-            stroke="#A9C8EE"
-            strokeWidth={fixedActive ? "1.6" : "0.9"}
-            opacity={fixedActive ? 1 : 0.6}
-          />
-          <circle
-            r="10"
-            fill={fixedActive ? "#A9C8EE" : "#0F192C"}
-            opacity="0.8"
-          />
-          <text
-            x="0"
-            y="3.5"
-            textAnchor="middle"
-            fill={fixedActive ? "#030304" : "#A9C8EE"}
-            className="mono text-[10px] font-bold select-none"
-          >
-            +
-          </text>
-          <text
-            x="24"
-            y="4"
-            textAnchor="start"
-            fill="#A9C8EE"
-            className="mono text-[10px] tracking-[0.16em] select-none font-medium"
-          >
-            FIXED · 6.42%
-          </text>
+          <circle r="16" fill="rgba(6,10,18,0.75)" stroke="#A9C8EE" strokeWidth={fixedActive ? "1.6" : "0.9"} opacity={fixedActive ? 1 : 0.6} />
+          <circle r="10" fill={fixedActive ? "#A9C8EE" : "#0F192C"} opacity="0.8" />
+          <text x="0" y="3.5" textAnchor="middle" fill={fixedActive ? "#030304" : "#A9C8EE"} className="mono text-[10px] font-bold select-none">+</text>
+          <text x="24" y="4" textAnchor="start" fill="#A9C8EE" className="mono text-[10px] tracking-[0.16em] select-none font-medium">FIXED · 6.42%</text>
         </g>
 
         {/* Pin 2: Long Yield (+ LONG FLOATING) */}
@@ -2218,46 +1631,12 @@ export function HeroVisual({
           }}
         >
           {longActive && (
-            <circle
-              r="26"
-              fill="none"
-              stroke="#F0A85C"
-              strokeWidth="1.2"
-              opacity="0.5"
-              className="animate-ping"
-              style={{ animationDuration: "2.4s" }}
-            />
+            <circle r="26" fill="none" stroke="#F0A85C" strokeWidth="1.2" opacity="0.5" className="animate-ping" style={{ animationDuration: "2.4s" }} />
           )}
-          <circle
-            r="16"
-            fill="rgba(18,12,6,0.75)"
-            stroke="#F0A85C"
-            strokeWidth={longActive ? "1.6" : "0.9"}
-            opacity={longActive ? 1 : 0.6}
-          />
-          <circle
-            r="10"
-            fill={longActive ? "#F0A85C" : "#2C1B0F"}
-            opacity="0.8"
-          />
-          <text
-            x="0"
-            y="3.5"
-            textAnchor="middle"
-            fill={longActive ? "#030304" : "#F0A85C"}
-            className="mono text-[10px] font-bold select-none"
-          >
-            +
-          </text>
-          <text
-            x="24"
-            y="4"
-            textAnchor="start"
-            fill="#F0A85C"
-            className="mono text-[10px] tracking-[0.16em] select-none font-medium"
-          >
-            LONG · FLOATING
-          </text>
+          <circle r="16" fill="rgba(18,12,6,0.75)" stroke="#F0A85C" strokeWidth={longActive ? "1.6" : "0.9"} opacity={longActive ? 1 : 0.6} />
+          <circle r="10" fill={longActive ? "#F0A85C" : "#2C1B0F"} opacity="0.8" />
+          <text x="0" y="3.5" textAnchor="middle" fill={longActive ? "#030304" : "#F0A85C"} className="mono text-[10px] font-bold select-none">+</text>
+          <text x="24" y="4" textAnchor="start" fill="#F0A85C" className="mono text-[10px] tracking-[0.16em] select-none font-medium">LONG · FLOATING</text>
         </g>
 
         {/* Pin 3: Vault Core (+ SPLIT ENGINE) */}
@@ -2270,46 +1649,12 @@ export function HeroVisual({
           }}
         >
           {engineActive && (
-            <circle
-              r="24"
-              fill="none"
-              stroke="#FFFFFF"
-              strokeWidth="1.2"
-              opacity="0.5"
-              className="animate-ping"
-              style={{ animationDuration: "2.4s" }}
-            />
+            <circle r="24" fill="none" stroke="#FFFFFF" strokeWidth="1.2" opacity="0.5" className="animate-ping" style={{ animationDuration: "2.4s" }} />
           )}
-          <circle
-            r="15"
-            fill="rgba(8,10,14,0.75)"
-            stroke="#ECEDEA"
-            strokeWidth={engineActive ? "1.6" : "0.8"}
-            opacity={engineActive ? 1 : 0.5}
-          />
-          <circle
-            r="9"
-            fill={engineActive ? "#FFFFFF" : "#1A2230"}
-            opacity="0.8"
-          />
-          <text
-            x="0"
-            y="3.5"
-            textAnchor="middle"
-            fill={engineActive ? "#030304" : "#FFFFFF"}
-            className="mono text-[9px] font-bold select-none"
-          >
-            +
-          </text>
-          <text
-            x="22"
-            y="4"
-            textAnchor="start"
-            fill="#ECEDEA"
-            className="mono text-[9px] tracking-[0.18em] select-none"
-          >
-            SPLIT ENGINE
-          </text>
+          <circle r="15" fill="rgba(8,10,14,0.75)" stroke="#ECEDEA" strokeWidth={engineActive ? "1.6" : "0.8"} opacity={engineActive ? 1 : 0.5} />
+          <circle r="9" fill={engineActive ? "#FFFFFF" : "#1A2230"} opacity="0.8" />
+          <text x="0" y="3.5" textAnchor="middle" fill={engineActive ? "#030304" : "#FFFFFF"} className="mono text-[9px] font-bold select-none">+</text>
+          <text x="22" y="4" textAnchor="start" fill="#ECEDEA" className="mono text-[9px] tracking-[0.18em] select-none">SPLIT ENGINE</text>
         </g>
 
         {/* Pin 4: Live Market (+ USDG VAULT) */}
@@ -2322,56 +1667,19 @@ export function HeroVisual({
           }}
         >
           {vaultsActive && (
-            <circle
-              r="24"
-              fill="none"
-              stroke="#34D399"
-              strokeWidth="1.2"
-              opacity="0.5"
-              className="animate-ping"
-              style={{ animationDuration: "2.4s" }}
-            />
+            <circle r="24" fill="none" stroke="#34D399" strokeWidth="1.2" opacity="0.5" className="animate-ping" style={{ animationDuration: "2.4s" }} />
           )}
-          <circle
-            r="15"
-            fill="rgba(8,10,14,0.75)"
-            stroke="#34D399"
-            strokeWidth={vaultsActive ? "1.6" : "0.8"}
-            opacity={vaultsActive ? 1 : 0.5}
-          />
-          <circle
-            r="9"
-            fill={vaultsActive ? "#34D399" : "#1A2230"}
-            opacity="0.8"
-          />
-          <text
-            x="0"
-            y="3.5"
-            textAnchor="middle"
-            fill={vaultsActive ? "#030304" : "#34D399"}
-            className="mono text-[9px] font-bold select-none"
-          >
-            +
-          </text>
-          <text
-            x="22"
-            y="4"
-            textAnchor="start"
-            fill="#ECEDEA"
-            className="mono text-[9px] tracking-[0.18em] select-none"
-          >
-            USDG VAULT
-          </text>
+          <circle r="15" fill="rgba(8,10,14,0.75)" stroke="#34D399" strokeWidth={vaultsActive ? "1.6" : "0.8"} opacity={vaultsActive ? 1 : 0.5} />
+          <circle r="9" fill={vaultsActive ? "#34D399" : "#1A2230"} opacity="0.8" />
+          <text x="0" y="3.5" textAnchor="middle" fill={vaultsActive ? "#030304" : "#34D399"} className="mono text-[9px] font-bold select-none">+</text>
+          <text x="22" y="4" textAnchor="start" fill="#ECEDEA" className="mono text-[9px] tracking-[0.18em] select-none">USDG VAULT</text>
         </g>
       </g>
 
       {/* ============================================================== */}
       {/* RIGHT-EDGE TECHNICAL PERSPECTIVE & RESET CONTROLS (Zupiter)     */}
       {/* ============================================================== */}
-      <g
-        transform="translate(1412 630)"
-        className="pointer-events-none select-none"
-      >
+      <g transform="translate(1412 630)" className="pointer-events-none select-none">
         <text
           x="0"
           y="0"
@@ -2391,13 +1699,7 @@ export function HeroVisual({
         className="cursor-pointer group pointer-events-auto"
         onClick={handleResetOrientation}
       >
-        <circle
-          r="18"
-          fill="rgba(10,12,18,0.75)"
-          stroke="rgba(255,255,255,0.2)"
-          strokeWidth="0.9"
-          className="group-hover:stroke-white transition-colors"
-        />
+        <circle r="18" fill="rgba(10,12,18,0.75)" stroke="rgba(255,255,255,0.2)" strokeWidth="0.9" className="group-hover:stroke-white transition-colors" />
         <path
           d="M -5 -2 A 6 6 0 1 1 -3 5 L -1 3 M -3 5 L -3 1"
           fill="none"

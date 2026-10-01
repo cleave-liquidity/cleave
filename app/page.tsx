@@ -10,7 +10,7 @@ import { Footer } from "@/components/layout/Footer";
 
 export default function LandingPage() {
   return (
-    <div className="bg-background text-foreground overflow-x-hidden min-h-screen">
+    <div className="bg-background text-foreground min-h-screen" style={{ overflowX: "clip" }}>
       <Hero />
       <YieldSplitSection />
       <StrategySection />

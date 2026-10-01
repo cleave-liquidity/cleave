@@ -1,6 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  env: {
+    NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID:
+      process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ||
+      "3a8170812b534d0ff9d794f19a901d64",
+  },
   transpilePackages: ["@rainbow-me/rainbowkit", "wagmi", "viem"],
   webpack: (config) => {
     config.resolve.fallback = {

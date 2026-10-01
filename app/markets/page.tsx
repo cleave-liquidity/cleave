@@ -6,9 +6,10 @@ import { Footer } from "@/components/layout/Footer";
 import { MarketTable } from "@/components/markets/MarketTable";
 import { useMarkets } from "@/hooks/useMarkets";
 import { formatUsd } from "@/lib/utils/formatters";
+import { getYieldErrorMessage } from "@/types/errors";
 
 export default function MarketsPage() {
-  const { markets, isLoading } = useMarkets();
+  const { markets, isLoading, error } = useMarkets();
 
   const totalLiquidity = markets.reduce(
     (sum, m) => sum + m.liquidityUsd,
@@ -60,6 +61,10 @@ export default function MarketsPage() {
           {isLoading ? (
             <div className="py-24 text-center text-muted font-mono">
               Loading yield markets...
+            </div>
+          ) : error ? (
+            <div className="py-24 text-center text-negative">
+              {getYieldErrorMessage(error)}
             </div>
           ) : (
             <MarketTable markets={markets} />

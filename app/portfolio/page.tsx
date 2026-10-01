@@ -8,11 +8,13 @@ import { PositionCard } from "@/components/portfolio/PositionCard";
 import { usePositions } from "@/hooks/usePositions";
 import { formatUsd } from "@/lib/utils/formatters";
 import { useAccount } from "wagmi";
+import { ConnectButton } from "@/components/wallet/ConnectButton";
+import { getYieldErrorMessage } from "@/types/errors";
 import { ArrowRight, Wallet } from "lucide-react";
 
 export default function PortfolioPage() {
-  const { address } = useAccount();
-  const { positions, isLoading, refresh } = usePositions(address);
+  const { address, isConnected } = useAccount();
+  const { positions, isLoading, error, refresh } = usePositions(address);
   const [filter, setFilter] = useState<"all" | "active" | "matured">("all");
 
   const totalValue = positions.reduce((acc, p) => acc + p.currentValue, 0);
@@ -164,9 +166,26 @@ export default function PortfolioPage() {
 
         {/* Positions List */}
         <div className="mt-6 flex flex-col gap-4">
-          {isLoading ? (
+          {!isConnected ? (
+            <div className="border border-white/12 rounded-[10px] bg-surface p-12 text-center flex flex-col items-center gap-4">
+              <Wallet className="w-10 h-10 text-muted-dark" />
+              <div className="flex flex-col gap-1">
+                <h3 className="text-[18px] font-normal text-foreground m-0">
+                  Connect your wallet to view positions
+                </h3>
+                <p className="text-[14px] text-muted m-0">
+                  Portfolio data is scoped to the connected wallet.
+                </p>
+              </div>
+              <ConnectButton />
+            </div>
+          ) : isLoading ? (
             <div className="py-20 text-center font-mono text-muted">
               Loading your positions...
+            </div>
+          ) : error ? (
+            <div className="py-20 text-center text-negative">
+              {getYieldErrorMessage(error)}
             </div>
           ) : filteredPositions.length === 0 ? (
             <div className="border border-white/12 rounded-[10px] bg-surface p-12 text-center flex flex-col items-center gap-4">
