@@ -107,6 +107,8 @@ export const MOCK_MARKETS: YieldMarket[] = [
     quoteAsset: "USDG",
     yieldSource: "Morpho lending vault",
     sourceProtocol: "Morpho",
+    assetMetadata: { symbol: "USDG", name: "Paxos USDG" },
+    protocolMetadata: { name: "Morpho" },
     underlyingApy: 7.1,
     impliedApy: 6.42,
     maturity: "26 Mar 2027",
@@ -114,6 +116,8 @@ export const MOCK_MARKETS: YieldMarket[] = [
     daysRemaining: 175,
     liquidityUsd: 4_200_000,
     status: "active",
+    network: "testnet",
+    dataMode: "mock",
     ptAddress: "0x4A6bA031F1C18D3b5b154a01f5F75e5bA2E9F101",
     ytAddress: "0x89e2C3b7C20E1552a4eE4195155f3089454170B2",
     vaultAddress: "0x1234567890abcdef1234567890abcdef12345678",
@@ -128,6 +132,8 @@ export const MOCK_MARKETS: YieldMarket[] = [
     quoteAsset: "USDG",
     yieldSource: "Ethena staking",
     sourceProtocol: "Ethena",
+    assetMetadata: { symbol: "sUSDe", name: "Staked USDe" },
+    protocolMetadata: { name: "Ethena" },
     underlyingApy: 9.85,
     impliedApy: 8.9,
     maturity: "24 Jun 2027",
@@ -135,6 +141,8 @@ export const MOCK_MARKETS: YieldMarket[] = [
     daysRemaining: 265,
     liquidityUsd: 2_700_000,
     status: "active",
+    network: "testnet",
+    dataMode: "mock",
     ptAddress: "0x91F4e11C313C5237C5046e3d2319451996919011",
     ytAddress: "0x19932148dce54e56592B6fD304D13A4996929944",
     vaultAddress: "0x2345678901abcdef2345678901abcdef23456789",
@@ -148,6 +156,8 @@ export const MOCK_MARKETS: YieldMarket[] = [
     quoteAsset: "NET",
     yieldSource: "NetNet staking",
     sourceProtocol: "NetNet",
+    assetMetadata: { symbol: "sNET", name: "Staked NET" },
+    protocolMetadata: { name: "NetNet" },
     underlyingApy: 5.4,
     impliedApy: 5.95,
     maturity: "17 Dec 2026",
@@ -155,6 +165,8 @@ export const MOCK_MARKETS: YieldMarket[] = [
     daysRemaining: 76,
     liquidityUsd: 900_000,
     status: "maturing",
+    network: "testnet",
+    dataMode: "mock",
     ptAddress: "0x6331a980F8D26Fe95f87b89710313f89012a9122",
     ytAddress: "0x51B0D8b813735749A3212879058b87192A02842B",
     vaultAddress: "0x3456789012abcdef3456789012abcdef34567890",
@@ -169,6 +181,8 @@ export const MOCK_MARKETS: YieldMarket[] = [
     quoteAsset: "ETH",
     yieldSource: "Lido staking",
     sourceProtocol: "Lido",
+    assetMetadata: { symbol: "wstETH", name: "Wrapped Staked ETH" },
+    protocolMetadata: { name: "Lido" },
     underlyingApy: 3.45,
     impliedApy: 3.2,
     maturity: "30 Sep 2027",
@@ -176,6 +190,8 @@ export const MOCK_MARKETS: YieldMarket[] = [
     daysRemaining: 363,
     liquidityUsd: 6_100_000,
     status: "active",
+    network: "testnet",
+    dataMode: "mock",
     ptAddress: "0x77c4424A9F2e652aF3e390b14421b92040E0F921",
     ytAddress: "0x2A19011e4C46B124219451996919011bE5bA2E9F",
     vaultAddress: "0x4567890123abcdef4567890123abcdef45678901",
@@ -183,6 +199,7 @@ export const MOCK_MARKETS: YieldMarket[] = [
 ];
 
 export class MockYieldMarketAdapter implements YieldMarketAdapter {
+  readonly mode = "mock" as const;
   private readonly markets: YieldMarket[] = [...MOCK_MARKETS];
   private readonly positionsByOwner = new Map<string, YieldPosition[]>();
   private positionSequence = 0;

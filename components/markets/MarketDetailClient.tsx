@@ -4,19 +4,24 @@ import React from "react";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { ApplicationBackdrop } from "@/components/layout/ApplicationBackdrop";
+import { DataModeBadge } from "@/components/layout/DataModeBadge";
 import { YieldChart } from "@/components/trade/YieldChart";
 import { TradePanel } from "@/components/trade/TradePanel";
+import { AssetIcon } from "@/components/markets/AssetIcon";
 import { formatApy, formatUsd } from "@/lib/utils/formatters";
-import { ROBINHOOD_CHAIN_ID, robinhoodChain } from "@/lib/web3/chains";
+import { ROBINHOOD_CHAIN_ID } from "@/lib/web3/chains";
 import { YieldMarket } from "@/types/market";
-import { ArrowLeft, ExternalLink, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ShieldCheck } from "lucide-react";
 
 export function MarketDetailClient({ market }: { market: YieldMarket }) {
   return (
-    <div className="bg-background text-foreground min-h-screen flex flex-col">
-      <Navbar isLanding={false} />
+    <div className="relative min-h-screen overflow-hidden bg-background text-foreground">
+      <ApplicationBackdrop />
+      <div className="relative z-10 flex min-h-screen flex-col">
+        <Navbar isLanding={false} />
 
-      <main className="flex-grow max-w-[1240px] w-full mx-auto px-4 sm:px-6 lg:px-10 py-8 sm:py-12">
+      <main id="main-content" className="flex-grow max-w-[1240px] w-full mx-auto px-4 sm:px-6 lg:px-10 py-8 sm:py-12">
         <Link
           href="/markets"
           className="inline-flex items-center gap-2 text-[14px] text-muted hover:text-white transition-colors mb-6"
@@ -30,20 +35,27 @@ export function MarketDetailClient({ market }: { market: YieldMarket }) {
             <div className="flex flex-col gap-4 pb-6 border-b border-white/12">
               <div className="flex items-center justify-between gap-4 flex-wrap">
                 <div className="flex items-center gap-3.5">
-                  <div className="mono w-12 h-12 border border-white/20 rounded-full flex items-center justify-center text-[12px] text-muted">
-                    {market.symbol}
-                  </div>
+                  <AssetIcon
+                    symbol={market.assetMetadata?.symbol || market.symbol}
+                    name={market.assetMetadata?.name || market.name}
+                    iconUrl={market.assetMetadata?.iconUrl}
+                    size="lg"
+                  />
                   <div>
+                    <div className="mono mb-1 text-[11px] uppercase tracking-[0.16em] text-muted-dark">
+                      {market.assetMetadata?.symbol || market.symbol} / Yield Market
+                    </div>
                     <h1 className="text-[28px] sm:text-[34px] font-normal tracking-[-0.02em] m-0 text-foreground">
-                      {market.name}
+                      {market.assetMetadata?.name || market.name}
                     </h1>
                     <span className="text-[14px] text-muted">
-                      {market.yieldSource}
+                      {market.protocolMetadata?.name || market.sourceProtocol || "Source protocol"} · Built on Robinhood Chain
                     </span>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
+                  <DataModeBadge mode={market.dataMode} />
                   <span className="mono text-[12px] text-muted-dark border border-white/16 rounded-full px-3 py-1">
                     {market.sourceProtocol || "Protocol"}
                   </span>
@@ -111,52 +123,58 @@ export function MarketDetailClient({ market }: { market: YieldMarket }) {
               impliedApy={market.impliedApy}
             />
 
-            <div className="border border-white/14 rounded-[10px] bg-surface p-5 sm:p-6 flex flex-col gap-4">
-              <div className="flex items-center gap-2 pb-3 border-b border-white/10">
-                <ShieldCheck className="w-5 h-5 text-ice" />
-                <h3 className="m-0 text-[16px] font-medium text-foreground">
-                  Market & Contract Architecture
-                </h3>
-              </div>
+            <details open className="group/advanced border border-white/14 rounded-[10px] bg-surface p-5 sm:p-6">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 pb-3 text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice">
+                <span className="flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-ice" aria-hidden="true" />
+                  <span>
+                    <span className="block text-[16px] font-medium">Advanced market architecture</span>
+                    <span className="mono mt-1 block text-[10px] uppercase tracking-[0.14em] text-muted-dark">Preview metadata · no production contracts</span>
+                  </span>
+                </span>
+                <span className="mono text-[11px] text-muted-dark group-open/advanced:rotate-180 transition-transform" aria-hidden="true">⌄</span>
+              </summary>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-[13px]">
                 <div className="flex flex-col gap-1">
                   <span className="text-muted-dark">Underlying Asset</span>
                   <span className="font-mono text-foreground">{market.underlyingAsset}</span>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <span className="text-muted-dark">Source Yield Vault</span>
+                  <span className="text-muted-dark">Yield Source</span>
                   <span className="font-mono text-foreground truncate">
-                    {market.vaultAddress || "0xVaultAddress..."}
+                    {market.yieldSource}
                   </span>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <span className="text-muted-dark">Principal Token (PT)</span>
+                  <span className="text-muted-dark">Source Protocol</span>
                   <span className="font-mono text-ice truncate">
-                    {market.ptAddress || "0xPTContract..."}
+                    {market.protocolMetadata?.name || market.sourceProtocol || "Not specified"}
                   </span>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <span className="text-muted-dark">Yield Token (YT)</span>
+                  <span className="text-muted-dark">Adapter</span>
                   <span className="font-mono text-amber truncate">
-                    {market.ytAddress || "0xYTContract..."}
+                    MockYieldMarketAdapter
                   </span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-muted-dark">PT Address</span>
+                  <span className="font-mono text-muted-dark truncate">Not deployed · preview only</span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-muted-dark">YT Address</span>
+                  <span className="font-mono text-muted-dark truncate">Not deployed · preview only</span>
                 </div>
               </div>
               <div className="pt-2 text-[12px] text-muted-dark border-t border-white/10 flex items-center justify-between">
                 <span>
-                  Network: {robinhoodChain.name} (Chain ID {ROBINHOOD_CHAIN_ID})
+                  Network: {market.network === "mainnet" ? "Robinhood Chain Mainnet" : "Robinhood Chain Testnet"} · Chain ID {market.network === "mainnet" ? ROBINHOOD_CHAIN_ID : 46630}
                 </span>
-                <a
-                  href={robinhoodChain.blockExplorers.default.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-muted hover:text-white transition-colors"
-                >
-                  <span>Block Explorer</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
+                <span className="mono text-[10px] uppercase tracking-[0.12em] text-amber">
+                  Not deployed · preview only
+                </span>
               </div>
-            </div>
+            </details>
           </div>
 
           <div className="w-full">
@@ -165,7 +183,8 @@ export function MarketDetailClient({ market }: { market: YieldMarket }) {
         </div>
       </main>
 
-      <Footer />
+        <Footer />
+      </div>
     </div>
   );
 }

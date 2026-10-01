@@ -1,4 +1,17 @@
 export type MarketStatus = "active" | "maturing" | "matured" | "paused";
+export type MarketDataMode = "mock" | "live";
+export type RobinhoodNetwork = "mainnet" | "testnet";
+
+export interface MarketAssetMetadata {
+  symbol: string;
+  name: string;
+  iconUrl?: string;
+}
+
+export interface MarketProtocolMetadata {
+  name: string;
+  iconUrl?: string;
+}
 
 export interface YieldMarket {
   id: string;
@@ -9,6 +22,8 @@ export interface YieldMarket {
   quoteAsset: string;
   yieldSource: string;
   sourceProtocol?: string;
+  assetMetadata?: MarketAssetMetadata;
+  protocolMetadata?: MarketProtocolMetadata;
 
   underlyingApy: number; // e.g. 7.10 means 7.10%
   impliedApy: number;    // e.g. 6.42 means 6.42%
@@ -19,6 +34,8 @@ export interface YieldMarket {
   liquidityUsd: number;
 
   status: MarketStatus;
+  network: RobinhoodNetwork;
+  dataMode: MarketDataMode;
 
   ptAddress?: `0x${string}`;
   ytAddress?: `0x${string}`;

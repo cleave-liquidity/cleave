@@ -10,6 +10,7 @@ import { PositionTransactionResult, YieldMarketAdapter } from "./types";
  * calls here without changing the UI-facing adapter contract.
  */
 export class ContractYieldMarketAdapter implements YieldMarketAdapter {
+  readonly mode = "live" as const;
   private unavailable(): never {
     throw new YieldDomainError(
       "rpc-unavailable",

@@ -20,6 +20,8 @@ function market(overrides: Partial<YieldMarket> = {}): YieldMarket {
     daysRemaining: 91,
     liquidityUsd: 1_000_000,
     status: "active",
+    network: "testnet",
+    dataMode: "mock",
     ...overrides,
   };
 }

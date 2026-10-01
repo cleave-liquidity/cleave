@@ -1,4 +1,4 @@
-import { YieldMarket } from "@/types/market";
+import { MarketDataMode, YieldMarket } from "@/types/market";
 import { FixedYieldQuote, LongYieldQuote } from "@/types/quote";
 import { FixedYieldPosition, LongYieldPosition, YieldPosition } from "@/types/position";
 
@@ -10,6 +10,7 @@ export interface PositionTransactionResult {
 }
 
 export interface YieldMarketAdapter {
+  readonly mode: MarketDataMode;
   getMarkets(): Promise<YieldMarket[]>;
   getMarket(id: string): Promise<YieldMarket | null>;
   getPositions(userAddress?: `0x${string}`): Promise<YieldPosition[]>;

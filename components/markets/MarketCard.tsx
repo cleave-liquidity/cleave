@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { YieldMarket } from "@/types/market";
 import { formatApy, formatUsd } from "@/lib/utils/formatters";
+import { AssetIcon, ProtocolIcon } from "./AssetIcon";
 
 export function MarketCard({ market }: { market: YieldMarket }) {
   const isMaturing = market.status === "maturing";
@@ -11,18 +12,21 @@ export function MarketCard({ market }: { market: YieldMarket }) {
   return (
     <Link
       href={`/markets/${market.id}`}
-      className="block border border-white/14 rounded-[10px] bg-surface p-4 sm:p-5 hover:border-white/30 transition-all group"
+      className="group block rounded-[10px] border border-white/14 bg-surface p-4 transition-all hover:border-ice/40 hover:bg-surface-raised sm:p-5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice"
     >
       <div className="flex items-center justify-between gap-3 pb-3 border-b border-white/10">
         <div className="flex items-center gap-3">
-          <div className="mono w-9 h-9 border border-white/20 rounded-full flex items-center justify-center text-[10px] text-muted group-hover:border-white/40">
-            {market.symbol}
-          </div>
+          <AssetIcon
+            symbol={market.assetMetadata?.symbol || market.symbol}
+            name={market.assetMetadata?.name || market.name}
+            iconUrl={market.assetMetadata?.iconUrl}
+            size="sm"
+          />
           <div>
             <div className="text-[17px] font-medium text-foreground group-hover:text-white transition-colors">
-              {market.symbol}
+              {market.assetMetadata?.symbol || market.symbol}
             </div>
-            <div className="text-[12px] text-muted-dark">{market.name}</div>
+            <div className="text-[12px] text-muted-dark">{market.assetMetadata?.name || market.name}</div>
           </div>
         </div>
 
@@ -37,7 +41,13 @@ export function MarketCard({ market }: { market: YieldMarket }) {
 
       <div className="py-3 text-[13px] text-muted flex items-center justify-between">
         <span className="text-muted-dark">Source</span>
-        <span>{market.yieldSource}</span>
+        <span className="flex items-center gap-2 truncate">
+          <ProtocolIcon
+            name={market.protocolMetadata?.name || market.sourceProtocol || market.yieldSource}
+            iconUrl={market.protocolMetadata?.iconUrl}
+          />
+          <span className="truncate">{market.yieldSource}</span>
+        </span>
       </div>
 
       <div className="grid grid-cols-2 gap-3 py-3 border-y border-white/10 text-center">
