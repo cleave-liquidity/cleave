@@ -7,6 +7,7 @@ import { FixedYieldPosition, LongYieldPosition, YieldPosition } from "@/types/po
 import { formatTokenAmount, formatUsd } from "@/lib/utils/formatters";
 import { useClaimYield, useRedeemFixed, useSellPosition } from "@/hooks/usePositionActions";
 import { getYieldErrorMessage } from "@/types/errors";
+import { AssetIcon } from "@/components/markets/AssetIcon";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -88,14 +89,25 @@ export function PositionCard({
 
   return (
     <div
-      className={`border border-white/16 rounded-[10px] bg-surface p-5 sm:p-7 flex flex-col gap-5 ${
-        isFixed ? "border-t-2 border-t-ice" : "border-t-2 border-t-amber"
+      className={`relative overflow-hidden border border-white/16 rounded-[10px] bg-surface p-5 sm:p-7 flex flex-col gap-5 ${
+        isFixed ? "border-l-2 border-l-ice" : "border-l-2 border-l-amber"
       }`}
     >
+      <div aria-hidden="true" className="pointer-events-none absolute right-[-30px] top-[-36px] opacity-40">
+        <svg width="220" height="140" viewBox="0 0 220 140" fill="none">
+          <path d="M-20 120C50 25 120 20 250 70" stroke={isFixed ? "#A9C8EE" : "#F0A85C"} strokeOpacity="0.32" strokeDasharray="2 9" />
+          <circle cx="142" cy="48" r="3" fill={isFixed ? "#A9C8EE" : "#F0A85C"} />
+        </svg>
+      </div>
       {/* Header */}
       <div className="flex justify-between items-start gap-4">
         <div>
           <div className="flex items-center gap-2">
+            <AssetIcon
+              symbol={position.assetSymbol}
+              name={position.assetSymbol}
+              size="sm"
+            />
             <span className="text-[19px] font-medium text-foreground">
               {isFixed ? "Fixed" : "Long"} · {position.assetSymbol}
             </span>

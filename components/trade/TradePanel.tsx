@@ -233,7 +233,7 @@ export function TradePanel({ market }: { market: YieldMarket }) {
             setStrategy("fixed");
             if (inputAmountStr === "100") setInputAmountStr("1000");
           }}
-          className={`min-h-[46px] border-0 text-[14px] font-medium transition-colors cursor-pointer ${
+          className={`min-h-[46px] border-0 text-[14px] font-medium transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ice ${
             isFixed
               ? "bg-ice text-[#0A0B0C]"
               : "bg-transparent text-muted hover:text-white"
@@ -248,7 +248,7 @@ export function TradePanel({ market }: { market: YieldMarket }) {
             setStrategy("long");
             if (inputAmountStr === "1000") setInputAmountStr("100");
           }}
-          className={`min-h-[46px] border-0 text-[14px] font-medium transition-colors cursor-pointer ${
+          className={`min-h-[46px] border-0 text-[14px] font-medium transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-amber ${
             !isFixed
               ? "bg-amber text-[#0A0B0C]"
               : "bg-transparent text-muted hover:text-white"
@@ -347,6 +347,10 @@ export function TradePanel({ market }: { market: YieldMarket }) {
 
           <div className="flex flex-col text-[14px]">
             <div className="flex justify-between py-2.5 border-b border-white/10">
+              <span className="text-muted-dark">PT Received</span>
+              <span className="mono text-muted">{fixedQuote ? formatTokenAmount(fixedQuote.ptReceived) : "—"} {market.symbol}</span>
+            </div>
+            <div className="flex justify-between py-2.5 border-b border-white/10">
               <span className="text-muted-dark">Quoted Fixed APY</span>
               <span className="mono text-ice font-medium">
                 {fixedQuote ? formatApy(fixedQuote.quotedFixedApy) : "—"}
@@ -363,6 +367,10 @@ export function TradePanel({ market }: { market: YieldMarket }) {
               <span className="mono text-muted">
                 {fixedQuote ? `${fixedQuote.priceImpact}%` : "0.00%"}
               </span>
+            </div>
+            <div className="flex justify-between py-2.5 border-b border-white/10">
+              <span className="text-muted-dark">Maturity</span>
+              <span className="mono text-muted">{market.maturity}</span>
             </div>
             <div className="flex justify-between py-2.5 border-b border-white/10">
               <span className="text-muted-dark">Network Fee</span>
@@ -455,6 +463,22 @@ export function TradePanel({ market }: { market: YieldMarket }) {
 
           <div className="flex flex-col text-[14px]">
             <div className="flex justify-between py-2 border-b border-white/10">
+              <span className="text-muted-dark">YT Received</span>
+              <span className="mono text-muted">{longQuote ? formatTokenAmount(longQuote.ytReceived) : "—"} {market.symbol}</span>
+            </div>
+            <div className="flex justify-between py-2 border-b border-white/10">
+              <span className="text-muted-dark">Underlying APY</span>
+              <span className="mono text-amber">{longQuote ? `${longQuote.underlyingApy}%` : "—"}</span>
+            </div>
+            <div className="flex justify-between py-2 border-b border-white/10">
+              <span className="text-muted-dark">Implied APY</span>
+              <span className="mono text-muted">{longQuote ? `${longQuote.impliedApy}%` : "—"}</span>
+            </div>
+            <div className="flex justify-between py-2 border-b border-white/10">
+              <span className="text-muted-dark">Estimated Yield Exposure</span>
+              <span className="mono text-amber">{longQuote ? formatTokenAmount(longQuote.estimatedYieldExposure) : "—"} {market.symbol}</span>
+            </div>
+            <div className="flex justify-between py-2 border-b border-white/10">
               <span className="text-muted-dark">Break-Even APY</span>
               <span className="mono text-muted">
                 {longQuote ? `${longQuote.estimatedBreakEvenApy}%` : "—"}
@@ -465,6 +489,10 @@ export function TradePanel({ market }: { market: YieldMarket }) {
               <span className="mono text-muted">
                 {longQuote ? `${longQuote.priceImpact}%` : "0.00%"}
               </span>
+            </div>
+            <div className="flex justify-between py-2 border-b border-white/10">
+              <span className="text-muted-dark">Maturity</span>
+              <span className="mono text-muted">{market.maturity}</span>
             </div>
             <div className="flex justify-between py-2 border-b border-white/10">
               <span className="text-muted-dark">Network Fee</span>
