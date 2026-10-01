@@ -6,7 +6,7 @@ export default function MarketNotFound() {
   return (
     <div className="bg-background text-foreground min-h-screen flex flex-col">
       <Navbar isLanding={false} />
-      <div className="flex-grow flex flex-col items-center justify-center gap-4 text-center px-4">
+      <div id="main-content" className="flex-grow flex flex-col items-center justify-center gap-4 text-center px-4">
         <h1 className="text-[28px] font-normal text-foreground">
           Market Not Found
         </h1>

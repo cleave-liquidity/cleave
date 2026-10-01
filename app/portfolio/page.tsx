@@ -11,6 +11,9 @@ import { useAccount } from "wagmi";
 import { ConnectButton } from "@/components/wallet/ConnectButton";
 import { getYieldErrorMessage } from "@/types/errors";
 import { ArrowRight, Wallet } from "lucide-react";
+import { ApplicationBackdrop } from "@/components/layout/ApplicationBackdrop";
+import { DataModeBadge } from "@/components/layout/DataModeBadge";
+import { yieldAdapter } from "@/lib/adapters/mock-adapter";
 
 export default function PortfolioPage() {
   const { address, isConnected } = useAccount();
@@ -40,26 +43,31 @@ export default function PortfolioPage() {
   });
 
   return (
-    <div className="bg-background text-foreground min-h-screen flex flex-col">
-      <Navbar isLanding={false} />
+    <div className="relative min-h-screen overflow-hidden bg-background text-foreground">
+      <ApplicationBackdrop />
+      <div className="relative z-10 flex min-h-screen flex-col">
+        <Navbar isLanding={false} />
 
-      <main className="flex-grow max-w-[1240px] w-full mx-auto px-4 sm:px-6 lg:px-10 py-10 sm:py-16">
+      <main id="main-content" className="flex-grow max-w-[1240px] w-full mx-auto px-4 sm:px-6 lg:px-10 py-10 sm:py-16">
         {/* Header */}
-        <div className="flex flex-col gap-2 pb-8 border-b border-white/12">
-          <div className="mono text-[12px] tracking-[0.18em] text-muted-dark uppercase">
-            User Portfolio · Robinhood Chain
+        <div className="flex flex-col gap-3 pb-8 border-b border-white/12">
+          <div className="flex items-center justify-between gap-4">
+            <div className="mono text-[12px] tracking-[0.18em] text-muted-dark uppercase">
+              Your Yield Positions
+            </div>
+            <DataModeBadge mode={yieldAdapter.mode} />
           </div>
           <h1 className="text-[36px] sm:text-[44px] font-normal tracking-[-0.03em] m-0 text-foreground">
             Yield Portfolio
           </h1>
           <p className="text-[16px] text-muted max-w-[560px] m-0 font-light">
-            Monitor and manage your Fixed and Long yield positions. Claim accrued
-            yield, redeem matured positions, or exit early.
+            Manage fixed and long yield exposure. Claim accrued yield, redeem matured
+            positions, or exit early.
           </p>
         </div>
 
         {/* Top-Level Metrics */}
-        <div className="mt-8 grid grid-cols-2 md:grid-cols-5 gap-3.5 sm:gap-4 p-5 sm:p-6 rounded-[10px] bg-surface border border-white/14">
+        <div className="mt-8 grid grid-cols-2 gap-x-5 gap-y-5 border-y border-white/14 py-5 sm:grid-cols-5 sm:gap-4 sm:py-6">
           <div className="flex flex-col gap-1 col-span-2 sm:col-span-1">
             <span className="mono text-[11px] text-muted-dark uppercase tracking-wider">
               Total Value
@@ -219,7 +227,8 @@ export default function PortfolioPage() {
         </div>
       </main>
 
-      <Footer />
+        <Footer />
+      </div>
     </div>
   );
 }

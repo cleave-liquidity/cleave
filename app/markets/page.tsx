@@ -7,9 +7,16 @@ import { MarketTable } from "@/components/markets/MarketTable";
 import { useMarkets } from "@/hooks/useMarkets";
 import { formatUsd } from "@/lib/utils/formatters";
 import { getYieldErrorMessage } from "@/types/errors";
+import { ApplicationBackdrop } from "@/components/layout/ApplicationBackdrop";
+import { DataModeBadge } from "@/components/layout/DataModeBadge";
+import { yieldAdapter } from "@/lib/adapters/mock-adapter";
+import { useNetworkGuard } from "@/hooks/useNetworkGuard";
+import { getNetworkLabel } from "@/lib/web3/environment";
 
 export default function MarketsPage() {
   const { markets, isLoading, error } = useMarkets();
+  const { chainId, isConnected } = useNetworkGuard();
+  const networkLabel = getNetworkLabel(chainId, isConnected);
 
   const totalLiquidity = markets.reduce(
     (sum, m) => sum + m.liquidityUsd,
@@ -17,10 +24,12 @@ export default function MarketsPage() {
   );
 
   return (
-    <div className="bg-background text-foreground min-h-screen flex flex-col">
-      <Navbar isLanding={false} />
+    <div className="relative min-h-screen overflow-hidden bg-background text-foreground">
+      <ApplicationBackdrop />
+      <div className="relative z-10 flex min-h-screen flex-col">
+        <Navbar isLanding={false} />
 
-      <main className="flex-grow max-w-[1240px] w-full mx-auto px-4 sm:px-6 lg:px-10 py-10 sm:py-16">
+      <main id="main-content" className="flex-grow max-w-[1240px] w-full mx-auto px-4 sm:px-6 lg:px-10 py-10 sm:py-16">
         {/* Header Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-8 border-b border-white/12">
           <div className="flex flex-col gap-2">
@@ -36,8 +45,8 @@ export default function MarketsPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-6 sm:gap-8 border-t sm:border-t-0 pt-4 sm:pt-0 border-white/10">
-            <div className="flex flex-col">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-4 border-t sm:border-t-0 pt-4 sm:pt-0 border-white/10 md:grid-cols-4">
+            <div className="flex min-w-0 flex-col">
               <span className="mono text-[11px] text-muted-dark uppercase tracking-wider">
                 Total Liquidity
               </span>
@@ -45,13 +54,27 @@ export default function MarketsPage() {
                 {isLoading ? "..." : formatUsd(totalLiquidity)}
               </span>
             </div>
-            <div className="flex flex-col">
+            <div className="flex min-w-0 flex-col">
               <span className="mono text-[11px] text-muted-dark uppercase tracking-wider">
-                Live Markets
+                Available Markets
               </span>
               <span className="mono text-[22px] sm:text-[24px] font-medium text-ice">
                 {isLoading ? "..." : markets.length}
               </span>
+            </div>
+            <div className="flex min-w-0 flex-col">
+              <span className="mono text-[11px] text-muted-dark uppercase tracking-wider">
+                Network
+              </span>
+              <span className="truncate text-[13px] font-medium text-foreground" title={networkLabel}>
+                {networkLabel.replace("Default · ", "")}
+              </span>
+            </div>
+            <div className="flex min-w-0 flex-col">
+              <span className="mono text-[11px] text-muted-dark uppercase tracking-wider">
+                Data
+              </span>
+              <DataModeBadge mode={yieldAdapter.mode} />
             </div>
           </div>
         </div>
@@ -72,7 +95,8 @@ export default function MarketsPage() {
         </div>
       </main>
 
-      <Footer />
+        <Footer />
+      </div>
     </div>
   );
 }

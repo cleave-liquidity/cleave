@@ -141,6 +141,35 @@ a:hover {
   }
 }
 
+/* Decorative background orbit rings */
+@keyframes orbit-cw {
+  to { transform: rotate(360deg); }
+}
+@keyframes orbit-ccw {
+  to { transform: rotate(-360deg); }
+}
+@keyframes orbit-pulse {
+  0%, 100% { opacity: 0.03; }
+  50% { opacity: 0.07; }
+}
+
+.orbit-slow-cw {
+  animation: orbit-cw 80s linear infinite;
+  transform-origin: center;
+}
+.orbit-slow-ccw {
+  animation: orbit-ccw 120s linear infinite;
+  transform-origin: center;
+}
+.orbit-med-cw {
+  animation: orbit-cw 50s linear infinite;
+  transform-origin: center;
+}
+.orbit-pulse {
+  animation: orbit-pulse 8s ease-in-out infinite;
+}
+
+
 .spin {
   animation: spin 60s linear infinite;
 }
@@ -204,7 +233,11 @@ a:hover {
 .still .tw,
 .still .ringflow,
 .still .spin,
-.still .drift {
+.still .drift,
+.still .orbit-slow-cw,
+.still .orbit-slow-ccw,
+.still .orbit-med-cw,
+.still .orbit-pulse {
   animation: none;
 }
 
@@ -230,7 +263,11 @@ a:hover {
   .tw,
   .ringflow,
   .spin,
-  .drift {
+  .drift,
+  .orbit-slow-cw,
+  .orbit-slow-ccw,
+  .orbit-med-cw,
+  .orbit-pulse {
     animation: none;
   }
   .fade,
@@ -245,9 +282,75 @@ a:hover {
   }
 }
 
+
+/* ── Splash Screen ─────────────────────────────────────────────────── */
+@keyframes splash-char-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.28em);
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.splash-char {
+  opacity: 0;
+  animation: splash-char-in 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes splash-sub-in {
+  from { opacity: 0; letter-spacing: 0.55em; }
+  to   { opacity: 1; letter-spacing: 0.32em; }
+}
+
+.splash-sub {
+  opacity: 0;
+  animation: splash-sub-in 0.7s ease forwards;
+  animation-delay: 0.55s;
+}
+
+@keyframes splash-bar {
+  from { width: 0%; }
+  to   { width: 100%; }
+}
+
+.splash-bar {
+  width: 0%;
+  animation: splash-bar 2.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation-delay: 0.15s;
+}
+
+@keyframes splash-strip-up {
+  0%   { transform: translateY(0%); }
+  100% { transform: translateY(-105%); }
+}
+
+/* Reduced motion overrides for splash */
+@media (prefers-reduced-motion: reduce) {
+  .splash-char {
+    animation: none;
+    opacity: 1;
+    filter: none;
+    transform: none;
+  }
+  .splash-sub {
+    animation: none;
+    opacity: 1;
+  }
+  .splash-bar {
+    animation: none;
+    width: 100%;
+  }
+}
+
 button:focus-visible,
 a:focus-visible,
 input:focus-visible {
   outline: 2px solid #ECEDEA;
   outline-offset: 3px;
 }
+
