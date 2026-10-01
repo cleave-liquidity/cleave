@@ -43,7 +43,7 @@ export function Navbar({ isLanding = false }: { isLanding?: boolean }) {
           </span>
         </Link>
 
-        <nav aria-label="Primary" className="flex items-center gap-5 sm:gap-8 lg:gap-10 text-[15px]">
+        <nav aria-label="Primary" className="hidden md:flex items-center gap-6 lg:gap-10 text-[15px]">
           <Link
             href="/markets"
             className={`transition-colors ${isMarkets ? "text-foreground font-medium" : "text-muted hover:text-foreground"}`}
@@ -79,7 +79,7 @@ export function Navbar({ isLanding = false }: { isLanding?: boolean }) {
           {isLanding ? (
             <Link
               href="/markets"
-              className="inline-flex items-center justify-center min-h-[46px] px-6 border border-amber/55 bg-background/50 hover:bg-amber/15 hover:border-amber transition-colors text-[15px] font-medium"
+              className="inline-flex items-center justify-center min-h-[38px] sm:min-h-[44px] px-4 sm:px-6 border border-amber/55 bg-background/50 hover:bg-amber/15 hover:border-amber transition-colors text-[13px] sm:text-[15px] font-medium"
             >
               Launch app
             </Link>

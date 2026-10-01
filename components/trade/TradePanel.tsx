@@ -1,103 +1,209 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAccount, useChainId, useSwitchChain } from "wagmi";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { YieldMarket } from "@/types/market";
 import { useFixedYieldQuote } from "@/hooks/useFixedYieldQuote";
 import { useLongYieldQuote } from "@/hooks/useLongYieldQuote";
-import { yieldAdapter } from "@/lib/adapters/mock-adapter";
+import { useNetworkGuard } from "@/hooks/useNetworkGuard";
+import { useTokenBalance } from "@/hooks/useTokenBalance";
+import { useOpenFixedPosition } from "@/hooks/useOpenFixedPosition";
+import { useOpenLongPosition } from "@/hooks/useOpenLongPosition";
 import { formatApy, formatTokenAmount } from "@/lib/utils/formatters";
 import { toast } from "sonner";
-import { TransactionStep } from "@/types/transaction";
+import { TransactionState } from "@/types/transaction";
+import { YieldDomainError, getYieldErrorMessage } from "@/types/errors";
 import { AlertCircle, CheckCircle2, ChevronDown, Loader2 } from "lucide-react";
 
 export function TradePanel({ market }: { market: YieldMarket }) {
   const router = useRouter();
-  const { isConnected, address } = useAccount();
-  const chainId = useChainId();
-  const { switchChain } = useSwitchChain();
+  const { address, chainId, isConnected, status: networkStatus, switchToRobinhood } = useNetworkGuard();
+  const { balance } = useTokenBalance(address, market.quoteAsset);
+  const openFixedPosition = useOpenFixedPosition();
+  const openLongPosition = useOpenLongPosition();
   const { openConnectModal } = useConnectModal();
 
   const [strategy, setStrategy] = useState<"fixed" | "long">("fixed");
   const [inputAmountStr, setInputAmountStr] = useState<string>("1000");
-  const [txStep, setTxStep] = useState<TransactionStep>("idle");
+  const [txState, setTxState] = useState<TransactionState>({ step: "idle" });
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [currentTime, setCurrentTime] = useState(() => Date.now());
 
-  const inputAmount = parseFloat(inputAmountStr) || 0;
-  const mockBalance = 2500.0;
+  useEffect(() => {
+    const timer = window.setInterval(() => setCurrentTime(Date.now()), 1_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
-  const { quote: fixedQuote, isLoading: loadingFixed } = useFixedYieldQuote(
+  const inputAmount = Number(inputAmountStr);
+  const hasNumericAmount = inputAmountStr.trim() !== "" && Number.isFinite(inputAmount);
+
+  const { quote: fixedQuote, isLoading: loadingFixed, error: fixedQuoteError, refresh: refreshFixed } = useFixedYieldQuote(
     market.id,
     inputAmount
   );
-  const { quote: longQuote, isLoading: loadingLong } = useLongYieldQuote(
+  const { quote: longQuote, isLoading: loadingLong, error: longQuoteError, refresh: refreshLong } = useLongYieldQuote(
     market.id,
     inputAmount
   );
 
   const isFixed = strategy === "fixed";
-  const isWrongNetwork = isConnected && chainId !== 4663 && chainId !== 46630;
-  const isInsufficientBalance = inputAmount > mockBalance;
+  const isWrongNetwork = networkStatus === "unsupported-chain";
+  const isInvalidAmount = !hasNumericAmount || inputAmount <= 0;
+  const isInsufficientBalance = isConnected && !isInvalidAmount && inputAmount > balance;
+  const isMarketUnavailable = market.status === "paused" || market.status === "matured";
+  const activeQuote = isFixed ? fixedQuote : longQuote;
+  const quoteError = isFixed ? fixedQuoteError : longQuoteError;
+  const isQuoteExpired = Boolean(activeQuote && activeQuote.quoteExpiry <= currentTime);
+
+  const formatScenarioChange = (change: number) =>
+    `${change >= 0 ? "+" : ""}${change}%`;
+
+  const handleConnectWallet = () => {
+    if (openConnectModal) {
+      openConnectModal();
+      return;
+    }
+    const error = new YieldDomainError(
+      "wallet-unavailable",
+      "No wallet connection modal is available in this environment.",
+    );
+    setTxState({ step: "error", errorCode: error.code, errorMessage: error.message });
+    toast.error(error.message);
+  };
 
   const handlePreset = (percent: number) => {
-    const val = (mockBalance * percent).toFixed(2);
+    const val = (balance * percent).toFixed(2);
     setInputAmountStr(val);
+  };
+
+  const handleNetworkSwitch = async () => {
+    try {
+      setTxState({ step: "validating" });
+      await switchToRobinhood();
+      setTxState({ step: "ready" });
+    } catch {
+      const error = new YieldDomainError(
+        "network-switch-failed",
+        "Network switch failed. Select Robinhood Chain in your wallet and try again."
+      );
+      setTxState({ step: "error", errorCode: error.code, errorMessage: error.message });
+      toast.error(error.message);
+    }
+  };
+
+  const handleRefreshQuote = async () => {
+    try {
+      if (isFixed) await refreshFixed();
+      else await refreshLong();
+      toast.success("Quote refreshed");
+    } catch (error: unknown) {
+      toast.error(getYieldErrorMessage(error));
+    }
   };
 
   const handleExecuteTrade = async () => {
     if (!isConnected) {
-      openConnectModal?.();
+      handleConnectWallet();
       return;
     }
 
     if (isWrongNetwork) {
-      switchChain?.({ chainId: 4663 });
-      return;
-    }
-
-    if (inputAmount <= 0) {
-      toast.error("Please enter a valid amount");
+      await handleNetworkSwitch();
       return;
     }
 
     try {
-      // Step 1: Validation & Token Approval
-      setTxStep("approval_pending");
-      await new Promise((resolve) => setTimeout(resolve, 900));
+      setTxState({ step: "validating" });
 
-      setTxStep("approval_success");
-      toast.success(`${market.symbol} approval granted`);
-
-      // Step 2: Open Position Transaction
-      setTxStep("transaction_pending");
-      await new Promise((resolve) => setTimeout(resolve, 1400));
-
-      if (isFixed) {
-        await yieldAdapter.openFixedPosition(market.id, inputAmount, address);
-        toast.success(
-          `Successfully opened Fixed Yield position for ${inputAmount} ${market.symbol}!`
-        );
-      } else {
-        await yieldAdapter.openLongPosition(market.id, inputAmount, address);
-        toast.success(
-          `Successfully opened Long Yield position for ${inputAmount} ${market.symbol}!`
+      if (isInvalidAmount) {
+        throw new YieldDomainError("invalid-amount", "Enter an amount greater than zero.");
+      }
+      if (isInsufficientBalance) {
+        throw new YieldDomainError(
+          "insufficient-token-balance",
+          `Insufficient ${market.quoteAsset} balance for this trade.`
         );
       }
+      if (isMarketUnavailable) {
+        throw new YieldDomainError(
+          market.status === "paused" ? "market-paused" : "market-expired",
+          market.status === "paused"
+            ? "This market is currently paused."
+            : "This market has passed maturity."
+        );
+      }
+      if (isFixed ? !fixedQuote : !longQuote) {
+        throw new YieldDomainError(
+          "quote-expired",
+          "This quote is unavailable. Wait for a fresh quote and try again."
+        );
+      }
+      if (isQuoteExpired) {
+        throw new YieldDomainError(
+          "quote-expired",
+          "This quote has expired. Refresh the quote before confirming."
+        );
+      }
+      if (!address || !chainId) {
+        throw new YieldDomainError("wallet-disconnected", "Connect a wallet to continue.");
+      }
 
-      setTxStep("transaction_success");
+      setTxState({ step: "approval-required" });
+      await new Promise((resolve) => setTimeout(resolve, 900));
+
+      setTxState({ step: "approving" });
+      await new Promise((resolve) => setTimeout(resolve, 900));
+      setTxState({ step: "approval-success" });
+      toast.success(`${market.quoteAsset} approval granted`);
+
+      setTxState({ step: "ready" });
+      setTxState({ step: "confirming" });
+      await new Promise((resolve) => setTimeout(resolve, 1400));
+
+      setTxState({ step: "pending" });
+      if (isFixed) {
+        const openedPosition = await openFixedPosition.mutateAsync({
+          marketId: market.id,
+          inputAmount,
+          userAddress: address,
+          quote: fixedQuote!,
+          chainId,
+          quoteAsset: market.quoteAsset,
+        });
+        setTxState({ step: "success", txHash: openedPosition.mockTxHash });
+        toast.success(
+          `Successfully opened Fixed Yield position for ${inputAmount} ${market.quoteAsset}!`
+        );
+      } else {
+        const openedPosition = await openLongPosition.mutateAsync({
+          marketId: market.id,
+          inputAmount,
+          userAddress: address,
+          quote: longQuote!,
+          chainId,
+          quoteAsset: market.quoteAsset,
+        });
+        setTxState({ step: "success", txHash: openedPosition.mockTxHash });
+        toast.success(
+          `Successfully opened Long Yield position for ${inputAmount} ${market.quoteAsset}!`
+        );
+      }
 
       setTimeout(() => {
         router.push("/portfolio");
       }, 1200);
     } catch (err: unknown) {
-      const error = err as Error;
-      setTxStep("error");
-      toast.error(error?.message || "Transaction failed");
+      const message = getYieldErrorMessage(err);
+      setTxState({
+        step: "error",
+        errorCode: err instanceof YieldDomainError ? err.code : "transaction-reverted",
+        errorMessage: message,
+      });
+      toast.error(message);
     } finally {
       setTimeout(() => {
-        setTxStep("idle");
+        setTxState({ step: "idle" });
       }, 3000);
     }
   };
@@ -157,8 +263,10 @@ export function TradePanel({ market }: { market: YieldMarket }) {
         <div className="flex justify-between text-[13px] text-muted-dark">
           <label htmlFor="trade-amount">You pay</label>
           <div className="flex items-center gap-2 mono text-[12px]">
-            <span>BALANCE: {formatTokenAmount(mockBalance)}</span>
-            <span className="text-muted-faint">{market.symbol}</span>
+            <span>
+              BALANCE: {isConnected ? formatTokenAmount(balance) : "Connect wallet"}
+            </span>
+            <span className="text-muted-faint">{market.quoteAsset}</span>
           </div>
         </div>
 
@@ -174,7 +282,7 @@ export function TradePanel({ market }: { market: YieldMarket }) {
             placeholder="0.00"
           />
           <span className="text-[15px] font-medium text-muted">
-            {market.symbol}
+            {market.quoteAsset}
           </span>
         </div>
 
@@ -202,6 +310,16 @@ export function TradePanel({ market }: { market: YieldMarket }) {
             MAX
           </button>
         </div>
+        {isInvalidAmount && inputAmountStr.trim() !== "" && (
+          <span role="alert" className="text-[12px] text-negative">
+            Enter an amount greater than zero.
+          </span>
+        )}
+        {isInsufficientBalance && (
+          <span role="alert" className="text-[12px] text-negative">
+            Insufficient {market.quoteAsset} balance.
+          </span>
+        )}
       </div>
 
       {/* Strategy-Specific Details */}
@@ -249,7 +367,7 @@ export function TradePanel({ market }: { market: YieldMarket }) {
             <div className="flex justify-between py-2.5 border-b border-white/10">
               <span className="text-muted-dark">Network Fee</span>
               <span className="text-muted-dark text-[13px]">
-                ~0.0004 ETH ($0.95)
+                {fixedQuote ? `~${fixedQuote.networkFeeEstimate} ETH` : "Shown before you confirm"}
               </span>
             </div>
           </div>
@@ -289,8 +407,16 @@ export function TradePanel({ market }: { market: YieldMarket }) {
                   <span className="mono text-[16px] text-foreground font-medium">
                     ~{longQuote.estimatedReturns.currentRate.returnAmount}
                   </span>
-                  <span className="mono text-[12px] text-positive">
-                    +{longQuote.estimatedReturns.currentRate.percentChange}%
+                  <span
+                    className={`mono text-[12px] ${
+                      longQuote.estimatedReturns.currentRate.percentChange >= 0
+                        ? "text-positive"
+                        : "text-negative"
+                    }`}
+                  >
+                    {formatScenarioChange(
+                      longQuote.estimatedReturns.currentRate.percentChange
+                    )}
                   </span>
                 </div>
                 <div className="border border-white/12 rounded p-2.5 flex flex-col">
@@ -300,8 +426,16 @@ export function TradePanel({ market }: { market: YieldMarket }) {
                   <span className="mono text-[16px] text-foreground font-medium">
                     ~{longQuote.estimatedReturns.lowerRate.returnAmount}
                   </span>
-                  <span className="mono text-[12px] text-negative">
-                    {longQuote.estimatedReturns.lowerRate.percentChange}%
+                  <span
+                    className={`mono text-[12px] ${
+                      longQuote.estimatedReturns.lowerRate.percentChange >= 0
+                        ? "text-positive"
+                        : "text-negative"
+                    }`}
+                  >
+                    {formatScenarioChange(
+                      longQuote.estimatedReturns.lowerRate.percentChange
+                    )}
                   </span>
                 </div>
               </div>
@@ -335,7 +469,7 @@ export function TradePanel({ market }: { market: YieldMarket }) {
             <div className="flex justify-between py-2 border-b border-white/10">
               <span className="text-muted-dark">Network Fee</span>
               <span className="text-muted-dark text-[13px]">
-                ~0.0004 ETH ($0.95)
+                {longQuote ? `~${longQuote.networkFeeEstimate} ETH` : "Shown before you confirm"}
               </span>
             </div>
           </div>
@@ -343,6 +477,12 @@ export function TradePanel({ market }: { market: YieldMarket }) {
       )}
 
       {/* Advanced Details Toggle */}
+      {quoteError && !activeQuote && (
+        <div role="alert" className="text-[12px] text-negative">
+          {getYieldErrorMessage(quoteError)}
+        </div>
+      )}
+
       <div className="border-t border-white/10 pt-2">
         <button
           type="button"
@@ -398,7 +538,7 @@ export function TradePanel({ market }: { market: YieldMarket }) {
           return (
             <button
               type="button"
-              onClick={openConnectModal}
+              onClick={handleConnectWallet}
               className="min-h-[52px] border-0 rounded-lg bg-amber text-[#0A0B0C] text-[15px] font-medium flex items-center justify-center hover:brightness-105 transition-all cursor-pointer"
             >
               Connect Wallet
@@ -410,10 +550,58 @@ export function TradePanel({ market }: { market: YieldMarket }) {
           return (
             <button
               type="button"
-              onClick={() => switchChain?.({ chainId: 4663 })}
+              onClick={handleNetworkSwitch}
               className="min-h-[52px] border-0 rounded-lg bg-negative text-white text-[15px] font-medium flex items-center justify-center hover:brightness-105 transition-all cursor-pointer"
             >
               Switch to Robinhood Chain
+            </button>
+          );
+        }
+
+        if (market.status === "paused") {
+          return (
+            <button
+              type="button"
+              disabled
+              className="min-h-[52px] border border-white/20 rounded-lg bg-surface text-muted-dark text-[15px] font-medium flex items-center justify-center cursor-not-allowed"
+            >
+              Market Paused
+            </button>
+          );
+        }
+
+        if (market.status === "matured") {
+          return (
+            <button
+              type="button"
+              disabled
+              className="min-h-[52px] border border-white/20 rounded-lg bg-surface text-muted-dark text-[15px] font-medium flex items-center justify-center cursor-not-allowed"
+            >
+              Market Expired
+            </button>
+          );
+        }
+
+        if (isQuoteExpired) {
+          return (
+            <button
+              type="button"
+              onClick={handleRefreshQuote}
+              className="min-h-[52px] border border-white/20 rounded-lg bg-surface text-foreground text-[15px] font-medium flex items-center justify-center cursor-pointer"
+            >
+              Refresh Quote
+            </button>
+          );
+        }
+
+        if (quoteError && !activeQuote) {
+          return (
+            <button
+              type="button"
+              onClick={handleRefreshQuote}
+              className="min-h-[52px] border border-white/20 rounded-lg bg-surface text-foreground text-[15px] font-medium flex items-center justify-center cursor-pointer"
+            >
+              Quote Unavailable — Retry
             </button>
           );
         }
@@ -431,12 +619,23 @@ export function TradePanel({ market }: { market: YieldMarket }) {
         }
 
         const isPending =
-          txStep === "approval_pending" || txStep === "transaction_pending";
+          txState.step === "validating" ||
+          txState.step === "approval-required" ||
+          txState.step === "approving" ||
+          txState.step === "approval-success" ||
+          txState.step === "confirming" ||
+          txState.step === "pending";
 
         return (
           <button
             type="button"
-            disabled={isPending || loadingFixed || loadingLong}
+            disabled={
+              isPending ||
+              loadingFixed ||
+              loadingLong ||
+              isInvalidAmount ||
+              isInsufficientBalance
+            }
             onClick={handleExecuteTrade}
             className={`min-h-[52px] border-0 rounded-lg text-[#0A0B0C] text-[15px] font-medium flex items-center justify-center gap-2 transition-all cursor-pointer ${
               isFixed
@@ -445,16 +644,19 @@ export function TradePanel({ market }: { market: YieldMarket }) {
             } ${isPending ? "opacity-80" : ""}`}
           >
             {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-            {txStep === "approval_pending" && "Approving Token..."}
-            {txStep === "transaction_pending" &&
+            {txState.step === "approval-required" && "Approval Required"}
+            {txState.step === "approving" && "Approving Token..."}
+            {txState.step === "approval-success" && "Approval Confirmed"}
+            {(txState.step === "confirming" || txState.step === "pending") &&
               `Opening ${isFixed ? "Fixed" : "Long"} Position...`}
-            {txStep === "transaction_success" && (
+            {txState.step === "success" && (
               <>
                 <CheckCircle2 className="w-4 h-4" /> Position Opened!
               </>
             )}
-            {txStep === "idle" &&
+            {(txState.step === "idle" || txState.step === "ready") &&
               (isFixed ? "Open Fixed Position" : "Open Long Position")}
+            {txState.step === "error" && "Try Again"}
           </button>
         );
       })()}

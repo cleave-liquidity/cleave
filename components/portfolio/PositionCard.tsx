@@ -2,9 +2,11 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useAccount } from "wagmi";
 import { FixedYieldPosition, LongYieldPosition, YieldPosition } from "@/types/position";
-import { formatApy, formatTokenAmount, formatUsd } from "@/lib/utils/formatters";
-import { yieldAdapter } from "@/lib/adapters/mock-adapter";
+import { formatTokenAmount, formatUsd } from "@/lib/utils/formatters";
+import { useClaimYield, useRedeemFixed, useSellPosition } from "@/hooks/usePositionActions";
+import { getYieldErrorMessage } from "@/types/errors";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -16,6 +18,10 @@ export function PositionCard({
   onActionComplete?: () => void;
 }) {
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
+  const { address } = useAccount();
+  const claimYield = useClaimYield();
+  const redeemFixed = useRedeemFixed();
+  const sellPosition = useSellPosition();
 
   const isFixed = position.strategy === "fixed";
   const fixedPos = isFixed ? (position as FixedYieldPosition) : null;
@@ -23,19 +29,25 @@ export function PositionCard({
 
   const isMatured = position.status === "matured";
   const isRedeemed = position.status === "redeemed";
+  const isActive = position.status === "active";
+  const canClaim =
+    !isFixed &&
+    (isActive || isMatured) &&
+    (longPos?.claimableYield || 0) > 0;
+  const canSell = isActive;
 
   const handleClaim = async () => {
-    if (!longPos || longPos.claimableYield <= 0) return;
+    if (!longPos || !canClaim) return;
     try {
       setLoadingAction("claim");
-      await new Promise((r) => setTimeout(r, 1000));
-      const res = await yieldAdapter.claimYield(position.id);
+      if (!address) throw new Error("Connect a wallet to claim yield.");
+      const res = await claimYield.mutateAsync({ positionId: position.id, userAddress: address });
       toast.success(
-        `Claimed ${formatTokenAmount(res.claimedAmount)} ${position.assetSymbol}!`
+        `Claimed ${formatTokenAmount(res.claimedAmount ?? 0)} ${position.assetSymbol}!`
       );
       onActionComplete?.();
-    } catch {
-      toast.error("Failed to claim yield");
+    } catch (error: unknown) {
+      toast.error(getYieldErrorMessage(error));
     } finally {
       setLoadingAction(null);
     }
@@ -45,14 +57,14 @@ export function PositionCard({
     if (!fixedPos) return;
     try {
       setLoadingAction("redeem");
-      await new Promise((r) => setTimeout(r, 1200));
-      const res = await yieldAdapter.redeemFixed(position.id);
+      if (!address) throw new Error("Connect a wallet to redeem PT.");
+      const res = await redeemFixed.mutateAsync({ positionId: position.id, userAddress: address });
       toast.success(
-        `Redeemed ${formatTokenAmount(res.redeemedAmount)} ${position.assetSymbol} at maturity!`
+        `Redeemed ${formatTokenAmount(res.redeemedAmount ?? 0)} ${position.assetSymbol} at maturity!`
       );
       onActionComplete?.();
-    } catch {
-      toast.error("Failed to redeem");
+    } catch (error: unknown) {
+      toast.error(getYieldErrorMessage(error));
     } finally {
       setLoadingAction(null);
     }
@@ -61,14 +73,14 @@ export function PositionCard({
   const handleSellEarly = async () => {
     try {
       setLoadingAction("sell");
-      await new Promise((r) => setTimeout(r, 1000));
-      const res = await yieldAdapter.sellPosition(position.id);
+      if (!address) throw new Error("Connect a wallet to sell this position.");
+      const res = await sellPosition.mutateAsync({ positionId: position.id, userAddress: address });
       toast.success(
-        `Sold position early for ${formatUsd(res.returnedAmount)}!`
+        `Sold position early for ${formatUsd(res.returnedAmount ?? 0)}!`
       );
       onActionComplete?.();
-    } catch {
-      toast.error("Failed to sell position");
+    } catch (error: unknown) {
+      toast.error(getYieldErrorMessage(error));
     } finally {
       setLoadingAction(null);
     }
@@ -173,11 +185,11 @@ export function PositionCard({
 
         <div className="flex items-center gap-3">
           {/* Long Strategy Actions */}
-          {!isFixed && (
+          {!isFixed && (isActive || isMatured) && (
             <button
               type="button"
               disabled={
-                loadingAction !== null || (longPos?.claimableYield || 0) <= 0
+                loadingAction !== null || !canClaim
               }
               onClick={handleClaim}
               className="min-h-[42px] px-4.5 rounded-lg bg-amber text-[#0A0B0C] text-[14px] font-medium flex items-center gap-1.5 hover:brightness-105 transition-all disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
@@ -190,7 +202,7 @@ export function PositionCard({
           )}
 
           {/* Fixed Strategy Redeem Action at Maturity */}
-          {isFixed && (
+          {isFixed && !isRedeemed && position.status !== "closed" && (
             <button
               type="button"
               disabled={!isMatured || isRedeemed || loadingAction !== null}
@@ -209,7 +221,7 @@ export function PositionCard({
           )}
 
           {/* Sell Early Option */}
-          {!isRedeemed && (
+          {canSell && (
             <button
               type="button"
               disabled={loadingAction !== null}

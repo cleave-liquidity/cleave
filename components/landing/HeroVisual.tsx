@@ -1,21 +1,2413 @@
 "use client";
 
-import React from "react";
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useMemo,
+  useCallback,
+} from "react";
 
-export function HeroVisual() {
+export interface HeroVisualProps {
+  pointerX?: number;
+  parallaxX?: number;
+  parallaxY?: number;
+  activeStage?: number;
+  onSelectStage?: (stage: number) => void;
+  isSplitLayout?: boolean;
+}
+
+const R = 345;
+
+const RAW_STAR_NODES = [
+  {
+    lat: 70.05,
+    lon: 0.0,
+    r: 2.4,
+    col: "#FFFFFF",
+    twinkle: true,
+    delay: "0.0s",
+  },
+  {
+    lat: 66.96,
+    lon: 137.51,
+    r: 1.3,
+    col: "#FFFFFF",
+    twinkle: false,
+    delay: "0.2s",
+  },
+  {
+    lat: 64.21,
+    lon: 275.02,
+    r: 1.3,
+    col: "#DDE8F8",
+    twinkle: false,
+    delay: "0.5s",
+  },
+  {
+    lat: 61.72,
+    lon: 52.52,
+    r: 1.8,
+    col: "#FFFFFF",
+    twinkle: true,
+    delay: "0.8s",
+  },
+  {
+    lat: 59.41,
+    lon: 190.03,
+    r: 1.3,
+    col: "#A9C8EE",
+    twinkle: false,
+    delay: "1.0s",
+  },
+  {
+    lat: 57.25,
+    lon: 327.54,
+    r: 1.3,
+    col: "#FFFFFF",
+    twinkle: false,
+    delay: "1.2s",
+  },
+  {
+    lat: 55.21,
+    lon: 105.05,
+    r: 1.8,
+    col: "#FFE2C4",
+    twinkle: true,
+    delay: "1.5s",
+  },
+  {
+    lat: 53.27,
+    lon: 242.55,
+    r: 1.3,
+    col: "#FFFFFF",
+    twinkle: false,
+    delay: "1.8s",
+  },
+  {
+    lat: 51.42,
+    lon: 20.06,
+    r: 1.3,
+    col: "#FFFFFF",
+    twinkle: false,
+    delay: "2.0s",
+  },
+  {
+    lat: 49.63,
+    lon: 157.57,
+    r: 1.8,
+    col: "#FFFFFF",
+    twinkle: true,
+    delay: "2.2s",
+  },
+  {
+    lat: 47.91,
+    lon: 295.08,
+    r: 1.3,
+    col: "#DDE8F8",
+    twinkle: false,
+    delay: "2.5s",
+  },
+  {
+    lat: 46.25,
+    lon: 72.59,
+    r: 1.3,
+    col: "#FFFFFF",
+    twinkle: false,
+    delay: "2.8s",
+  },
+  {
+    lat: 44.63,
+    lon: 210.09,
+    r: 1.8,
+    col: "#A9C8EE",
+    twinkle: true,
+    delay: "3.0s",
+  },
+  {
+    lat: 43.06,
+    lon: 347.6,
+    r: 1.3,
+    col: "#FFFFFF",
+    twinkle: false,
+    delay: "3.2s",
+  },
+  {
+    lat: 41.53,
+    lon: 125.11,
+    r: 1.3,
+    col: "#FFE2C4",
+    twinkle: false,
+    delay: "3.5s",
+  },
+  {
+    lat: 40.03,
+    lon: 262.62,
+    r: 1.8,
+    col: "#FFFFFF",
+    twinkle: true,
+    delay: "3.8s",
+  },
+  {
+    lat: 38.56,
+    lon: 40.12,
+    r: 1.3,
+    col: "#FFFFFF",
+    twinkle: false,
+    delay: "0.0s",
+  },
+  {
+    lat: 37.13,
+    lon: 177.63,
+    r: 1.3,
+    col: "#FFFFFF",
+    twinkle: false,
+    delay: "0.2s",
+  },
+  {
+    lat: 35.72,
+    lon: 315.14,
+    r: 1.8,
+    col: "#DDE8F8",
+    twinkle: true,
+    delay: "0.5s",
+  },
+  {
+    lat: 34.33,
+    lon: 92.65,
+    r: 1.3,
+    col: "#FFFFFF",
+    twinkle: false,
+    delay: "0.8s",
+  },
+  {
+    lat: 32.97,
+    lon: 230.16,
+    r: 1.3,
+    col: "#A9C8EE",
+    twinkle: false,
+    delay: "1.0s",
+  },
+  {
+    lat: 31.63,
+    lon: 7.66,
+    r: 1.8,
+    col: "#FFFFFF",
+    twinkle: true,
+    delay: "1.2s",
+  },
+  {
+    lat: 30.31,
+    lon: 145.17,
+    r: 1.3,
+    col: "#FFE2C4",
+    twinkle: false,
+    delay: "1.5s",
+  },
+  {
+    lat: 29.0,
+    lon: 282.68,
+    r: 1.3,
+    col: "#FFFFFF",
+    twinkle: false,
+    delay: "1.8s",
+  },
+  {
+    lat: 27.71,
+    lon: 60.19,
+    r: 2.4,
+    col: "#FFFFFF",
+    twinkle: true,
+    delay: "2.0s",
+  },
+  {
+    lat: 26.44,
+    lon: 197.69,
+    r: 1.3,
+    col: "#FFFFFF",
+    twinkle: false,
+    delay: "2.2s",
+  },
+  {
+    lat: 25.18,
+    lon: 335.2,
+    r: 1.3,
+    col: "#DDE8F8",
+    twinkle: false,
+    delay: "2.5s",
+  },
+  {
+    lat: 23.93,
+    lon: 112.71,
+    r: 1.8,
+    col: "#FFFFFF",
+    twinkle: true,
+    delay: "2.8s",
+  },
+  {
+    lat: 22.7,
+    lon: 250.22,
+    r: 1.3,
+    col: "#A9C8EE",
+    twinkle: false,
+    delay: "3.0s",
+  },
+  {
+    lat: 21.48,
+    lon: 27.73,
+    r: 1.3,
+    col: "#FFFFFF",
+    twinkle: false,
+    delay: "3.2s",
+  },
+  {
+    lat: 20.26,
+    lon: 165.23,
+    r: 1.8,
+    col: "#FFE2C4",
+    twinkle: true,
+    delay: "3.5s",
+  },
+  {
+    lat: 19.06,
+    lon: 302.74,
+    r: 1.3,
+    col: "#FFFFFF",
+    twinkle: false,
+    delay: "3.8s",
+  },
+  {
+    lat: 17.86,
+    lon: 80.25,
+    r: 1.3,
+    col: "#FFFFFF",
+    twinkle: false,
+    delay: "0.0s",
+  },
+  {
+    lat: 16.68,
+    lon: 217.76,
+    r: 1.8,
+    col: "#FFFFFF",
+    twinkle: true,
+    delay: "0.2s",
+  },
+  {
+    lat: 15.5,
+    lon: 355.26,
+    r: 1.3,
+    col: "#DDE8F8",
+    twinkle: false,
+    delay: "0.5s",
+  },
+  {
+    lat: 14.32,
+    lon: 132.77,
+    r: 1.3,
+    col: "#FFFFFF",
+    twinkle: false,
+    delay: "0.8s",
+  },
+  {
+    lat: 13.15,
+    lon: 270.28,
+    r: 1.8,
+    col: "#A9C8EE",
+    twinkle: true,
+    delay: "1.0s",
+  },
+  {
+    lat: 11.99,
+    lon: 47.79,
+    r: 1.3,
+    col: "#FFFFFF",
+    twinkle: false,
+    delay: "1.2s",
+  },
+  {
+    lat: 10.84,
+    lon: 185.3,
+    r: 1.3,
+    col: "#FFE2C4",
+    twinkle: false,
+    delay: "1.5s",
+  },
+  {
+    lat: 9.68,
+    lon: 322.8,
+    r: 1.8,
+    col: "#FFFFFF",
+    twinkle: true,
+    delay: "1.8s",
+  },
+  {
+    lat: 8.54,
+    lon: 100.31,
+    r: 1.3,
+    col: "#FFFFFF",
+    twinkle: false,
+    delay: "2.0s",
+  },
+  {
+    lat: 7.39,
+    lon: 237.82,
+    r: 1.3,
+    col: "#FFFFFF",
+    twinkle: false,
+    delay: "2.2s",
+  },
+  {
+    lat: 6.25,
+    lon: 15.33,
+    r: 1.8,
+    col: "#DDE8F8",
+    twinkle: true,
+    delay: "2.5s",
+  },
+  {
+    lat: 5.11,
+    lon: 152.83,
+    r: 1.3,
+    col: "#FFFFFF",
+    twinkle: false,
+    delay: "2.8s",
+  },
+  {
+    lat: 3.97,
+    lon: 290.34,
+    r: 1.3,
+    col: "#A9C8EE",
+    twinkle: false,
+    delay: "3.0s",
+  },
+  {
+    lat: 2.84,
+    lon: 67.85,
+    r: 1.8,
+    col: "#FFFFFF",
+    twinkle: true,
+    delay: "3.2s",
+  },
+  {
+    lat: 1.7,
+    lon: 205.36,
+    r: 1.3,
+    col: "#FFE2C4",
+    twinkle: false,
+    delay: "3.5s",
+  },
+  {
+    lat: 0.57,
+    lon: 342.86,
+    r: 1.3,
+    col: "#FFFFFF",
+    twinkle: false,
+    delay: "3.8s",
+  },
+  {
+    lat: -0.57,
+    lon: 120.37,
+    r: 2.4,
+    col: "#FFFFFF",
+    twinkle: true,
+    delay: "0.0s",
+  },
+  {
+    lat: -1.7,
+    lon: 257.88,
+    r: 1.3,
+    col: "#FFFFFF",
+    twinkle: false,
+    delay: "0.2s",
+  },
+  {
+    lat: -2.84,
+    lon: 35.39,
+    r: 1.3,
+    col: "#DDE8F8",
+    twinkle: false,
+    delay: "0.5s",
+  },
+  {
+    lat: -3.97,
+    lon: 172.9,
+    r: 1.8,
+    col: "#FFFFFF",
+    twinkle: true,
+    delay: "0.8s",
+  },
+  {
+    lat: -5.11,
+    lon: 310.4,
+    r: 1.3,
+    col: "#A9C8EE",
+    twinkle: false,
+    delay: "1.0s",
+  },
+  {
+    lat: -6.25,
+    lon: 87.91,
+    r: 1.3,
+    col: "#FFFFFF",
+    twinkle: false,
+    delay: "1.2s",
+  },
+  {
+    lat: -7.39,
+    lon: 225.42,
+    r: 1.8,
+    col: "#FFE2C4",
+    twinkle: true,
+    delay: "1.5s",
+  },
+  {
+    lat: -8.54,
+    lon: 2.93,
+    r: 1.3,
+    col: "#FFFFFF",
+    twinkle: false,
+    delay: "1.8s",
+  },
+  {
+    lat: -9.68,
+    lon: 140.43,
+    r: 1.3,
+    col: "#FFFFFF",
+    twinkle: false,
+    delay: "2.0s",
+  },
+  {
+    lat: -10.84,
+    lon: 277.94,
+    r: 1.8,
+    col: "#FFFFFF",
+    twinkle: true,
+    delay: "2.2s",
+  },
+  {
+    lat: -11.99,
+    lon: 55.45,
+    r: 1.3,
+    col: "#DDE8F8",
+    twinkle: false,
+    delay: "2.5s",
+  },
+  {
+    lat: -13.15,
+    lon: 192.96,
+    r: 1.3,
+    col: "#FFFFFF",
+    twinkle: false,
+    delay: "2.8s",
+  },
+  {
+    lat: -14.32,
+    lon: 330.47,
+    r: 1.8,
+    col: "#A9C8EE",
+    twinkle: true,
+    delay: "3.0s",
+  },
+  {
+    lat: -15.5,
+    lon: 107.97,
+    r: 1.3,
+    col: "#FFFFFF",
+    twinkle: false,
+    delay: "3.2s",
+  },
+  {
+    lat: -16.68,
+    lon: 245.48,
+    r: 1.3,
+    col: "#FFE2C4",
+    twinkle: false,
+    delay: "3.5s",
+  },
+  {
+    lat: -17.86,
+    lon: 22.99,
+    r: 1.8,
+    col: "#FFFFFF",
+    twinkle: true,
+    delay: "3.8s",
+  },
+  {
+    lat: -19.06,
+    lon: 160.5,
+    r: 1.3,
+    col: "#FFFFFF",
+    twinkle: false,
+    delay: "0.0s",
+  },
+  {
+    lat: -20.26,
+    lon: 298.0,
+    r: 1.3,
+    col: "#FFFFFF",
+    twinkle: false,
+    delay: "0.2s",
+  },
+  {
+    lat: -21.48,
+    lon: 75.51,
+    r: 1.8,
+    col: "#DDE8F8",
+    twinkle: true,
+    delay: "0.5s",
+  },
+  {
+    lat: -22.7,
+    lon: 213.02,
+    r: 1.3,
+    col: "#FFFFFF",
+    twinkle: false,
+    delay: "0.8s",
+  },
+  {
+    lat: -23.93,
+    lon: 350.53,
+    r: 1.3,
+    col: "#A9C8EE",
+    twinkle: false,
+    delay: "1.0s",
+  },
+  {
+    lat: -25.18,
+    lon: 128.04,
+    r: 1.8,
+    col: "#FFFFFF",
+    twinkle: true,
+    delay: "1.2s",
+  },
+  {
+    lat: -26.44,
+    lon: 265.54,
+    r: 1.3,
+    col: "#FFE2C4",
+    twinkle: false,
+    delay: "1.5s",
+  },
+  {
+    lat: -27.71,
+    lon: 43.05,
+    r: 1.3,
+    col: "#FFFFFF",
+    twinkle: false,
+    delay: "1.8s",
+  },
+  {
+    lat: -29.0,
+    lon: 180.56,
+    r: 2.4,
+    col: "#FFFFFF",
+    twinkle: true,
+    delay: "2.0s",
+  },
+  {
+    lat: -30.31,
+    lon: 318.07,
+    r: 1.3,
+    col: "#FFFFFF",
+    twinkle: false,
+    delay: "2.2s",
+  },
+  {
+    lat: -31.63,
+    lon: 95.57,
+    r: 1.3,
+    col: "#DDE8F8",
+    twinkle: false,
+    delay: "2.5s",
+  },
+  {
+    lat: -32.97,
+    lon: 233.08,
+    r: 1.8,
+    col: "#FFFFFF",
+    twinkle: true,
+    delay: "2.8s",
+  },
+  {
+    lat: -34.33,
+    lon: 10.59,
+    r: 1.3,
+    col: "#A9C8EE",
+    twinkle: false,
+    delay: "3.0s",
+  },
+  {
+    lat: -35.72,
+    lon: 148.1,
+    r: 1.3,
+    col: "#FFFFFF",
+    twinkle: false,
+    delay: "3.2s",
+  },
+  {
+    lat: -37.13,
+    lon: 285.61,
+    r: 1.8,
+    col: "#FFE2C4",
+    twinkle: true,
+    delay: "3.5s",
+  },
+  {
+    lat: -38.56,
+    lon: 63.11,
+    r: 1.3,
+    col: "#FFFFFF",
+    twinkle: false,
+    delay: "3.8s",
+  },
+  {
+    lat: -40.03,
+    lon: 200.62,
+    r: 1.3,
+    col: "#FFFFFF",
+    twinkle: false,
+    delay: "0.0s",
+  },
+  {
+    lat: -41.53,
+    lon: 338.13,
+    r: 1.8,
+    col: "#FFFFFF",
+    twinkle: true,
+    delay: "0.2s",
+  },
+  {
+    lat: -43.06,
+    lon: 115.64,
+    r: 1.3,
+    col: "#DDE8F8",
+    twinkle: false,
+    delay: "0.5s",
+  },
+  {
+    lat: -44.63,
+    lon: 253.14,
+    r: 1.3,
+    col: "#FFFFFF",
+    twinkle: false,
+    delay: "0.8s",
+  },
+  {
+    lat: -46.25,
+    lon: 30.65,
+    r: 1.8,
+    col: "#A9C8EE",
+    twinkle: true,
+    delay: "1.0s",
+  },
+  {
+    lat: -47.91,
+    lon: 168.16,
+    r: 1.3,
+    col: "#FFFFFF",
+    twinkle: false,
+    delay: "1.2s",
+  },
+  {
+    lat: -49.63,
+    lon: 305.67,
+    r: 1.3,
+    col: "#FFE2C4",
+    twinkle: false,
+    delay: "1.5s",
+  },
+  {
+    lat: -51.42,
+    lon: 83.18,
+    r: 1.8,
+    col: "#FFFFFF",
+    twinkle: true,
+    delay: "1.8s",
+  },
+  {
+    lat: -53.27,
+    lon: 220.68,
+    r: 1.3,
+    col: "#FFFFFF",
+    twinkle: false,
+    delay: "2.0s",
+  },
+  {
+    lat: -55.21,
+    lon: 358.19,
+    r: 1.3,
+    col: "#FFFFFF",
+    twinkle: false,
+    delay: "2.2s",
+  },
+  {
+    lat: -57.25,
+    lon: 135.7,
+    r: 1.8,
+    col: "#DDE8F8",
+    twinkle: true,
+    delay: "2.5s",
+  },
+  {
+    lat: -59.41,
+    lon: 273.21,
+    r: 1.3,
+    col: "#FFFFFF",
+    twinkle: false,
+    delay: "2.8s",
+  },
+  {
+    lat: -61.72,
+    lon: 50.71,
+    r: 1.3,
+    col: "#A9C8EE",
+    twinkle: false,
+    delay: "3.0s",
+  },
+  {
+    lat: -64.21,
+    lon: 188.22,
+    r: 1.8,
+    col: "#FFFFFF",
+    twinkle: true,
+    delay: "3.2s",
+  },
+  {
+    lat: -66.96,
+    lon: 325.73,
+    r: 1.3,
+    col: "#FFE2C4",
+    twinkle: false,
+    delay: "3.5s",
+  },
+  {
+    lat: -70.05,
+    lon: 103.24,
+    r: 1.3,
+    col: "#FFFFFF",
+    twinkle: false,
+    delay: "3.8s",
+  },
+];
+
+// 3D Cube Definition (for Split Engine Tesseract Vault Core)
+const CUBE_VERTICES = [
+  [-1, -1, -1],
+  [1, -1, -1],
+  [1, 1, -1],
+  [-1, 1, -1],
+  [-1, -1, 1],
+  [1, -1, 1],
+  [1, 1, 1],
+  [-1, 1, 1],
+];
+
+const CUBE_EDGES = [
+  [0, 1],
+  [1, 2],
+  [2, 3],
+  [3, 0], // back square
+  [4, 5],
+  [5, 6],
+  [6, 7],
+  [7, 4], // front square
+  [0, 4],
+  [1, 5],
+  [2, 6],
+  [3, 7], // connectors
+];
+
+export function HeroVisual({
+  pointerX = 0,
+  parallaxX = 0,
+  parallaxY = 0,
+  activeStage = 0,
+  onSelectStage,
+  isSplitLayout = true,
+}: HeroVisualProps) {
+  const [renderRot, setRenderRot] = useState({ x: 18, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const svgRef = useRef<SVGSVGElement>(null);
+
+  // Physics and interaction state ref for 60fps butter-smooth Apple-like animation
+  const stateRef = useRef({
+    currentX: 18,
+    currentY: 0,
+    targetX: 18,
+    targetY: 0,
+    velocityX: 0,
+    velocityY: 0,
+    isDragging: false,
+    dragStartX: 0,
+    dragStartY: 0,
+    rotAtDragStartX: 18,
+    rotAtDragStartY: 0,
+    hoverTiltX: 0,
+    hoverTiltY: 0,
+    lastMoveX: 0,
+    lastMoveY: 0,
+    lastMoveTime: 0,
+  });
+
+  // 60FPS Continuous Animation Loop with Apple-style Fluid Inertia & Spring Easing
+  useEffect(() => {
+    let animId: number;
+    let lastTime = performance.now();
+
+    const loop = (now: number) => {
+      const dt = Math.min((now - lastTime) / 1000, 0.08);
+      lastTime = now;
+      const s = stateRef.current;
+
+      if (!s.isDragging) {
+        // Continuous auto-rotation keeps the celestial object alive
+        s.targetY += 2.4 * dt;
+
+        // Apply decay to release velocity (inertia)
+        s.velocityX *= 0.92;
+        s.velocityY *= 0.92;
+        s.targetX += s.velocityX * dt * 25;
+        s.targetY += s.velocityY * dt * 25;
+        s.targetX = Math.max(-45, Math.min(50, s.targetX));
+
+        // Apple-style spring ease towards target + hover tilt
+        const springFactor = 0.075;
+        s.currentX += (s.targetX + s.hoverTiltX - s.currentX) * springFactor;
+        s.currentY += (s.targetY + s.hoverTiltY - s.currentY) * springFactor;
+      } else {
+        // Direct responsive tracking with elastic ease during drag
+        s.currentX += (s.targetX - s.currentX) * 0.28;
+        s.currentY += (s.targetY - s.currentY) * 0.28;
+      }
+
+      setRenderRot({
+        x: s.currentX,
+        y: s.currentY,
+      });
+
+      animId = requestAnimationFrame(loop);
+    };
+
+    animId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(animId);
+  }, []);
+
+  // Reset orientation button handler
+  const handleResetOrientation = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    const s = stateRef.current;
+    s.targetX = 18;
+    s.targetY = 0;
+    s.velocityX = 0;
+    s.velocityY = 0;
+    s.hoverTiltX = 0;
+    s.hoverTiltY = 0;
+  }, []);
+
+  // Pointer drag & hover interaction handlers (Active across entire hero canvas)
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    setIsDragging(true);
+    const s = stateRef.current;
+    s.isDragging = true;
+    s.dragStartX = e.clientX;
+    s.dragStartY = e.clientY;
+    s.rotAtDragStartX = s.currentX;
+    s.rotAtDragStartY = s.currentY;
+    s.lastMoveX = e.clientX;
+    s.lastMoveY = e.clientY;
+    s.lastMoveTime = performance.now();
+    s.velocityX = 0;
+    s.velocityY = 0;
+
+    try {
+      (e.currentTarget as Element).setPointerCapture(e.pointerId);
+    } catch {}
+  }, []);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    const s = stateRef.current;
+    if (s.isDragging) {
+      const now = performance.now();
+      const dt = Math.max((now - s.lastMoveTime) / 1000, 0.001);
+      const dx = e.clientX - s.dragStartX;
+      const dy = e.clientY - s.dragStartY;
+
+      s.targetX = Math.max(-45, Math.min(50, s.rotAtDragStartX - dy * 0.24));
+      s.targetY = s.rotAtDragStartY + dx * 0.38;
+
+      s.velocityX = -((e.clientY - s.lastMoveY) / dt) * 0.015;
+      s.velocityY = ((e.clientX - s.lastMoveX) / dt) * 0.022;
+
+      s.lastMoveX = e.clientX;
+      s.lastMoveY = e.clientY;
+      s.lastMoveTime = now;
+    } else {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      const ny = ((e.clientY - rect.top) / rect.height) * 2 - 1;
+      s.hoverTiltX = -ny * 3.8;
+      s.hoverTiltY = nx * 4.6;
+    }
+  }, []);
+
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    setIsDragging(false);
+    const s = stateRef.current;
+    s.isDragging = false;
+    try {
+      (e.currentTarget as Element).releasePointerCapture(e.pointerId);
+    } catch {}
+  }, []);
+
+  const handlePointerLeave = useCallback(() => {
+    const s = stateRef.current;
+    s.hoverTiltX = 0;
+    s.hoverTiltY = 0;
+  }, []);
+
+  // Stage-based visual state & subtle camera breathing
+  const fixedActive = activeStage === 1;
+  const longActive = activeStage === 2;
+  const engineActive = activeStage === 3;
+  const vaultsActive = activeStage === 4;
+
+  const fixedBias = Math.max(0, -pointerX);
+  const longBias = Math.max(0, pointerX);
+  const fixedOp = fixedActive
+    ? 1.0
+    : longActive
+      ? 0.35
+      : 0.72 + fixedBias * 0.28;
+  const longOp = longActive ? 1.0 : fixedActive ? 0.35 : 0.72 + longBias * 0.28;
+
+  // Camera zoom & pan focusing precisely on points of interest per stage
+  const cameraConfig = useMemo(() => {
+    switch (activeStage) {
+      case 1: // Fixed Yield: zooms and pans towards Fixed Yield Ice-Blue Orbit & Pin
+        return { scale: 1.28, panX: 110, panY: -90 };
+      case 2: // Long Yield: zooms and pans towards Long Yield Amber Orbit & Pin
+        return { scale: 1.28, panX: -130, panY: 70 };
+      case 3: // Split Engine: plunges deep into the central 3D Vault Cube / Tesseract
+        return { scale: 1.48, panX: 0, panY: 0 };
+      case 4: // Live Vaults: frames the USDG Vault pin and tactical HUD
+        return { scale: 1.16, panX: -70, panY: -70 };
+      case 0: // Grand Master Planet (Macro cosmic overview)
+      default:
+        return { scale: 1.0, panX: 0, panY: 0 };
+    }
+  }, [activeStage]);
+
+  // Compute 3D geometry of Transparent Planet Lattice (Master Sphere)
+  const { latitudes, meridians, starNodes } = useMemo(() => {
+    const tilt = (renderRot.x * Math.PI) / 180;
+    const rotY = (renderRot.y * Math.PI) / 180;
+    const sinTilt = Math.sin(tilt);
+    const cosTilt = Math.cos(tilt);
+
+    // Latitudes
+    const latAngles = [-68, -52, -36, -20, -6, 6, 20, 36, 52, 68];
+    const lats = latAngles.map((deg) => {
+      const latRad = (deg * Math.PI) / 180;
+      const y = -R * Math.sin(latRad) * sinTilt;
+      const rx = R * Math.cos(latRad);
+      const ry = Math.max(0.1, rx * Math.abs(sinTilt));
+      const op = Math.max(0.18, Math.min(0.85, 0.42 + 0.38 * Math.cos(latRad)));
+      const isEquator = Math.abs(deg) <= 6;
+      return {
+        cy: Number(y.toFixed(2)),
+        cx: 0,
+        rx: Number(rx.toFixed(2)),
+        ry: Number(ry.toFixed(2)),
+        opacity: isEquator
+          ? Number((op * 1.35).toFixed(2))
+          : Number(op.toFixed(2)),
+        strokeWidth: isEquator ? 1.1 : 0.65,
+      };
+    });
+
+    // Longitudes
+    const merAngles = [0, 20, 40, 60, 80, 100, 120, 140, 160];
+    const mers = merAngles.map((deg) => {
+      const lonRad = (deg * Math.PI) / 180 + rotY;
+      const normLon = Math.sin(lonRad);
+      const rx = Math.max(0.1, R * Math.abs(normLon));
+      const ry = R;
+      const isFront = Math.cos(lonRad) >= 0;
+      return {
+        angle: Number((renderRot.x * 0.28).toFixed(1)),
+        rx: Number(rx.toFixed(2)),
+        ry: Number(ry.toFixed(2)),
+        opacity: isFront ? 0.48 : 0.2,
+        strokeWidth: isFront ? 0.85 : 0.5,
+      };
+    });
+
+    // Star nodes
+    const nodes = RAW_STAR_NODES.map((n) => {
+      const phi = (n.lat * Math.PI) / 180;
+      const theta = (n.lon * Math.PI) / 180 + rotY;
+      const X = R * Math.cos(phi) * Math.sin(theta);
+      const Y = R * Math.sin(phi);
+      const Z = R * Math.cos(phi) * Math.cos(theta);
+      const Yrot = Y * cosTilt - Z * sinTilt;
+      const Zrot = Y * sinTilt + Z * cosTilt;
+      const isFront = Zrot > -25;
+      const depthFactor = (Zrot + R) / (2 * R);
+      const op = Math.max(0.15, Math.min(0.98, depthFactor * 1.15));
+
+      return {
+        x: Number(X.toFixed(2)),
+        y: Number((-Yrot).toFixed(2)),
+        r: n.r,
+        col: fixedActive ? "#A9C8EE" : longActive ? "#F0A85C" : n.col,
+        twinkle: n.twinkle,
+        delay: n.delay,
+        opacity: isFront ? Number(op.toFixed(2)) : 0,
+      };
+    });
+
+    return { latitudes: lats, meridians: mers, starNodes: nodes };
+  }, [renderRot, fixedActive, longActive]);
+
+  // Compute 3D Vault Core (Wireframe Cube + Tesseract inside the transparent planet)
+  const { cubeEdges, innerEdges, cubeCornerNodes } = useMemo(() => {
+    const rx = (renderRot.x * Math.PI) / 180;
+    const ry = (renderRot.y * Math.PI) / 180;
+    const cosRx = Math.cos(rx);
+    const sinRx = Math.sin(rx);
+    const cosRy = Math.cos(ry);
+    const sinRy = Math.sin(ry);
+
+    const projectVertex = (
+      vx: number,
+      vy: number,
+      vz: number,
+      scale: number,
+    ) => {
+      const x = vx * scale;
+      const y = vy * scale;
+      const z = vz * scale;
+      const x1 = x * cosRy + z * sinRy;
+      const z1 = -x * sinRy + z * cosRy;
+      const y1 = y * cosRx - z1 * sinRx;
+      const z2 = y * sinRx + z1 * cosRx;
+      return {
+        x: Number(x1.toFixed(2)),
+        y: Number(y1.toFixed(2)),
+        z: Number(z2.toFixed(2)),
+      };
+    };
+
+    const S_OUTER = engineActive ? 80 : 68;
+    const outerVertices = CUBE_VERTICES.map(([vx, vy, vz]) =>
+      projectVertex(vx, vy, vz, S_OUTER),
+    );
+
+    const S_INNER = engineActive ? 42 : 35;
+    const innerVertices = CUBE_VERTICES.map(([vx, vy, vz]) =>
+      projectVertex(vx, vy, vz, S_INNER),
+    );
+
+    const outerEdgesProj = CUBE_EDGES.map(([i1, i2]) => {
+      const v1 = outerVertices[i1];
+      const v2 = outerVertices[i2];
+      const avgZ = (v1.z + v2.z) / 2;
+      const isFront = avgZ > 0;
+      return {
+        x1: v1.x,
+        y1: v1.y,
+        x2: v2.x,
+        y2: v2.y,
+        opacity: isFront ? 0.85 : 0.35,
+        strokeWidth: isFront ? 1.2 : 0.7,
+      };
+    });
+
+    const innerEdgesProj = CUBE_EDGES.map(([i1, i2]) => {
+      const v1 = innerVertices[i1];
+      const v2 = innerVertices[i2];
+      const avgZ = (v1.z + v2.z) / 2;
+      const isFront = avgZ > 0;
+      return {
+        x1: v1.x,
+        y1: v1.y,
+        x2: v2.x,
+        y2: v2.y,
+        opacity: isFront ? 0.7 : 0.25,
+        strokeWidth: isFront ? 0.9 : 0.5,
+      };
+    });
+
+    // Struts connecting outer to inner corners (Tesseract box)
+    const strutEdges = [0, 1, 2, 3, 4, 5, 6, 7].map((i) => {
+      const o = outerVertices[i];
+      const inn = innerVertices[i];
+      return {
+        x1: o.x,
+        y1: o.y,
+        x2: inn.x,
+        y2: inn.y,
+        opacity: (o.z + inn.z) / 2 > 0 ? 0.55 : 0.2,
+        strokeWidth: 0.75,
+      };
+    });
+
+    return {
+      cubeEdges: [...outerEdgesProj, ...strutEdges],
+      innerEdges: innerEdgesProj,
+      cubeCornerNodes: outerVertices,
+    };
+  }, [renderRot, engineActive]);
+
+  // Positioning: On desktop split layout, center celestial object at x: 890
+  const celestialCx = isSplitLayout ? 890 : 720;
+  const celestialCy = 470;
+
   return (
-    <svg viewBox="0 0 1440 940" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A ringed orange planet behind the headline: the planet is a USDG vault position, its inner ice-blue ring is Fixed Yield, its outer amber ring is Long Yield, and the dark gap between them is the split. Moons orbit and stars drift slowly." style={{"position":"absolute","top":"0","left":"0","width":"100%","height":"100%","zIndex":"0"}}>
-<defs>
-<radialGradient id="sky" cx="50%" cy="50%" r="60%"><stop offset="0%" stopColor="#2A0E04" stopOpacity="0.55" /><stop offset="55%" stopColor="#120604" stopOpacity="0.25" /><stop offset="100%" stopColor="#030304" stopOpacity="0" /></radialGradient>
-<radialGradient id="halo" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="#F07A2B" stopOpacity="0.32" /><stop offset="72%" stopColor="#F07A2B" stopOpacity="0.16" /><stop offset="100%" stopColor="#F07A2B" stopOpacity="0" /></radialGradient>
-<radialGradient id="pbody" cx="30%" cy="22%" r="88%"><stop offset="0%" stopColor="#FFD7A8" /><stop offset="12%" stopColor="#F8A45C" /><stop offset="30%" stopColor="#D2601F" /><stop offset="52%" stopColor="#7A2A0B" /><stop offset="76%" stopColor="#2C0E04" /><stop offset="100%" stopColor="#120502" /></radialGradient>
-<radialGradient id="pshade" cx="30%" cy="22%" r="95%"><stop offset="35%" stopColor="#050100" stopOpacity="0" /><stop offset="72%" stopColor="#050100" stopOpacity="0.5" /><stop offset="100%" stopColor="#000000" stopOpacity="0.85" /></radialGradient>
-<linearGradient id="rim" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#FFD9AE" stopOpacity="0.95" /><stop offset="40%" stopColor="#F07A2B" stopOpacity="0.45" /><stop offset="70%" stopColor="#F07A2B" stopOpacity="0" /></linearGradient>
-<clipPath id="pclip"><circle cx="720" cy="470" r="250" /></clipPath>
-<clipPath id="oback"><rect x="-3000" y="-3000" width="6000" height="3000" /></clipPath>
-<clipPath id="ofront"><rect x="-3000" y="0" width="6000" height="3000" /></clipPath>
-<linearGradient id="sh1" gradientUnits="userSpaceOnUse" x1="1270" y1="150" x2="1380" y2="97"><stop offset="0%" stopColor="#FFF1E0" stopOpacity="1" /><stop offset="100%" stopColor="#FFF1E0" stopOpacity="0" /></linearGradient><linearGradient id="sh2" gradientUnits="userSpaceOnUse" x1="820" y1="70" x2="930" y2="17"><stop offset="0%" stopColor="#FFF1E0" stopOpacity="1" /><stop offset="100%" stopColor="#FFF1E0" stopOpacity="0" /></linearGradient>
-</defs><rect x="0" y="0" width="1440" height="940" style={{"fill":"url(#sky)"}} /><g transform="translate(720 470)"><g className="spin" style={{"animationDuration":"640s"}}><circle className="tw" cx="-601" cy="-237" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.38","animationDelay":"0.76s"}} /><circle cx="-851" cy="131" r="0.9" style={{"fill":"#FFE2C4","opacity":"0.52"}} /><circle cx="445" cy="285" r="0.5" style={{"fill":"#ECEDEA","opacity":"0.44"}} /><circle cx="-45" cy="-645" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.45"}} /><circle cx="235" cy="54" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.44"}} /><circle cx="-461" cy="-297" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.41"}} /><circle cx="-355" cy="-579" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.46"}} /><circle cx="648" cy="-297" r="0.5" style={{"fill":"#ECEDEA","opacity":"0.48"}} /><circle cx="-112" cy="446" r="0.5" style={{"fill":"#FFE2C4","opacity":"0.43"}} /><circle className="tw" cx="-80" cy="305" r="0.5" style={{"fill":"#ECEDEA","opacity":"0.58","animationDelay":"0.00s"}} /><circle cx="372" cy="-235" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.35"}} /><circle cx="-569" cy="-251" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.51"}} /><circle cx="-141" cy="246" r="0.8" style={{"fill":"#FFE2C4","opacity":"0.5"}} /><circle cx="384" cy="283" r="0.5" style={{"fill":"#ECEDEA","opacity":"0.39"}} /><circle cx="299" cy="734" r="0.9" style={{"fill":"#ECEDEA","opacity":"0.28"}} /><circle cx="-215" cy="-273" r="0.5" style={{"fill":"#ECEDEA","opacity":"0.36"}} /><circle cx="14" cy="-16" r="0.9" style={{"fill":"#ECEDEA","opacity":"0.32"}} /><circle cx="-347" cy="272" r="0.9" style={{"fill":"#FFE2C4","opacity":"0.46"}} /><circle className="tw" cx="219" cy="929" r="0.7" style={{"fill":"#ECEDEA","opacity":"0.2","animationDelay":"3.32s"}} /><circle cx="533" cy="268" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.43"}} /><circle cx="-515" cy="537" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.25"}} /><circle cx="576" cy="660" r="0.8" style={{"fill":"#FFE2C4","opacity":"0.27"}} /><circle cx="378" cy="-833" r="0.6" style={{"fill":"#FFE2C4","opacity":"0.49"}} /><circle cx="-718" cy="-253" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.55"}} /><circle cx="495" cy="378" r="0.5" style={{"fill":"#ECEDEA","opacity":"0.4"}} /><circle cx="-642" cy="520" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.53"}} /><circle cx="235" cy="464" r="0.5" style={{"fill":"#ECEDEA","opacity":"0.25"}} /><circle className="tw" cx="-579" cy="-516" r="0.5" style={{"fill":"#ECEDEA","opacity":"0.31","animationDelay":"0.82s"}} /><circle cx="-15" cy="123" r="0.8" style={{"fill":"#FFE2C4","opacity":"0.3"}} /><circle cx="-500" cy="-99" r="0.6" style={{"fill":"#FFE2C4","opacity":"0.24"}} /><circle cx="-314" cy="563" r="0.9" style={{"fill":"#FFE2C4","opacity":"0.43"}} /><circle cx="179" cy="20" r="0.7" style={{"fill":"#ECEDEA","opacity":"0.48"}} /><circle cx="-92" cy="-106" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.23"}} /><circle cx="319" cy="156" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.42"}} /><circle cx="-74" cy="-908" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.52"}} /><circle cx="-226" cy="-523" r="0.5" style={{"fill":"#ECEDEA","opacity":"0.55"}} /><circle className="tw" cx="558" cy="-646" r="0.9" style={{"fill":"#ECEDEA","opacity":"0.21","animationDelay":"1.52s"}} /><circle cx="96" cy="47" r="0.5" style={{"fill":"#ECEDEA","opacity":"0.46"}} /><circle cx="-123" cy="-892" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.57"}} /><circle cx="-632" cy="151" r="0.9" style={{"fill":"#ECEDEA","opacity":"0.23"}} /><circle cx="-133" cy="-98" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.21"}} /><circle cx="60" cy="-317" r="0.8" style={{"fill":"#FFE2C4","opacity":"0.3"}} /><circle cx="-230" cy="-474" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.41"}} /><circle cx="509" cy="-238" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.56"}} /><circle cx="249" cy="743" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.52"}} /><circle className="tw" cx="96" cy="419" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.43","animationDelay":"0.54s"}} /><circle cx="352" cy="-578" r="0.5" style={{"fill":"#ECEDEA","opacity":"0.48"}} /><circle cx="246" cy="441" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.39"}} /><circle cx="-647" cy="589" r="0.9" style={{"fill":"#ECEDEA","opacity":"0.4"}} /><circle cx="874" cy="-99" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.33"}} /><circle cx="-395" cy="-317" r="0.7" style={{"fill":"#ECEDEA","opacity":"0.43"}} /><circle cx="848" cy="102" r="0.6" style={{"fill":"#FFE2C4","opacity":"0.36"}} /><circle cx="-87" cy="837" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.52"}} /><circle cx="252" cy="206" r="0.9" style={{"fill":"#ECEDEA","opacity":"0.46"}} /><circle className="tw" cx="-376" cy="-861" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.53","animationDelay":"2.86s"}} /><circle cx="-814" cy="-181" r="0.5" style={{"fill":"#ECEDEA","opacity":"0.27"}} /><circle cx="-183" cy="-534" r="0.9" style={{"fill":"#ECEDEA","opacity":"0.4"}} /><circle cx="223" cy="-312" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.23"}} /><circle cx="559" cy="594" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.28"}} /><circle cx="-75" cy="-24" r="0.9" style={{"fill":"#ECEDEA","opacity":"0.52"}} /><circle cx="-380" cy="-532" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.24"}} /><circle cx="762" cy="-393" r="0.5" style={{"fill":"#ECEDEA","opacity":"0.29"}} /><circle cx="941" cy="-135" r="0.9" style={{"fill":"#ECEDEA","opacity":"0.59"}} /><circle className="tw" cx="-97" cy="-482" r="0.5" style={{"fill":"#FFE2C4","opacity":"0.34","animationDelay":"1.76s"}} /><circle cx="81" cy="-707" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.57"}} /><circle cx="-806" cy="386" r="0.5" style={{"fill":"#ECEDEA","opacity":"0.27"}} /><circle cx="541" cy="658" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.6"}} /><circle cx="-303" cy="-621" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.58"}} /><circle cx="802" cy="481" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.38"}} /><circle cx="-811" cy="-330" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.41"}} /><circle cx="-272" cy="665" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.58"}} /><circle cx="-251" cy="706" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.59"}} /><circle className="tw" cx="220" cy="692" r="0.9" style={{"fill":"#FFE2C4","opacity":"0.25","animationDelay":"1.51s"}} /><circle cx="678" cy="192" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.42"}} /><circle cx="279" cy="185" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.23"}} /><circle cx="595" cy="-165" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.31"}} /><circle cx="-313" cy="138" r="0.8" style={{"fill":"#FFE2C4","opacity":"0.41"}} /><circle cx="611" cy="114" r="0.7" style={{"fill":"#ECEDEA","opacity":"0.25"}} /><circle cx="50" cy="136" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.2"}} /><circle cx="28" cy="816" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.24"}} /><circle cx="-336" cy="-22" r="0.7" style={{"fill":"#ECEDEA","opacity":"0.49"}} /><circle className="tw" cx="890" cy="131" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.53","animationDelay":"2.15s"}} /><circle cx="-872" cy="-189" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.41"}} /><circle cx="467" cy="-588" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.57"}} /><circle cx="237" cy="514" r="0.9" style={{"fill":"#ECEDEA","opacity":"0.33"}} /><circle cx="448" cy="-5" r="0.5" style={{"fill":"#ECEDEA","opacity":"0.25"}} /><circle cx="-49" cy="817" r="0.5" style={{"fill":"#ECEDEA","opacity":"0.37"}} /><circle cx="-198" cy="-679" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.36"}} /><circle cx="39" cy="122" r="0.7" style={{"fill":"#ECEDEA","opacity":"0.56"}} /><circle cx="-326" cy="-12" r="0.7" style={{"fill":"#ECEDEA","opacity":"0.4"}} /><circle className="tw" cx="377" cy="179" r="0.5" style={{"fill":"#ECEDEA","opacity":"0.21","animationDelay":"2.45s"}} /><circle cx="-907" cy="107" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.27"}} /><circle cx="878" cy="-54" r="0.5" style={{"fill":"#FFE2C4","opacity":"0.43"}} /><circle cx="700" cy="371" r="0.5" style={{"fill":"#ECEDEA","opacity":"0.33"}} /><circle cx="-624" cy="293" r="0.9" style={{"fill":"#ECEDEA","opacity":"0.35"}} /><circle cx="60" cy="185" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.38"}} /><circle cx="207" cy="575" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.24"}} /><circle cx="470" cy="278" r="0.8" style={{"fill":"#FFE2C4","opacity":"0.43"}} /><circle cx="-397" cy="617" r="0.7" style={{"fill":"#FFE2C4","opacity":"0.31"}} /><circle className="tw" cx="443" cy="699" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.25","animationDelay":"2.16s"}} /><circle cx="-531" cy="243" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.36"}} /><circle cx="-139" cy="214" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.24"}} /><circle cx="782" cy="-548" r="0.5" style={{"fill":"#ECEDEA","opacity":"0.29"}} /><circle cx="-411" cy="667" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.43"}} /><circle cx="599" cy="-0" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.48"}} /><circle cx="941" cy="136" r="0.9" style={{"fill":"#ECEDEA","opacity":"0.24"}} /><circle cx="-639" cy="-19" r="0.6" style={{"fill":"#FFE2C4","opacity":"0.46"}} /><circle cx="-78" cy="482" r="0.7" style={{"fill":"#ECEDEA","opacity":"0.42"}} /><circle className="tw" cx="-859" cy="-391" r="0.5" style={{"fill":"#ECEDEA","opacity":"0.46","animationDelay":"0.30s"}} /><circle cx="43" cy="-741" r="0.5" style={{"fill":"#ECEDEA","opacity":"0.35"}} /><circle cx="586" cy="-111" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.42"}} /><circle cx="-629" cy="22" r="0.7" style={{"fill":"#ECEDEA","opacity":"0.41"}} /><circle cx="-129" cy="566" r="0.7" style={{"fill":"#ECEDEA","opacity":"0.42"}} /><circle cx="-232" cy="779" r="0.5" style={{"fill":"#ECEDEA","opacity":"0.51"}} /><circle cx="-642" cy="414" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.22"}} /><circle cx="-527" cy="-297" r="0.7" style={{"fill":"#ECEDEA","opacity":"0.23"}} /><circle cx="-623" cy="88" r="0.6" style={{"fill":"#FFE2C4","opacity":"0.22"}} /><circle className="tw" cx="728" cy="-465" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.59","animationDelay":"2.41s"}} /><circle cx="-231" cy="-229" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.25"}} /><circle cx="323" cy="474" r="0.7" style={{"fill":"#ECEDEA","opacity":"0.38"}} /><circle cx="-49" cy="646" r="0.9" style={{"fill":"#ECEDEA","opacity":"0.47"}} /><circle cx="329" cy="-760" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.58"}} /><circle cx="354" cy="307" r="0.7" style={{"fill":"#ECEDEA","opacity":"0.51"}} /><circle cx="-78" cy="570" r="0.9" style={{"fill":"#FFE2C4","opacity":"0.48"}} /><circle cx="34" cy="506" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.4"}} /><circle cx="-173" cy="-388" r="0.5" style={{"fill":"#ECEDEA","opacity":"0.2"}} /><circle className="tw" cx="153" cy="37" r="0.6" style={{"fill":"#FFE2C4","opacity":"0.42","animationDelay":"0.35s"}} /><circle cx="-750" cy="-247" r="0.7" style={{"fill":"#ECEDEA","opacity":"0.39"}} /><circle cx="-558" cy="20" r="0.6" style={{"fill":"#FFE2C4","opacity":"0.54"}} /><circle cx="121" cy="-310" r="0.9" style={{"fill":"#ECEDEA","opacity":"0.54"}} /><circle cx="-11" cy="-640" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.52"}} /><circle cx="774" cy="-53" r="0.7" style={{"fill":"#ECEDEA","opacity":"0.32"}} /><circle cx="352" cy="798" r="0.7" style={{"fill":"#ECEDEA","opacity":"0.43"}} /><circle cx="-526" cy="-148" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.43"}} /><circle cx="-240" cy="758" r="0.5" style={{"fill":"#ECEDEA","opacity":"0.23"}} /><circle className="tw" cx="680" cy="384" r="0.7" style={{"fill":"#ECEDEA","opacity":"0.4","animationDelay":"1.31s"}} /><circle cx="176" cy="884" r="0.7" style={{"fill":"#FFE2C4","opacity":"0.35"}} /><circle cx="-733" cy="-341" r="0.7" style={{"fill":"#ECEDEA","opacity":"0.38"}} /><circle cx="-218" cy="483" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.59"}} /><circle cx="595" cy="348" r="0.7" style={{"fill":"#ECEDEA","opacity":"0.21"}} /><circle cx="210" cy="-704" r="0.9" style={{"fill":"#ECEDEA","opacity":"0.35"}} /><circle cx="-317" cy="-205" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.27"}} /><circle cx="-177" cy="883" r="0.5" style={{"fill":"#FFE2C4","opacity":"0.29"}} /><circle cx="-109" cy="367" r="0.5" style={{"fill":"#ECEDEA","opacity":"0.46"}} /><circle className="tw" cx="-233" cy="-70" r="0.9" style={{"fill":"#FFE2C4","opacity":"0.23","animationDelay":"2.95s"}} /><circle cx="784" cy="462" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.24"}} /><circle cx="-147" cy="-606" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.51"}} /><circle cx="-661" cy="517" r="0.7" style={{"fill":"#ECEDEA","opacity":"0.52"}} /><circle cx="-354" cy="27" r="0.5" style={{"fill":"#ECEDEA","opacity":"0.48"}} /><circle cx="284" cy="-546" r="0.7" style={{"fill":"#ECEDEA","opacity":"0.54"}} /><circle cx="671" cy="-564" r="0.9" style={{"fill":"#ECEDEA","opacity":"0.46"}} /><circle cx="261" cy="-766" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.57"}} /><circle cx="249" cy="405" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.47"}} /><circle className="tw" cx="-589" cy="-109" r="0.7" style={{"fill":"#FFE2C4","opacity":"0.59","animationDelay":"1.23s"}} /><circle cx="-195" cy="-261" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.56"}} /><circle cx="-125" cy="15" r="0.5" style={{"fill":"#FFE2C4","opacity":"0.33"}} /><circle cx="-489" cy="-303" r="0.9" style={{"fill":"#ECEDEA","opacity":"0.49"}} /><circle cx="180" cy="417" r="0.7" style={{"fill":"#ECEDEA","opacity":"0.36"}} /><circle cx="-650" cy="-664" r="0.9" style={{"fill":"#ECEDEA","opacity":"0.39"}} /><circle cx="776" cy="-464" r="0.7" style={{"fill":"#ECEDEA","opacity":"0.46"}} /><circle cx="190" cy="-222" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.22"}} /><circle cx="-645" cy="568" r="0.9" style={{"fill":"#ECEDEA","opacity":"0.52"}} /><circle className="tw" cx="796" cy="303" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.56","animationDelay":"3.62s"}} /><circle cx="14" cy="644" r="0.8" style={{"fill":"#FFE2C4","opacity":"0.44"}} /><circle cx="-166" cy="342" r="0.7" style={{"fill":"#ECEDEA","opacity":"0.56"}} /><circle cx="-18" cy="-347" r="0.9" style={{"fill":"#ECEDEA","opacity":"0.31"}} /><circle cx="48" cy="-370" r="0.5" style={{"fill":"#ECEDEA","opacity":"0.28"}} /><circle cx="256" cy="268" r="0.7" style={{"fill":"#ECEDEA","opacity":"0.31"}} /><circle cx="-297" cy="37" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.23"}} /><circle cx="-707" cy="-27" r="0.5" style={{"fill":"#ECEDEA","opacity":"0.52"}} /><circle cx="773" cy="497" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.28"}} /><circle className="tw" cx="382" cy="582" r="0.7" style={{"fill":"#ECEDEA","opacity":"0.33","animationDelay":"2.23s"}} /><circle cx="-477" cy="-832" r="0.5" style={{"fill":"#ECEDEA","opacity":"0.34"}} /><circle cx="-246" cy="193" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.5"}} /><circle cx="-316" cy="113" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.48"}} /><circle cx="394" cy="340" r="0.5" style={{"fill":"#ECEDEA","opacity":"0.54"}} /><circle cx="663" cy="-472" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.32"}} /><circle cx="-210" cy="673" r="0.7" style={{"fill":"#ECEDEA","opacity":"0.5"}} /><circle cx="106" cy="262" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.49"}} /><circle cx="-862" cy="-359" r="0.7" style={{"fill":"#ECEDEA","opacity":"0.38"}} /><circle className="tw" cx="-221" cy="-212" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.47","animationDelay":"0.72s"}} /><circle cx="316" cy="-520" r="0.9" style={{"fill":"#FFE2C4","opacity":"0.48"}} /><circle cx="172" cy="-14" r="0.8" style={{"fill":"#FFE2C4","opacity":"0.36"}} /><circle cx="-826" cy="408" r="0.9" style={{"fill":"#ECEDEA","opacity":"0.26"}} /><circle cx="-133" cy="-344" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.33"}} /><circle cx="-97" cy="70" r="0.7" style={{"fill":"#ECEDEA","opacity":"0.59"}} /><circle cx="-605" cy="-492" r="0.5" style={{"fill":"#FFE2C4","opacity":"0.3"}} /><circle cx="-496" cy="192" r="0.9" style={{"fill":"#ECEDEA","opacity":"0.35"}} /><circle cx="388" cy="-759" r="0.9" style={{"fill":"#ECEDEA","opacity":"0.49"}} /><circle className="tw" cx="-211" cy="672" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.34","animationDelay":"0.57s"}} /><circle cx="808" cy="-67" r="0.9" style={{"fill":"#ECEDEA","opacity":"0.6"}} /><circle cx="-847" cy="-381" r="0.5" style={{"fill":"#FFE2C4","opacity":"0.45"}} /><circle cx="9" cy="277" r="0.9" style={{"fill":"#ECEDEA","opacity":"0.37"}} /><circle cx="202" cy="-209" r="0.7" style={{"fill":"#FFE2C4","opacity":"0.39"}} /><circle cx="624" cy="713" r="0.9" style={{"fill":"#ECEDEA","opacity":"0.42"}} /><circle cx="-65" cy="716" r="0.7" style={{"fill":"#FFE2C4","opacity":"0.44"}} /><circle cx="-209" cy="846" r="0.7" style={{"fill":"#ECEDEA","opacity":"0.3"}} /><circle cx="345" cy="804" r="0.9" style={{"fill":"#ECEDEA","opacity":"0.52"}} /><circle className="tw" cx="124" cy="-597" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.32","animationDelay":"2.95s"}} /><circle cx="-497" cy="-324" r="0.5" style={{"fill":"#ECEDEA","opacity":"0.26"}} /><circle cx="-172" cy="-30" r="0.5" style={{"fill":"#FFE2C4","opacity":"0.43"}} /><circle cx="-59" cy="690" r="0.9" style={{"fill":"#FFE2C4","opacity":"0.57"}} /><circle cx="-151" cy="-837" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.36"}} /><circle cx="-173" cy="254" r="0.9" style={{"fill":"#ECEDEA","opacity":"0.57"}} /><circle cx="-121" cy="600" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.54"}} /><circle cx="-562" cy="248" r="0.9" style={{"fill":"#ECEDEA","opacity":"0.25"}} /><circle cx="-547" cy="-71" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.56"}} /><circle className="tw" cx="-34" cy="-222" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.49","animationDelay":"3.01s"}} /><circle cx="-441" cy="-294" r="0.5" style={{"fill":"#ECEDEA","opacity":"0.3"}} /><circle cx="330" cy="-338" r="0.5" style={{"fill":"#FFE2C4","opacity":"0.39"}} /><circle cx="-879" cy="-255" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.58"}} /><circle cx="-116" cy="-953" r="0.7" style={{"fill":"#ECEDEA","opacity":"0.55"}} /><circle cx="152" cy="848" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.43"}} /><circle cx="79" cy="-291" r="0.5" style={{"fill":"#ECEDEA","opacity":"0.55"}} /><circle cx="-185" cy="619" r="0.7" style={{"fill":"#FFE2C4","opacity":"0.21"}} /><circle cx="-606" cy="197" r="0.9" style={{"fill":"#ECEDEA","opacity":"0.36"}} /><circle className="tw" cx="704" cy="209" r="0.5" style={{"fill":"#ECEDEA","opacity":"0.38","animationDelay":"1.30s"}} /><circle cx="61" cy="-358" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.55"}} /><circle cx="-314" cy="-832" r="0.5" style={{"fill":"#ECEDEA","opacity":"0.28"}} /><circle cx="-563" cy="98" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.45"}} /><circle cx="-703" cy="-148" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.28"}} /><circle cx="169" cy="133" r="0.7" style={{"fill":"#ECEDEA","opacity":"0.58"}} /><circle cx="451" cy="-429" r="0.7" style={{"fill":"#ECEDEA","opacity":"0.48"}} /><circle cx="563" cy="305" r="0.6" style={{"fill":"#FFE2C4","opacity":"0.54"}} /><circle cx="-95" cy="792" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.4"}} /><circle className="tw" cx="166" cy="-474" r="0.9" style={{"fill":"#ECEDEA","opacity":"0.55","animationDelay":"0.92s"}} /><circle cx="472" cy="-234" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.31"}} /><circle cx="286" cy="-31" r="0.8" style={{"fill":"#FFE2C4","opacity":"0.57"}} /><circle cx="914" cy="40" r="0.9" style={{"fill":"#ECEDEA","opacity":"0.31"}} /><circle cx="735" cy="448" r="0.7" style={{"fill":"#FFE2C4","opacity":"0.6"}} /><circle cx="-40" cy="-405" r="0.5" style={{"fill":"#ECEDEA","opacity":"0.27"}} /><circle cx="933" cy="200" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.57"}} /><circle cx="38" cy="-31" r="0.5" style={{"fill":"#ECEDEA","opacity":"0.27"}} /><circle cx="-490" cy="595" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.51"}} /><circle className="tw" cx="385" cy="-564" r="0.9" style={{"fill":"#ECEDEA","opacity":"0.5","animationDelay":"2.38s"}} /><circle cx="642" cy="546" r="0.8" style={{"fill":"#ECEDEA","opacity":"0.29"}} /><circle cx="192" cy="-822" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.3"}} /><circle cx="-706" cy="-536" r="0.7" style={{"fill":"#ECEDEA","opacity":"0.21"}} /><circle cx="-729" cy="-358" r="0.6" style={{"fill":"#ECEDEA","opacity":"0.33"}} /><circle cx="259" cy="-703" r="0.9" style={{"fill":"#ECEDEA","opacity":"0.38"}} /></g></g><g transform="translate(720 470)"><g className="spin" style={{"animationDuration":"380s"}}><circle className="tw" cx="770" cy="378" r="1.2" style={{"fill":"#ECEDEA","opacity":"0.76","animationDelay":"3.17s"}} /><circle cx="284" cy="372" r="1.5" style={{"fill":"#ECEDEA","opacity":"0.69"}} /><circle cx="-63" cy="-867" r="1.5" style={{"fill":"#ECEDEA","opacity":"0.84"}} /><circle cx="-772" cy="-51" r="1.8" style={{"fill":"#FFE2C4","opacity":"0.61"}} /><circle cx="388" cy="-697" r="1.8" style={{"fill":"#ECEDEA","opacity":"0.53"}} /><circle cx="122" cy="567" r="1.0" style={{"fill":"#ECEDEA","opacity":"0.56"}} /><circle className="tw" cx="494" cy="557" r="1.8" style={{"fill":"#ECEDEA","opacity":"0.73","animationDelay":"0.01s"}} /><circle cx="-607" cy="-98" r="1.0" style={{"fill":"#ECEDEA","opacity":"0.68"}} /><circle cx="555" cy="289" r="1.0" style={{"fill":"#ECEDEA","opacity":"0.81"}} /><circle cx="-721" cy="-616" r="1.5" style={{"fill":"#ECEDEA","opacity":"0.61"}} /><circle cx="-458" cy="113" r="1.2" style={{"fill":"#ECEDEA","opacity":"0.66"}} /><circle cx="-729" cy="-610" r="1.0" style={{"fill":"#ECEDEA","opacity":"0.57"}} /><circle className="tw" cx="-76" cy="-954" r="1.2" style={{"fill":"#ECEDEA","opacity":"0.71","animationDelay":"3.37s"}} /><circle cx="116" cy="-581" r="1.2" style={{"fill":"#ECEDEA","opacity":"0.69"}} /><circle cx="285" cy="-806" r="1.8" style={{"fill":"#ECEDEA","opacity":"0.59"}} /><circle cx="-236" cy="613" r="1.8" style={{"fill":"#ECEDEA","opacity":"0.72"}} /><circle cx="-408" cy="33" r="1.8" style={{"fill":"#FFE2C4","opacity":"0.69"}} /><circle cx="479" cy="-160" r="1.0" style={{"fill":"#ECEDEA","opacity":"0.73"}} /><circle className="tw" cx="-626" cy="-282" r="1.2" style={{"fill":"#ECEDEA","opacity":"0.62","animationDelay":"0.61s"}} /><circle cx="-591" cy="717" r="1.2" style={{"fill":"#ECEDEA","opacity":"0.83"}} /><circle cx="-60" cy="123" r="1.8" style={{"fill":"#ECEDEA","opacity":"0.7"}} /><circle cx="-23" cy="592" r="1.0" style={{"fill":"#ECEDEA","opacity":"0.64"}} /><circle cx="256" cy="620" r="1.2" style={{"fill":"#ECEDEA","opacity":"0.51"}} /><circle cx="-601" cy="-171" r="1.2" style={{"fill":"#ECEDEA","opacity":"0.73"}} /><circle className="tw" cx="-513" cy="161" r="1.8" style={{"fill":"#ECEDEA","opacity":"0.57","animationDelay":"1.12s"}} /><circle cx="-671" cy="454" r="1.8" style={{"fill":"#ECEDEA","opacity":"0.73"}} /><circle cx="-211" cy="224" r="1.2" style={{"fill":"#ECEDEA","opacity":"0.56"}} /><circle cx="-825" cy="89" r="1.0" style={{"fill":"#ECEDEA","opacity":"0.86"}} /><circle cx="-251" cy="-460" r="1.2" style={{"fill":"#ECEDEA","opacity":"0.75"}} /><circle cx="52" cy="-331" r="1.5" style={{"fill":"#ECEDEA","opacity":"0.61"}} /><circle className="tw" cx="-259" cy="126" r="1.8" style={{"fill":"#ECEDEA","opacity":"0.72","animationDelay":"3.72s"}} /><circle cx="-148" cy="-490" r="1.2" style={{"fill":"#ECEDEA","opacity":"0.57"}} /><circle cx="331" cy="573" r="1.2" style={{"fill":"#ECEDEA","opacity":"0.73"}} /><circle cx="305" cy="-862" r="1.8" style={{"fill":"#ECEDEA","opacity":"0.76"}} /><circle cx="-220" cy="-679" r="1.0" style={{"fill":"#FFE2C4","opacity":"0.91"}} /><circle cx="780" cy="-479" r="1.5" style={{"fill":"#ECEDEA","opacity":"0.52"}} /><circle className="tw" cx="-721" cy="142" r="1.5" style={{"fill":"#FFE2C4","opacity":"0.9","animationDelay":"0.14s"}} /><circle cx="-382" cy="390" r="1.5" style={{"fill":"#ECEDEA","opacity":"0.62"}} /><circle cx="-406" cy="80" r="1.5" style={{"fill":"#ECEDEA","opacity":"0.93"}} /><circle cx="681" cy="-258" r="1.0" style={{"fill":"#ECEDEA","opacity":"0.78"}} /><circle cx="-531" cy="311" r="1.5" style={{"fill":"#ECEDEA","opacity":"0.53"}} /><circle cx="629" cy="-135" r="1.8" style={{"fill":"#FFE2C4","opacity":"0.52"}} /><circle className="tw" cx="-246" cy="638" r="1.5" style={{"fill":"#FFE2C4","opacity":"0.71","animationDelay":"2.42s"}} /><circle cx="-26" cy="498" r="1.2" style={{"fill":"#FFE2C4","opacity":"0.61"}} /><circle cx="-556" cy="438" r="1.2" style={{"fill":"#ECEDEA","opacity":"0.75"}} /><circle cx="738" cy="400" r="1.5" style={{"fill":"#FFE2C4","opacity":"0.62"}} /><circle cx="46" cy="-126" r="1.2" style={{"fill":"#ECEDEA","opacity":"0.81"}} /><circle cx="425" cy="-841" r="1.2" style={{"fill":"#ECEDEA","opacity":"0.65"}} /><circle className="tw" cx="-233" cy="829" r="1.8" style={{"fill":"#ECEDEA","opacity":"0.63","animationDelay":"2.14s"}} /><circle cx="2" cy="467" r="1.5" style={{"fill":"#ECEDEA","opacity":"0.82"}} /><circle cx="592" cy="-574" r="1.0" style={{"fill":"#ECEDEA","opacity":"0.87"}} /><circle cx="311" cy="-435" r="1.8" style={{"fill":"#ECEDEA","opacity":"0.52"}} /><circle cx="-613" cy="70" r="1.5" style={{"fill":"#ECEDEA","opacity":"0.61"}} /><circle cx="-668" cy="537" r="1.5" style={{"fill":"#ECEDEA","opacity":"0.67"}} /><circle className="tw" cx="254" cy="-323" r="1.2" style={{"fill":"#ECEDEA","opacity":"0.88","animationDelay":"2.27s"}} /><circle cx="-166" cy="-600" r="1.5" style={{"fill":"#FFE2C4","opacity":"0.86"}} /><circle cx="-286" cy="-515" r="1.2" style={{"fill":"#ECEDEA","opacity":"0.79"}} /><circle cx="-228" cy="-619" r="1.2" style={{"fill":"#ECEDEA","opacity":"0.62"}} /><circle cx="-243" cy="-416" r="1.8" style={{"fill":"#ECEDEA","opacity":"0.92"}} /><circle cx="-48" cy="-206" r="1.0" style={{"fill":"#FFE2C4","opacity":"0.89"}} /><circle className="tw" cx="-556" cy="-137" r="1.0" style={{"fill":"#ECEDEA","opacity":"0.68","animationDelay":"3.33s"}} /><circle cx="422" cy="781" r="1.0" style={{"fill":"#ECEDEA","opacity":"0.64"}} /><circle cx="-185" cy="859" r="1.8" style={{"fill":"#ECEDEA","opacity":"0.82"}} /><circle cx="-321" cy="-167" r="1.2" style={{"fill":"#ECEDEA","opacity":"0.75"}} /><circle cx="167" cy="328" r="1.0" style={{"fill":"#ECEDEA","opacity":"0.75"}} /><circle cx="-821" cy="370" r="1.2" style={{"fill":"#FFE2C4","opacity":"0.65"}} /><circle className="tw" cx="447" cy="567" r="1.8" style={{"fill":"#ECEDEA","opacity":"0.62","animationDelay":"1.93s"}} /><circle cx="-35" cy="580" r="1.0" style={{"fill":"#FFE2C4","opacity":"0.57"}} /><circle cx="-402" cy="-734" r="1.0" style={{"fill":"#ECEDEA","opacity":"0.58"}} /><circle cx="284" cy="916" r="1.8" style={{"fill":"#ECEDEA","opacity":"0.72"}} /></g></g><line className="shoot" x1="1270" y1="150" x2="1380" y2="97" style={{"stroke":"url(#sh1)","strokeWidth":"1.4","strokeLinecap":"round","animationDelay":"2s","animationDuration":"11s"}} /><line className="shoot" x1="820" y1="70" x2="930" y2="17" style={{"stroke":"url(#sh2)","strokeWidth":"1.4","strokeLinecap":"round","animationDelay":"7.5s","animationDuration":"13s"}} /><g transform="translate(720 470) rotate(-14) scale(1 0.2)" clipPath="url(#oback)"><circle r="430" style={{"fill":"none","stroke":"#F0A85C","strokeWidth":"90","opacity":"0.05"}} /><circle r="306" style={{"fill":"none","stroke":"#A9C8EE","strokeWidth":"1","opacity":"0.8"}} /><circle r="318" style={{"fill":"none","stroke":"#A9C8EE","strokeWidth":"22","opacity":"0.26"}} /><circle r="340" style={{"fill":"none","stroke":"#A9C8EE","strokeWidth":"20","opacity":"0.4"}} /><circle className="ringflow" r="329" style={{"fill":"none","stroke":"#EAF2FF","strokeWidth":"2","strokeDasharray":"1 11","opacity":"0.55","animationDuration":"140s"}} /><circle r="351" style={{"fill":"none","stroke":"#A9C8EE","strokeWidth":"1","opacity":"0.85"}} /><circle className="ringflow" r="396" style={{"fill":"none","stroke":"#F0A85C","strokeWidth":"10","strokeDasharray":"60 20 14 30","opacity":"0.6","animationDuration":"40s"}} /><circle className="ringflow" r="414" style={{"fill":"none","stroke":"#F0A85C","strokeWidth":"14","strokeDasharray":"110 30 24 40","opacity":"0.72","animationDuration":"55s"}} /><circle className="ringflow" r="434" style={{"fill":"none","stroke":"#F0A85C","strokeWidth":"8","strokeDasharray":"34 18 80 24","opacity":"0.5","animationDuration":"32s"}} /><circle className="ringflow" r="452" style={{"fill":"none","stroke":"#F0A85C","strokeWidth":"12","strokeDasharray":"140 40 30 30","opacity":"0.55","animationDuration":"70s"}} /><circle className="ringflow" r="470" style={{"fill":"none","stroke":"#F0A85C","strokeWidth":"5","strokeDasharray":"40 50","opacity":"0.38","animationDuration":"26s"}} /><circle r="505" style={{"fill":"none","stroke":"#F0A85C","strokeWidth":"1","opacity":"0.2"}} /></g><g transform="translate(720 470) rotate(-14) scale(1 0.2)" clipPath="url(#oback)"><circle r="575" style={{"fill":"none","stroke":"#ECEDEA","strokeWidth":"1","opacity":"0.12"}} /><g className="spin" style={{"animationDuration":"28s","animationDelay":"-6s"}}><g transform="translate(575 0)"><g className="spin rev" style={{"animationDuration":"28s","animationDelay":"-6s"}}><ellipse rx="9.600000000000001" ry="48" style={{"fill":"#FFE9D2","opacity":"0.16"}} /><ellipse rx="3.2" ry="16" style={{"fill":"#FFE9D2"}} /></g></g></g></g><g transform="translate(720 470) rotate(-7) scale(1 0.2)" clipPath="url(#oback)"><circle r="660" style={{"fill":"none","stroke":"#ECEDEA","strokeWidth":"1","opacity":"0.12"}} /><g className="spin" style={{"animationDuration":"44s","animationDelay":"-24s"}}><g transform="translate(660 0)"><g className="spin rev" style={{"animationDuration":"44s","animationDelay":"-24s"}}><ellipse rx="7.199999999999999" ry="36" style={{"fill":"#A9C8EE","opacity":"0.16"}} /><ellipse rx="2.4" ry="12" style={{"fill":"#A9C8EE"}} /></g></g></g></g><g transform="translate(720 470) rotate(-21) scale(1 0.2)" clipPath="url(#oback)"><circle r="530" style={{"fill":"none","stroke":"#ECEDEA","strokeWidth":"1","opacity":"0.12"}} /><g className="spin" style={{"animationDuration":"19s","animationDelay":"-11s"}}><g transform="translate(530 0)"><g className="spin rev" style={{"animationDuration":"19s","animationDelay":"-11s"}}><ellipse rx="6" ry="30" style={{"fill":"#F0A85C","opacity":"0.16"}} /><ellipse rx="2" ry="10" style={{"fill":"#F0A85C"}} /></g></g></g></g><circle cx="720" cy="470" r="350" style={{"fill":"url(#halo)"}} /><circle cx="720" cy="470" r="250" style={{"fill":"url(#pbody)"}} /><g clipPath="url(#pclip)"><g transform="rotate(-14 720 470)"><g className="drift"><rect x="460" y="210" width="111" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.30"}} /><rect x="1500" y="210" width="111" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.30"}} /><rect x="588" y="210" width="152" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.39"}} /><rect x="1628" y="210" width="152" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.39"}} /><rect x="764" y="210" width="219" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.36"}} /><rect x="1804" y="210" width="219" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.36"}} /><rect x="1002" y="210" width="72" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.22"}} /><rect x="2042" y="210" width="72" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.22"}} /><rect x="1069" y="210" width="53" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.35"}} /><rect x="2109" y="210" width="53" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.35"}} /><rect x="1124" y="210" width="133" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.23"}} /><rect x="2164" y="210" width="133" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.23"}} /><rect x="1285" y="210" width="42" height="30" rx="15" style={{"fill":"#E07434","opacity":"0.19"}} /><rect x="2325" y="210" width="42" height="30" rx="15" style={{"fill":"#E07434","opacity":"0.19"}} /><rect x="1349" y="210" width="172" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.36"}} /><rect x="2389" y="210" width="172" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.36"}} /><rect x="460" y="242" width="112" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.12"}} /><rect x="1500" y="242" width="112" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.12"}} /><rect x="599" y="242" width="44" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.11"}} /><rect x="1639" y="242" width="44" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.11"}} /><rect x="649" y="242" width="106" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.19"}} /><rect x="1689" y="242" width="106" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.19"}} /><rect x="760" y="242" width="155" height="22" rx="11" style={{"fill":"#2A0B02","opacity":"0.24"}} /><rect x="1800" y="242" width="155" height="22" rx="11" style={{"fill":"#2A0B02","opacity":"0.24"}} /><rect x="941" y="242" width="98" height="22" rx="11" style={{"fill":"#2A0B02","opacity":"0.25"}} /><rect x="1981" y="242" width="98" height="22" rx="11" style={{"fill":"#2A0B02","opacity":"0.25"}} /><rect x="1058" y="242" width="78" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.16"}} /><rect x="2098" y="242" width="78" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.16"}} /><rect x="1153" y="242" width="72" height="22" rx="11" style={{"fill":"#2A0B02","opacity":"0.21"}} /><rect x="2193" y="242" width="72" height="22" rx="11" style={{"fill":"#2A0B02","opacity":"0.21"}} /><rect x="1229" y="242" width="118" height="22" rx="11" style={{"fill":"#2A0B02","opacity":"0.29"}} /><rect x="2269" y="242" width="118" height="22" rx="11" style={{"fill":"#2A0B02","opacity":"0.29"}} /><rect x="1353" y="242" width="98" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.21"}} /><rect x="2393" y="242" width="98" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.21"}} /><rect x="1449" y="242" width="198" height="22" rx="11" style={{"fill":"#2A0B02","opacity":"0.35"}} /><rect x="2489" y="242" width="198" height="22" rx="11" style={{"fill":"#2A0B02","opacity":"0.35"}} /><rect x="460" y="268" width="125" height="22" rx="11" style={{"fill":"#FFC890","opacity":"0.12"}} /><rect x="1500" y="268" width="125" height="22" rx="11" style={{"fill":"#FFC890","opacity":"0.12"}} /><rect x="606" y="268" width="200" height="22" rx="11" style={{"fill":"#FFC890","opacity":"0.07"}} /><rect x="1646" y="268" width="200" height="22" rx="11" style={{"fill":"#FFC890","opacity":"0.07"}} /><rect x="812" y="268" width="206" height="22" rx="11" style={{"fill":"#FFC890","opacity":"0.15"}} /><rect x="1852" y="268" width="206" height="22" rx="11" style={{"fill":"#FFC890","opacity":"0.15"}} /><rect x="1029" y="268" width="42" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.17"}} /><rect x="2069" y="268" width="42" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.17"}} /><rect x="1097" y="268" width="50" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.13"}} /><rect x="2137" y="268" width="50" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.13"}} /><rect x="1154" y="268" width="169" height="22" rx="11" style={{"fill":"#2A0B02","opacity":"0.39"}} /><rect x="2194" y="268" width="169" height="22" rx="11" style={{"fill":"#2A0B02","opacity":"0.39"}} /><rect x="1350" y="268" width="62" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.18"}} /><rect x="2390" y="268" width="62" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.18"}} /><rect x="1419" y="268" width="124" height="22" rx="11" style={{"fill":"#FFC890","opacity":"0.12"}} /><rect x="2459" y="268" width="124" height="22" rx="11" style={{"fill":"#FFC890","opacity":"0.12"}} /><rect x="460" y="296" width="48" height="30" rx="15" style={{"fill":"#FFC890","opacity":"0.12"}} /><rect x="1500" y="296" width="48" height="30" rx="15" style={{"fill":"#FFC890","opacity":"0.12"}} /><rect x="516" y="296" width="91" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.19"}} /><rect x="1556" y="296" width="91" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.19"}} /><rect x="610" y="296" width="137" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.24"}} /><rect x="1650" y="296" width="137" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.24"}} /><rect x="761" y="296" width="74" height="30" rx="15" style={{"fill":"#E07434","opacity":"0.16"}} /><rect x="1801" y="296" width="74" height="30" rx="15" style={{"fill":"#E07434","opacity":"0.16"}} /><rect x="827" y="296" width="214" height="30" rx="15" style={{"fill":"#FFC890","opacity":"0.17"}} /><rect x="1867" y="296" width="214" height="30" rx="15" style={{"fill":"#FFC890","opacity":"0.17"}} /><rect x="1036" y="296" width="74" height="30" rx="15" style={{"fill":"#FFC890","opacity":"0.15"}} /><rect x="2076" y="296" width="74" height="30" rx="15" style={{"fill":"#FFC890","opacity":"0.15"}} /><rect x="1105" y="296" width="61" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.24"}} /><rect x="2145" y="296" width="61" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.24"}} /><rect x="1167" y="296" width="73" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.26"}} /><rect x="2207" y="296" width="73" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.26"}} /><rect x="1251" y="296" width="103" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.18"}} /><rect x="2291" y="296" width="103" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.18"}} /><rect x="1360" y="296" width="128" height="30" rx="15" style={{"fill":"#FFC890","opacity":"0.09"}} /><rect x="2400" y="296" width="128" height="30" rx="15" style={{"fill":"#FFC890","opacity":"0.09"}} /><rect x="1483" y="296" width="119" height="30" rx="15" style={{"fill":"#FFC890","opacity":"0.17"}} /><rect x="2523" y="296" width="119" height="30" rx="15" style={{"fill":"#FFC890","opacity":"0.17"}} /><rect x="460" y="330" width="179" height="8" rx="4" style={{"fill":"#E07434","opacity":"0.21"}} /><rect x="1500" y="330" width="179" height="8" rx="4" style={{"fill":"#E07434","opacity":"0.21"}} /><rect x="661" y="330" width="67" height="8" rx="4" style={{"fill":"#2A0B02","opacity":"0.20"}} /><rect x="1701" y="330" width="67" height="8" rx="4" style={{"fill":"#2A0B02","opacity":"0.20"}} /><rect x="719" y="330" width="102" height="8" rx="4" style={{"fill":"#FFC890","opacity":"0.16"}} /><rect x="1759" y="330" width="102" height="8" rx="4" style={{"fill":"#FFC890","opacity":"0.16"}} /><rect x="816" y="330" width="73" height="8" rx="4" style={{"fill":"#2A0B02","opacity":"0.37"}} /><rect x="1856" y="330" width="73" height="8" rx="4" style={{"fill":"#2A0B02","opacity":"0.37"}} /><rect x="904" y="330" width="202" height="8" rx="4" style={{"fill":"#2A0B02","opacity":"0.40"}} /><rect x="1944" y="330" width="202" height="8" rx="4" style={{"fill":"#2A0B02","opacity":"0.40"}} /><rect x="1104" y="330" width="153" height="8" rx="4" style={{"fill":"#FFC890","opacity":"0.15"}} /><rect x="2144" y="330" width="153" height="8" rx="4" style={{"fill":"#FFC890","opacity":"0.15"}} /><rect x="1255" y="330" width="160" height="8" rx="4" style={{"fill":"#2A0B02","opacity":"0.18"}} /><rect x="2295" y="330" width="160" height="8" rx="4" style={{"fill":"#2A0B02","opacity":"0.18"}} /><rect x="1419" y="330" width="97" height="8" rx="4" style={{"fill":"#E07434","opacity":"0.12"}} /><rect x="2459" y="330" width="97" height="8" rx="4" style={{"fill":"#E07434","opacity":"0.12"}} /><rect x="460" y="344" width="73" height="12" rx="6" style={{"fill":"#2A0B02","opacity":"0.33"}} /><rect x="1500" y="344" width="73" height="12" rx="6" style={{"fill":"#2A0B02","opacity":"0.33"}} /><rect x="541" y="344" width="63" height="12" rx="6" style={{"fill":"#2A0B02","opacity":"0.39"}} /><rect x="1581" y="344" width="63" height="12" rx="6" style={{"fill":"#2A0B02","opacity":"0.39"}} /><rect x="619" y="344" width="104" height="12" rx="6" style={{"fill":"#2A0B02","opacity":"0.40"}} /><rect x="1659" y="344" width="104" height="12" rx="6" style={{"fill":"#2A0B02","opacity":"0.40"}} /><rect x="741" y="344" width="173" height="12" rx="6" style={{"fill":"#2A0B02","opacity":"0.25"}} /><rect x="1781" y="344" width="173" height="12" rx="6" style={{"fill":"#2A0B02","opacity":"0.25"}} /><rect x="920" y="344" width="66" height="12" rx="6" style={{"fill":"#E07434","opacity":"0.14"}} /><rect x="1960" y="344" width="66" height="12" rx="6" style={{"fill":"#E07434","opacity":"0.14"}} /><rect x="1009" y="344" width="114" height="12" rx="6" style={{"fill":"#E07434","opacity":"0.15"}} /><rect x="2049" y="344" width="114" height="12" rx="6" style={{"fill":"#E07434","opacity":"0.15"}} /><rect x="1150" y="344" width="102" height="12" rx="6" style={{"fill":"#E07434","opacity":"0.11"}} /><rect x="2190" y="344" width="102" height="12" rx="6" style={{"fill":"#E07434","opacity":"0.11"}} /><rect x="1266" y="344" width="91" height="12" rx="6" style={{"fill":"#FFC890","opacity":"0.09"}} /><rect x="2306" y="344" width="91" height="12" rx="6" style={{"fill":"#FFC890","opacity":"0.09"}} /><rect x="1381" y="344" width="162" height="12" rx="6" style={{"fill":"#E07434","opacity":"0.21"}} /><rect x="2421" y="344" width="162" height="12" rx="6" style={{"fill":"#E07434","opacity":"0.21"}} /><rect x="460" y="362" width="148" height="22" rx="11" style={{"fill":"#2A0B02","opacity":"0.19"}} /><rect x="1500" y="362" width="148" height="22" rx="11" style={{"fill":"#2A0B02","opacity":"0.19"}} /><rect x="615" y="362" width="91" height="22" rx="11" style={{"fill":"#2A0B02","opacity":"0.39"}} /><rect x="1655" y="362" width="91" height="22" rx="11" style={{"fill":"#2A0B02","opacity":"0.39"}} /><rect x="707" y="362" width="165" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.11"}} /><rect x="1747" y="362" width="165" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.11"}} /><rect x="879" y="362" width="64" height="22" rx="11" style={{"fill":"#FFC890","opacity":"0.09"}} /><rect x="1919" y="362" width="64" height="22" rx="11" style={{"fill":"#FFC890","opacity":"0.09"}} /><rect x="950" y="362" width="101" height="22" rx="11" style={{"fill":"#FFC890","opacity":"0.16"}} /><rect x="1990" y="362" width="101" height="22" rx="11" style={{"fill":"#FFC890","opacity":"0.16"}} /><rect x="1065" y="362" width="138" height="22" rx="11" style={{"fill":"#2A0B02","opacity":"0.38"}} /><rect x="2105" y="362" width="138" height="22" rx="11" style={{"fill":"#2A0B02","opacity":"0.38"}} /><rect x="1196" y="362" width="105" height="22" rx="11" style={{"fill":"#2A0B02","opacity":"0.34"}} /><rect x="2236" y="362" width="105" height="22" rx="11" style={{"fill":"#2A0B02","opacity":"0.34"}} /><rect x="1319" y="362" width="102" height="22" rx="11" style={{"fill":"#FFC890","opacity":"0.17"}} /><rect x="2359" y="362" width="102" height="22" rx="11" style={{"fill":"#FFC890","opacity":"0.17"}} /><rect x="1411" y="362" width="154" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.13"}} /><rect x="2451" y="362" width="154" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.13"}} /><rect x="460" y="388" width="161" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.22"}} /><rect x="1500" y="388" width="161" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.22"}} /><rect x="650" y="388" width="219" height="22" rx="11" style={{"fill":"#2A0B02","opacity":"0.36"}} /><rect x="1690" y="388" width="219" height="22" rx="11" style={{"fill":"#2A0B02","opacity":"0.36"}} /><rect x="884" y="388" width="166" height="22" rx="11" style={{"fill":"#FFC890","opacity":"0.07"}} /><rect x="1924" y="388" width="166" height="22" rx="11" style={{"fill":"#FFC890","opacity":"0.07"}} /><rect x="1059" y="388" width="112" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.11"}} /><rect x="2099" y="388" width="112" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.11"}} /><rect x="1201" y="388" width="78" height="22" rx="11" style={{"fill":"#2A0B02","opacity":"0.21"}} /><rect x="2241" y="388" width="78" height="22" rx="11" style={{"fill":"#2A0B02","opacity":"0.21"}} /><rect x="1284" y="388" width="174" height="22" rx="11" style={{"fill":"#2A0B02","opacity":"0.22"}} /><rect x="2324" y="388" width="174" height="22" rx="11" style={{"fill":"#2A0B02","opacity":"0.22"}} /><rect x="1474" y="388" width="152" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.12"}} /><rect x="2514" y="388" width="152" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.12"}} /><rect x="460" y="416" width="180" height="22" rx="11" style={{"fill":"#2A0B02","opacity":"0.28"}} /><rect x="1500" y="416" width="180" height="22" rx="11" style={{"fill":"#2A0B02","opacity":"0.28"}} /><rect x="630" y="416" width="195" height="22" rx="11" style={{"fill":"#FFC890","opacity":"0.17"}} /><rect x="1670" y="416" width="195" height="22" rx="11" style={{"fill":"#FFC890","opacity":"0.17"}} /><rect x="816" y="416" width="103" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.15"}} /><rect x="1856" y="416" width="103" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.15"}} /><rect x="914" y="416" width="182" height="22" rx="11" style={{"fill":"#2A0B02","opacity":"0.29"}} /><rect x="1954" y="416" width="182" height="22" rx="11" style={{"fill":"#2A0B02","opacity":"0.29"}} /><rect x="1091" y="416" width="142" height="22" rx="11" style={{"fill":"#2A0B02","opacity":"0.20"}} /><rect x="2131" y="416" width="142" height="22" rx="11" style={{"fill":"#2A0B02","opacity":"0.20"}} /><rect x="1243" y="416" width="93" height="22" rx="11" style={{"fill":"#FFC890","opacity":"0.09"}} /><rect x="2283" y="416" width="93" height="22" rx="11" style={{"fill":"#FFC890","opacity":"0.09"}} /><rect x="1343" y="416" width="50" height="22" rx="11" style={{"fill":"#2A0B02","opacity":"0.28"}} /><rect x="2383" y="416" width="50" height="22" rx="11" style={{"fill":"#2A0B02","opacity":"0.28"}} /><rect x="1405" y="416" width="123" height="22" rx="11" style={{"fill":"#FFC890","opacity":"0.07"}} /><rect x="2445" y="416" width="123" height="22" rx="11" style={{"fill":"#FFC890","opacity":"0.07"}} /><rect x="460" y="440" width="215" height="12" rx="6" style={{"fill":"#E07434","opacity":"0.14"}} /><rect x="1500" y="440" width="215" height="12" rx="6" style={{"fill":"#E07434","opacity":"0.14"}} /><rect x="689" y="440" width="195" height="12" rx="6" style={{"fill":"#FFC890","opacity":"0.11"}} /><rect x="1729" y="440" width="195" height="12" rx="6" style={{"fill":"#FFC890","opacity":"0.11"}} /><rect x="875" y="440" width="68" height="12" rx="6" style={{"fill":"#FFC890","opacity":"0.15"}} /><rect x="1915" y="440" width="68" height="12" rx="6" style={{"fill":"#FFC890","opacity":"0.15"}} /><rect x="961" y="440" width="68" height="12" rx="6" style={{"fill":"#E07434","opacity":"0.08"}} /><rect x="2001" y="440" width="68" height="12" rx="6" style={{"fill":"#E07434","opacity":"0.08"}} /><rect x="1024" y="440" width="94" height="12" rx="6" style={{"fill":"#FFC890","opacity":"0.14"}} /><rect x="2064" y="440" width="94" height="12" rx="6" style={{"fill":"#FFC890","opacity":"0.14"}} /><rect x="1142" y="440" width="48" height="12" rx="6" style={{"fill":"#2A0B02","opacity":"0.20"}} /><rect x="2182" y="440" width="48" height="12" rx="6" style={{"fill":"#2A0B02","opacity":"0.20"}} /><rect x="1191" y="440" width="60" height="12" rx="6" style={{"fill":"#FFC890","opacity":"0.10"}} /><rect x="2231" y="440" width="60" height="12" rx="6" style={{"fill":"#FFC890","opacity":"0.10"}} /><rect x="1260" y="440" width="158" height="12" rx="6" style={{"fill":"#FFC890","opacity":"0.17"}} /><rect x="2300" y="440" width="158" height="12" rx="6" style={{"fill":"#FFC890","opacity":"0.17"}} /><rect x="1431" y="440" width="130" height="12" rx="6" style={{"fill":"#FFC890","opacity":"0.11"}} /><rect x="2471" y="440" width="130" height="12" rx="6" style={{"fill":"#FFC890","opacity":"0.11"}} /><rect x="460" y="458" width="86" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.27"}} /><rect x="1500" y="458" width="86" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.27"}} /><rect x="556" y="458" width="105" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.28"}} /><rect x="1596" y="458" width="105" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.28"}} /><rect x="652" y="458" width="190" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.30"}} /><rect x="1692" y="458" width="190" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.30"}} /><rect x="854" y="458" width="112" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.20"}} /><rect x="1894" y="458" width="112" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.20"}} /><rect x="971" y="458" width="97" height="30" rx="15" style={{"fill":"#E07434","opacity":"0.11"}} /><rect x="2011" y="458" width="97" height="30" rx="15" style={{"fill":"#E07434","opacity":"0.11"}} /><rect x="1088" y="458" width="128" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.27"}} /><rect x="2128" y="458" width="128" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.27"}} /><rect x="1244" y="458" width="41" height="30" rx="15" style={{"fill":"#E07434","opacity":"0.21"}} /><rect x="2284" y="458" width="41" height="30" rx="15" style={{"fill":"#E07434","opacity":"0.21"}} /><rect x="1290" y="458" width="148" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.25"}} /><rect x="2330" y="458" width="148" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.25"}} /><rect x="1452" y="458" width="146" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.29"}} /><rect x="2492" y="458" width="146" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.29"}} /><rect x="460" y="492" width="194" height="8" rx="4" style={{"fill":"#2A0B02","opacity":"0.31"}} /><rect x="1500" y="492" width="194" height="8" rx="4" style={{"fill":"#2A0B02","opacity":"0.31"}} /><rect x="676" y="492" width="210" height="8" rx="4" style={{"fill":"#E07434","opacity":"0.13"}} /><rect x="1716" y="492" width="210" height="8" rx="4" style={{"fill":"#E07434","opacity":"0.13"}} /><rect x="880" y="492" width="143" height="8" rx="4" style={{"fill":"#2A0B02","opacity":"0.27"}} /><rect x="1920" y="492" width="143" height="8" rx="4" style={{"fill":"#2A0B02","opacity":"0.27"}} /><rect x="1022" y="492" width="85" height="8" rx="4" style={{"fill":"#2A0B02","opacity":"0.21"}} /><rect x="2062" y="492" width="85" height="8" rx="4" style={{"fill":"#2A0B02","opacity":"0.21"}} /><rect x="1103" y="492" width="91" height="8" rx="4" style={{"fill":"#2A0B02","opacity":"0.40"}} /><rect x="2143" y="492" width="91" height="8" rx="4" style={{"fill":"#2A0B02","opacity":"0.40"}} /><rect x="1204" y="492" width="111" height="8" rx="4" style={{"fill":"#2A0B02","opacity":"0.21"}} /><rect x="2244" y="492" width="111" height="8" rx="4" style={{"fill":"#2A0B02","opacity":"0.21"}} /><rect x="1319" y="492" width="169" height="8" rx="4" style={{"fill":"#E07434","opacity":"0.18"}} /><rect x="2359" y="492" width="169" height="8" rx="4" style={{"fill":"#E07434","opacity":"0.18"}} /><rect x="1486" y="492" width="138" height="8" rx="4" style={{"fill":"#FFC890","opacity":"0.12"}} /><rect x="2526" y="492" width="138" height="8" rx="4" style={{"fill":"#FFC890","opacity":"0.12"}} /><rect x="460" y="506" width="71" height="8" rx="4" style={{"fill":"#2A0B02","opacity":"0.33"}} /><rect x="1500" y="506" width="71" height="8" rx="4" style={{"fill":"#2A0B02","opacity":"0.33"}} /><rect x="527" y="506" width="176" height="8" rx="4" style={{"fill":"#E07434","opacity":"0.19"}} /><rect x="1567" y="506" width="176" height="8" rx="4" style={{"fill":"#E07434","opacity":"0.19"}} /><rect x="711" y="506" width="202" height="8" rx="4" style={{"fill":"#E07434","opacity":"0.20"}} /><rect x="1751" y="506" width="202" height="8" rx="4" style={{"fill":"#E07434","opacity":"0.20"}} /><rect x="940" y="506" width="104" height="8" rx="4" style={{"fill":"#FFC890","opacity":"0.15"}} /><rect x="1980" y="506" width="104" height="8" rx="4" style={{"fill":"#FFC890","opacity":"0.15"}} /><rect x="1063" y="506" width="111" height="8" rx="4" style={{"fill":"#E07434","opacity":"0.17"}} /><rect x="2103" y="506" width="111" height="8" rx="4" style={{"fill":"#E07434","opacity":"0.17"}} /><rect x="1169" y="506" width="196" height="8" rx="4" style={{"fill":"#2A0B02","opacity":"0.25"}} /><rect x="2209" y="506" width="196" height="8" rx="4" style={{"fill":"#2A0B02","opacity":"0.25"}} /><rect x="1361" y="506" width="211" height="8" rx="4" style={{"fill":"#2A0B02","opacity":"0.24"}} /><rect x="2401" y="506" width="211" height="8" rx="4" style={{"fill":"#2A0B02","opacity":"0.24"}} /><rect x="460" y="518" width="76" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.15"}} /><rect x="1500" y="518" width="76" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.15"}} /><rect x="544" y="518" width="184" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.15"}} /><rect x="1584" y="518" width="184" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.15"}} /><rect x="739" y="518" width="194" height="22" rx="11" style={{"fill":"#FFC890","opacity":"0.10"}} /><rect x="1779" y="518" width="194" height="22" rx="11" style={{"fill":"#FFC890","opacity":"0.10"}} /><rect x="924" y="518" width="188" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.13"}} /><rect x="1964" y="518" width="188" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.13"}} /><rect x="1134" y="518" width="163" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.16"}} /><rect x="2174" y="518" width="163" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.16"}} /><rect x="1306" y="518" width="179" height="22" rx="11" style={{"fill":"#2A0B02","opacity":"0.33"}} /><rect x="2346" y="518" width="179" height="22" rx="11" style={{"fill":"#2A0B02","opacity":"0.33"}} /><rect x="1490" y="518" width="56" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.17"}} /><rect x="2530" y="518" width="56" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.17"}} /><rect x="460" y="544" width="48" height="30" rx="15" style={{"fill":"#FFC890","opacity":"0.16"}} /><rect x="1500" y="544" width="48" height="30" rx="15" style={{"fill":"#FFC890","opacity":"0.16"}} /><rect x="508" y="544" width="84" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.38"}} /><rect x="1548" y="544" width="84" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.38"}} /><rect x="585" y="544" width="72" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.30"}} /><rect x="1625" y="544" width="72" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.30"}} /><rect x="663" y="544" width="61" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.32"}} /><rect x="1703" y="544" width="61" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.32"}} /><rect x="741" y="544" width="130" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.40"}} /><rect x="1781" y="544" width="130" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.40"}} /><rect x="875" y="544" width="69" height="30" rx="15" style={{"fill":"#E07434","opacity":"0.15"}} /><rect x="1915" y="544" width="69" height="30" rx="15" style={{"fill":"#E07434","opacity":"0.15"}} /><rect x="952" y="544" width="215" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.25"}} /><rect x="1992" y="544" width="215" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.25"}} /><rect x="1166" y="544" width="68" height="30" rx="15" style={{"fill":"#FFC890","opacity":"0.16"}} /><rect x="2206" y="544" width="68" height="30" rx="15" style={{"fill":"#FFC890","opacity":"0.16"}} /><rect x="1254" y="544" width="102" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.22"}} /><rect x="2294" y="544" width="102" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.22"}} /><rect x="1353" y="544" width="219" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.25"}} /><rect x="2393" y="544" width="219" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.25"}} /><rect x="460" y="580" width="149" height="16" rx="8" style={{"fill":"#FFC890","opacity":"0.18"}} /><rect x="1500" y="580" width="149" height="16" rx="8" style={{"fill":"#FFC890","opacity":"0.18"}} /><rect x="604" y="580" width="104" height="16" rx="8" style={{"fill":"#2A0B02","opacity":"0.38"}} /><rect x="1644" y="580" width="104" height="16" rx="8" style={{"fill":"#2A0B02","opacity":"0.38"}} /><rect x="725" y="580" width="92" height="16" rx="8" style={{"fill":"#E07434","opacity":"0.12"}} /><rect x="1765" y="580" width="92" height="16" rx="8" style={{"fill":"#E07434","opacity":"0.12"}} /><rect x="810" y="580" width="45" height="16" rx="8" style={{"fill":"#FFC890","opacity":"0.17"}} /><rect x="1850" y="580" width="45" height="16" rx="8" style={{"fill":"#FFC890","opacity":"0.17"}} /><rect x="851" y="580" width="110" height="16" rx="8" style={{"fill":"#FFC890","opacity":"0.13"}} /><rect x="1891" y="580" width="110" height="16" rx="8" style={{"fill":"#FFC890","opacity":"0.13"}} /><rect x="956" y="580" width="56" height="16" rx="8" style={{"fill":"#FFC890","opacity":"0.08"}} /><rect x="1996" y="580" width="56" height="16" rx="8" style={{"fill":"#FFC890","opacity":"0.08"}} /><rect x="1032" y="580" width="166" height="16" rx="8" style={{"fill":"#E07434","opacity":"0.17"}} /><rect x="2072" y="580" width="166" height="16" rx="8" style={{"fill":"#E07434","opacity":"0.17"}} /><rect x="1201" y="580" width="117" height="16" rx="8" style={{"fill":"#FFC890","opacity":"0.14"}} /><rect x="2241" y="580" width="117" height="16" rx="8" style={{"fill":"#FFC890","opacity":"0.14"}} /><rect x="1330" y="580" width="127" height="16" rx="8" style={{"fill":"#E07434","opacity":"0.13"}} /><rect x="2370" y="580" width="127" height="16" rx="8" style={{"fill":"#E07434","opacity":"0.13"}} /><rect x="1455" y="580" width="155" height="16" rx="8" style={{"fill":"#2A0B02","opacity":"0.34"}} /><rect x="2495" y="580" width="155" height="16" rx="8" style={{"fill":"#2A0B02","opacity":"0.34"}} /><rect x="460" y="598" width="60" height="30" rx="15" style={{"fill":"#FFC890","opacity":"0.14"}} /><rect x="1500" y="598" width="60" height="30" rx="15" style={{"fill":"#FFC890","opacity":"0.14"}} /><rect x="513" y="598" width="202" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.30"}} /><rect x="1553" y="598" width="202" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.30"}} /><rect x="710" y="598" width="218" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.37"}} /><rect x="1750" y="598" width="218" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.37"}} /><rect x="920" y="598" width="160" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.19"}} /><rect x="1960" y="598" width="160" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.19"}} /><rect x="1093" y="598" width="217" height="30" rx="15" style={{"fill":"#E07434","opacity":"0.20"}} /><rect x="2133" y="598" width="217" height="30" rx="15" style={{"fill":"#E07434","opacity":"0.20"}} /><rect x="1331" y="598" width="134" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.30"}} /><rect x="2371" y="598" width="134" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.30"}} /><rect x="1463" y="598" width="135" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.29"}} /><rect x="2503" y="598" width="135" height="30" rx="15" style={{"fill":"#2A0B02","opacity":"0.29"}} /><rect x="460" y="634" width="115" height="8" rx="4" style={{"fill":"#E07434","opacity":"0.09"}} /><rect x="1500" y="634" width="115" height="8" rx="4" style={{"fill":"#E07434","opacity":"0.09"}} /><rect x="585" y="634" width="140" height="8" rx="4" style={{"fill":"#FFC890","opacity":"0.13"}} /><rect x="1625" y="634" width="140" height="8" rx="4" style={{"fill":"#FFC890","opacity":"0.13"}} /><rect x="720" y="634" width="94" height="8" rx="4" style={{"fill":"#2A0B02","opacity":"0.33"}} /><rect x="1760" y="634" width="94" height="8" rx="4" style={{"fill":"#2A0B02","opacity":"0.33"}} /><rect x="842" y="634" width="216" height="8" rx="4" style={{"fill":"#FFC890","opacity":"0.17"}} /><rect x="1882" y="634" width="216" height="8" rx="4" style={{"fill":"#FFC890","opacity":"0.17"}} /><rect x="1082" y="634" width="208" height="8" rx="4" style={{"fill":"#2A0B02","opacity":"0.29"}} /><rect x="2122" y="634" width="208" height="8" rx="4" style={{"fill":"#2A0B02","opacity":"0.29"}} /><rect x="1304" y="634" width="163" height="8" rx="4" style={{"fill":"#E07434","opacity":"0.17"}} /><rect x="2344" y="634" width="163" height="8" rx="4" style={{"fill":"#E07434","opacity":"0.17"}} /><rect x="1495" y="634" width="56" height="8" rx="4" style={{"fill":"#E07434","opacity":"0.21"}} /><rect x="2535" y="634" width="56" height="8" rx="4" style={{"fill":"#E07434","opacity":"0.21"}} /><rect x="460" y="644" width="196" height="16" rx="8" style={{"fill":"#FFC890","opacity":"0.06"}} /><rect x="1500" y="644" width="196" height="16" rx="8" style={{"fill":"#FFC890","opacity":"0.06"}} /><rect x="648" y="644" width="189" height="16" rx="8" style={{"fill":"#E07434","opacity":"0.15"}} /><rect x="1688" y="644" width="189" height="16" rx="8" style={{"fill":"#E07434","opacity":"0.15"}} /><rect x="850" y="644" width="176" height="16" rx="8" style={{"fill":"#FFC890","opacity":"0.06"}} /><rect x="1890" y="644" width="176" height="16" rx="8" style={{"fill":"#FFC890","opacity":"0.06"}} /><rect x="1019" y="644" width="183" height="16" rx="8" style={{"fill":"#FFC890","opacity":"0.16"}} /><rect x="2059" y="644" width="183" height="16" rx="8" style={{"fill":"#FFC890","opacity":"0.16"}} /><rect x="1209" y="644" width="100" height="16" rx="8" style={{"fill":"#2A0B02","opacity":"0.18"}} /><rect x="2249" y="644" width="100" height="16" rx="8" style={{"fill":"#2A0B02","opacity":"0.18"}} /><rect x="1330" y="644" width="87" height="16" rx="8" style={{"fill":"#E07434","opacity":"0.15"}} /><rect x="2370" y="644" width="87" height="16" rx="8" style={{"fill":"#E07434","opacity":"0.15"}} /><rect x="1420" y="644" width="161" height="16" rx="8" style={{"fill":"#E07434","opacity":"0.11"}} /><rect x="2460" y="644" width="161" height="16" rx="8" style={{"fill":"#E07434","opacity":"0.11"}} /><rect x="460" y="662" width="67" height="12" rx="6" style={{"fill":"#2A0B02","opacity":"0.29"}} /><rect x="1500" y="662" width="67" height="12" rx="6" style={{"fill":"#2A0B02","opacity":"0.29"}} /><rect x="548" y="662" width="100" height="12" rx="6" style={{"fill":"#2A0B02","opacity":"0.32"}} /><rect x="1588" y="662" width="100" height="12" rx="6" style={{"fill":"#2A0B02","opacity":"0.32"}} /><rect x="649" y="662" width="134" height="12" rx="6" style={{"fill":"#2A0B02","opacity":"0.37"}} /><rect x="1689" y="662" width="134" height="12" rx="6" style={{"fill":"#2A0B02","opacity":"0.37"}} /><rect x="780" y="662" width="82" height="12" rx="6" style={{"fill":"#2A0B02","opacity":"0.25"}} /><rect x="1820" y="662" width="82" height="12" rx="6" style={{"fill":"#2A0B02","opacity":"0.25"}} /><rect x="881" y="662" width="161" height="12" rx="6" style={{"fill":"#FFC890","opacity":"0.12"}} /><rect x="1921" y="662" width="161" height="12" rx="6" style={{"fill":"#FFC890","opacity":"0.12"}} /><rect x="1035" y="662" width="177" height="12" rx="6" style={{"fill":"#2A0B02","opacity":"0.23"}} /><rect x="2075" y="662" width="177" height="12" rx="6" style={{"fill":"#2A0B02","opacity":"0.23"}} /><rect x="1219" y="662" width="218" height="12" rx="6" style={{"fill":"#2A0B02","opacity":"0.26"}} /><rect x="2259" y="662" width="218" height="12" rx="6" style={{"fill":"#2A0B02","opacity":"0.26"}} /><rect x="1464" y="662" width="218" height="12" rx="6" style={{"fill":"#2A0B02","opacity":"0.21"}} /><rect x="2504" y="662" width="218" height="12" rx="6" style={{"fill":"#2A0B02","opacity":"0.21"}} /><rect x="460" y="676" width="219" height="16" rx="8" style={{"fill":"#2A0B02","opacity":"0.38"}} /><rect x="1500" y="676" width="219" height="16" rx="8" style={{"fill":"#2A0B02","opacity":"0.38"}} /><rect x="691" y="676" width="210" height="16" rx="8" style={{"fill":"#2A0B02","opacity":"0.39"}} /><rect x="1731" y="676" width="210" height="16" rx="8" style={{"fill":"#2A0B02","opacity":"0.39"}} /><rect x="928" y="676" width="49" height="16" rx="8" style={{"fill":"#2A0B02","opacity":"0.39"}} /><rect x="1968" y="676" width="49" height="16" rx="8" style={{"fill":"#2A0B02","opacity":"0.39"}} /><rect x="984" y="676" width="69" height="16" rx="8" style={{"fill":"#2A0B02","opacity":"0.22"}} /><rect x="2024" y="676" width="69" height="16" rx="8" style={{"fill":"#2A0B02","opacity":"0.22"}} /><rect x="1062" y="676" width="81" height="16" rx="8" style={{"fill":"#2A0B02","opacity":"0.21"}} /><rect x="2102" y="676" width="81" height="16" rx="8" style={{"fill":"#2A0B02","opacity":"0.21"}} /><rect x="1138" y="676" width="185" height="16" rx="8" style={{"fill":"#2A0B02","opacity":"0.19"}} /><rect x="2178" y="676" width="185" height="16" rx="8" style={{"fill":"#2A0B02","opacity":"0.19"}} /><rect x="1322" y="676" width="166" height="16" rx="8" style={{"fill":"#2A0B02","opacity":"0.37"}} /><rect x="2362" y="676" width="166" height="16" rx="8" style={{"fill":"#2A0B02","opacity":"0.37"}} /><rect x="460" y="698" width="106" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.21"}} /><rect x="1500" y="698" width="106" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.21"}} /><rect x="562" y="698" width="197" height="22" rx="11" style={{"fill":"#FFC890","opacity":"0.15"}} /><rect x="1602" y="698" width="197" height="22" rx="11" style={{"fill":"#FFC890","opacity":"0.15"}} /><rect x="776" y="698" width="62" height="22" rx="11" style={{"fill":"#2A0B02","opacity":"0.31"}} /><rect x="1816" y="698" width="62" height="22" rx="11" style={{"fill":"#2A0B02","opacity":"0.31"}} /><rect x="839" y="698" width="134" height="22" rx="11" style={{"fill":"#FFC890","opacity":"0.11"}} /><rect x="1879" y="698" width="134" height="22" rx="11" style={{"fill":"#FFC890","opacity":"0.11"}} /><rect x="995" y="698" width="87" height="22" rx="11" style={{"fill":"#2A0B02","opacity":"0.32"}} /><rect x="2035" y="698" width="87" height="22" rx="11" style={{"fill":"#2A0B02","opacity":"0.32"}} /><rect x="1073" y="698" width="206" height="22" rx="11" style={{"fill":"#FFC890","opacity":"0.17"}} /><rect x="2113" y="698" width="206" height="22" rx="11" style={{"fill":"#FFC890","opacity":"0.17"}} /><rect x="1296" y="698" width="73" height="22" rx="11" style={{"fill":"#FFC890","opacity":"0.14"}} /><rect x="2336" y="698" width="73" height="22" rx="11" style={{"fill":"#FFC890","opacity":"0.14"}} /><rect x="1363" y="698" width="127" height="22" rx="11" style={{"fill":"#FFC890","opacity":"0.13"}} /><rect x="2403" y="698" width="127" height="22" rx="11" style={{"fill":"#FFC890","opacity":"0.13"}} /><rect x="1494" y="698" width="220" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.09"}} /><rect x="2534" y="698" width="220" height="22" rx="11" style={{"fill":"#E07434","opacity":"0.09"}} /><rect x="460" y="724" width="119" height="8" rx="4" style={{"fill":"#E07434","opacity":"0.16"}} /><rect x="1500" y="724" width="119" height="8" rx="4" style={{"fill":"#E07434","opacity":"0.16"}} /><rect x="580" y="724" width="48" height="8" rx="4" style={{"fill":"#2A0B02","opacity":"0.36"}} /><rect x="1620" y="724" width="48" height="8" rx="4" style={{"fill":"#2A0B02","opacity":"0.36"}} /><rect x="657" y="724" width="44" height="8" rx="4" style={{"fill":"#2A0B02","opacity":"0.39"}} /><rect x="1697" y="724" width="44" height="8" rx="4" style={{"fill":"#2A0B02","opacity":"0.39"}} /><rect x="716" y="724" width="51" height="8" rx="4" style={{"fill":"#2A0B02","opacity":"0.26"}} /><rect x="1756" y="724" width="51" height="8" rx="4" style={{"fill":"#2A0B02","opacity":"0.26"}} /><rect x="764" y="724" width="215" height="8" rx="4" style={{"fill":"#2A0B02","opacity":"0.37"}} /><rect x="1804" y="724" width="215" height="8" rx="4" style={{"fill":"#2A0B02","opacity":"0.37"}} /><rect x="991" y="724" width="164" height="8" rx="4" style={{"fill":"#2A0B02","opacity":"0.34"}} /><rect x="2031" y="724" width="164" height="8" rx="4" style={{"fill":"#2A0B02","opacity":"0.34"}} /><rect x="1152" y="724" width="66" height="8" rx="4" style={{"fill":"#E07434","opacity":"0.17"}} /><rect x="2192" y="724" width="66" height="8" rx="4" style={{"fill":"#E07434","opacity":"0.17"}} /><rect x="1225" y="724" width="146" height="8" rx="4" style={{"fill":"#2A0B02","opacity":"0.39"}} /><rect x="2265" y="724" width="146" height="8" rx="4" style={{"fill":"#2A0B02","opacity":"0.39"}} /><rect x="1380" y="724" width="162" height="8" rx="4" style={{"fill":"#E07434","opacity":"0.20"}} /><rect x="2420" y="724" width="162" height="8" rx="4" style={{"fill":"#E07434","opacity":"0.20"}} /><ellipse cx="640" cy="532" rx="34" ry="13" style={{"fill":"#FFD3A1","opacity":"0.22"}} /><ellipse cx="640" cy="532" rx="20" ry="7" style={{"fill":"#7A2A0B","opacity":"0.35"}} /><ellipse cx="1680" cy="532" rx="34" ry="13" style={{"fill":"#FFD3A1","opacity":"0.22"}} /><ellipse cx="1680" cy="532" rx="20" ry="7" style={{"fill":"#7A2A0B","opacity":"0.35"}} /></g></g></g><circle cx="720" cy="470" r="250" style={{"fill":"url(#pshade)"}} /><circle cx="720" cy="470" r="249" style={{"fill":"none","stroke":"url(#rim)","strokeWidth":"3"}} /><g transform="translate(720 470) rotate(-14) scale(1 0.2)" clipPath="url(#ofront)"><circle r="430" style={{"fill":"none","stroke":"#F0A85C","strokeWidth":"90","opacity":"0.05"}} /><circle r="306" style={{"fill":"none","stroke":"#A9C8EE","strokeWidth":"1","opacity":"0.8"}} /><circle r="318" style={{"fill":"none","stroke":"#A9C8EE","strokeWidth":"22","opacity":"0.26"}} /><circle r="340" style={{"fill":"none","stroke":"#A9C8EE","strokeWidth":"20","opacity":"0.4"}} /><circle className="ringflow" r="329" style={{"fill":"none","stroke":"#EAF2FF","strokeWidth":"2","strokeDasharray":"1 11","opacity":"0.55","animationDuration":"140s"}} /><circle r="351" style={{"fill":"none","stroke":"#A9C8EE","strokeWidth":"1","opacity":"0.85"}} /><circle className="ringflow" r="396" style={{"fill":"none","stroke":"#F0A85C","strokeWidth":"10","strokeDasharray":"60 20 14 30","opacity":"0.6","animationDuration":"40s"}} /><circle className="ringflow" r="414" style={{"fill":"none","stroke":"#F0A85C","strokeWidth":"14","strokeDasharray":"110 30 24 40","opacity":"0.72","animationDuration":"55s"}} /><circle className="ringflow" r="434" style={{"fill":"none","stroke":"#F0A85C","strokeWidth":"8","strokeDasharray":"34 18 80 24","opacity":"0.5","animationDuration":"32s"}} /><circle className="ringflow" r="452" style={{"fill":"none","stroke":"#F0A85C","strokeWidth":"12","strokeDasharray":"140 40 30 30","opacity":"0.55","animationDuration":"70s"}} /><circle className="ringflow" r="470" style={{"fill":"none","stroke":"#F0A85C","strokeWidth":"5","strokeDasharray":"40 50","opacity":"0.38","animationDuration":"26s"}} /><circle r="505" style={{"fill":"none","stroke":"#F0A85C","strokeWidth":"1","opacity":"0.2"}} /></g><g transform="translate(720 470) rotate(-14) scale(1 0.2)" clipPath="url(#ofront)"><circle r="575" style={{"fill":"none","stroke":"#ECEDEA","strokeWidth":"1","opacity":"0.12"}} /><g className="spin" style={{"animationDuration":"28s","animationDelay":"-6s"}}><g transform="translate(575 0)"><g className="spin rev" style={{"animationDuration":"28s","animationDelay":"-6s"}}><ellipse rx="9.600000000000001" ry="48" style={{"fill":"#FFE9D2","opacity":"0.16"}} /><ellipse rx="3.2" ry="16" style={{"fill":"#FFE9D2"}} /></g></g></g></g><g transform="translate(720 470) rotate(-7) scale(1 0.2)" clipPath="url(#ofront)"><circle r="660" style={{"fill":"none","stroke":"#ECEDEA","strokeWidth":"1","opacity":"0.12"}} /><g className="spin" style={{"animationDuration":"44s","animationDelay":"-24s"}}><g transform="translate(660 0)"><g className="spin rev" style={{"animationDuration":"44s","animationDelay":"-24s"}}><ellipse rx="7.199999999999999" ry="36" style={{"fill":"#A9C8EE","opacity":"0.16"}} /><ellipse rx="2.4" ry="12" style={{"fill":"#A9C8EE"}} /></g></g></g></g><g transform="translate(720 470) rotate(-21) scale(1 0.2)" clipPath="url(#ofront)"><circle r="530" style={{"fill":"none","stroke":"#ECEDEA","strokeWidth":"1","opacity":"0.12"}} /><g className="spin" style={{"animationDuration":"19s","animationDelay":"-11s"}}><g transform="translate(530 0)"><g className="spin rev" style={{"animationDuration":"19s","animationDelay":"-11s"}}><ellipse rx="6" ry="30" style={{"fill":"#F0A85C","opacity":"0.16"}} /><ellipse rx="2" ry="10" style={{"fill":"#F0A85C"}} /></g></g></g></g><g className="mono" style={{"fontSize":"12px","letterSpacing":"0.14em"}}><path d="M401 550 L341 636" style={{"fill":"none","stroke":"rgba(236,237,234,0.35)","strokeWidth":"1"}} /><circle cx="401" cy="550" r="2.5" style={{"fill":"#ECEDEA"}} /><text x="333" y="634" textAnchor="end" style={{"fill":"#A9C8EE"}}>FIXED YIELD</text><text x="333" y="654" textAnchor="end" style={{"fill":"#8E9390"}}>HOLDS AT 6.42%</text><path d="M1144 345 L1214 281" style={{"fill":"none","stroke":"rgba(236,237,234,0.35)","strokeWidth":"1"}} /><circle cx="1144" cy="345" r="2.5" style={{"fill":"#ECEDEA"}} /><text x="1222" y="279" textAnchor="start" style={{"fill":"#F0A85C"}}>LONG YIELD</text><text x="1222" y="299" textAnchor="start" style={{"fill":"#8E9390"}}>FLOATS WITH THE RATE</text><path d="M1055 417 L1151 509" style={{"fill":"none","stroke":"rgba(236,237,234,0.35)","strokeWidth":"1"}} /><circle cx="1055" cy="417" r="2.5" style={{"fill":"#ECEDEA"}} /><text x="1159" y="507" textAnchor="start" style={{"fill":"#ECEDEA"}}>THE SPLIT</text><text x="1159" y="527" textAnchor="start" style={{"fill":"#8E9390"}}>FIXED | LONG</text><path d="M559 278 L489 208" style={{"fill":"none","stroke":"rgba(236,237,234,0.35)","strokeWidth":"1"}} /><circle cx="559" cy="278" r="2.5" style={{"fill":"#ECEDEA"}} /><text x="481" y="206" textAnchor="end" style={{"fill":"#ECEDEA"}}>USDG · LENDING VAULT</text><text x="481" y="226" textAnchor="end" style={{"fill":"#8E9390"}}>7.10% VARIABLE NOW</text></g>
-</svg>
+    <svg
+      ref={svgRef}
+      viewBox="0 0 1440 940"
+      preserveAspectRatio="xMidYMid slice"
+      role="img"
+      aria-label="Interactive 3D transparent multi-celestial world with smooth cinematic camera zoom, cryptographic vault core, rich moving star orbits, and seamless gesture inertia."
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+      onPointerLeave={handlePointerLeave}
+      className={`absolute top-0 left-0 w-full h-full z-0 select-none touch-none ${
+        isDragging ? "cursor-grabbing" : "cursor-grab"
+      }`}
+    >
+      <defs>
+        {/* Full-screen background hit surface */}
+        <radialGradient id="skyGrad" cx="50%" cy="50%" r="65%">
+          <stop offset="0%" stopColor="#0B1322" stopOpacity="0.75" />
+          <stop offset="45%" stopColor="#050812" stopOpacity="0.45" />
+          <stop offset="100%" stopColor="#020304" stopOpacity="0" />
+        </radialGradient>
+
+        {/* Dynamic ambient backlight corona behind the planet */}
+        <radialGradient id="behindOrangeGlow" cx="42%" cy="38%" r="55%">
+          <stop offset="0%" stopColor="#F0A85C" stopOpacity="0.28" />
+          <stop offset="38%" stopColor="#E07434" stopOpacity="0.14" />
+          <stop offset="72%" stopColor="#2A0B02" stopOpacity="0.03" />
+          <stop offset="100%" stopColor="#030304" stopOpacity="0" />
+        </radialGradient>
+
+        <radialGradient id="behindCyanGlow" cx="42%" cy="38%" r="55%">
+          <stop offset="0%" stopColor="#A9C8EE" stopOpacity="0.32" />
+          <stop offset="38%" stopColor="#6BA3E8" stopOpacity="0.16" />
+          <stop offset="72%" stopColor="#102542" stopOpacity="0.04" />
+          <stop offset="100%" stopColor="#030304" stopOpacity="0" />
+        </radialGradient>
+
+        {/* Soft glowing filter for star nodes and celestial satellites */}
+        <filter id="starGlow" x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="2.8" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+
+        {/* High-intensity bloom filter for major star bodies & vault core */}
+        <filter
+          id="majorStarGlow"
+          x="-100%"
+          y="-100%"
+          width="300%"
+          height="300%"
+        >
+          <feGaussianBlur
+            in="SourceGraphic"
+            stdDeviation="5.0"
+            result="bigBlur"
+          />
+          <feGaussianBlur
+            in="SourceGraphic"
+            stdDeviation="1.8"
+            result="tightBlur"
+          />
+          <feMerge>
+            <feMergeNode in="bigBlur" />
+            <feMergeNode in="tightBlur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+
+        {/* Directional Lighting Mask: Bright crisp white at top-left, fading to dark at bottom-right */}
+        <linearGradient
+          id="planetLightGrad"
+          x1="18%"
+          y1="0%"
+          x2="42%"
+          y2="100%"
+        >
+          <stop offset="0%" stopColor="#FFFFFF" stopOpacity="1" />
+          <stop offset="32%" stopColor="#FFFFFF" stopOpacity="0.88" />
+          <stop offset="62%" stopColor="#FFFFFF" stopOpacity="0.55" />
+          <stop offset="85%" stopColor="#FFFFFF" stopOpacity="0.25" />
+          <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.1" />
+        </linearGradient>
+        <mask id="planetMeshMask">
+          <rect
+            x="-1000"
+            y="-1000"
+            width="2000"
+            height="2000"
+            fill="url(#planetLightGrad)"
+          />
+        </mask>
+
+        {/* Top-left razor-sharp crescent rim arc lighting */}
+        <linearGradient id="topRimArcGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0" />
+          <stop offset="28%" stopColor="#FFFFFF" stopOpacity="0.85" />
+          <stop offset="55%" stopColor="#FFFFFF" stopOpacity="1" />
+          <stop offset="85%" stopColor="#FFFFFF" stopOpacity="0.4" />
+          <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
+        </linearGradient>
+
+        {/* Pure spherical clip path */}
+        <clipPath id="pclipSphere">
+          <circle cx="0" cy="0" r="345" />
+        </clipPath>
+
+        {/* Depth Clip for Orbits */}
+        <clipPath id="oback">
+          <rect x="-1400" y="-1400" width="2800" height="1400" />
+        </clipPath>
+        <clipPath id="ofront">
+          <rect x="-1400" y="0" width="2800" height="1400" />
+        </clipPath>
+
+        {/* Shooting Meteor Tail Gradients */}
+        <linearGradient id="meteorTailA" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0" />
+          <stop offset="70%" stopColor="#DDE8F8" stopOpacity="0.6" />
+          <stop offset="100%" stopColor="#FFFFFF" stopOpacity="1" />
+        </linearGradient>
+      </defs>
+
+      {/* Full-Screen Gesture Capture Background */}
+      <rect width="1440" height="940" fill="transparent" pointerEvents="all" />
+
+      {/* Subtle deep cosmic sky background */}
+      <rect
+        width="1440"
+        height="940"
+        fill="url(#skyGrad)"
+        pointerEvents="none"
+      />
+
+      {/* Top-Left Distant Black Hole Feature */}
+      <g transform="translate(160 145)" opacity="0.35" pointerEvents="none">
+        <circle r="42" fill="#010204" />
+        <g className="spin" style={{ animationDuration: "85s" }}>
+          <circle
+            r="52"
+            fill="none"
+            stroke="#2A3546"
+            strokeWidth="0.8"
+            strokeDasharray="14 12"
+            opacity="0.4"
+          />
+          <circle
+            r="68"
+            fill="none"
+            stroke="#A9C8EE"
+            strokeWidth="0.5"
+            strokeDasharray="4 18"
+            opacity="0.25"
+          />
+          <circle cx="52" cy="0" r="1.5" fill="#A9C8EE" opacity="0.7" />
+        </g>
+      </g>
+
+      {/* Active Shooting Meteors */}
+      <g transform="translate(1180 140) rotate(-32)" pointerEvents="none">
+        <g
+          className="shoot"
+          style={{ animationDelay: "0.8s", animationDuration: "8.5s" }}
+        >
+          <line
+            x1="0"
+            y1="0"
+            x2="-160"
+            y2="0"
+            stroke="url(#meteorTailA)"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+          />
+          <circle
+            cx="0"
+            cy="0"
+            r="2.6"
+            fill="#FFFFFF"
+            filter="url(#starGlow)"
+          />
+          <circle cx="0" cy="0" r="5.5" fill="#A9C8EE" opacity="0.45" />
+        </g>
+      </g>
+
+      <g transform="translate(380 90) rotate(-26)" pointerEvents="none">
+        <g
+          className="shoot"
+          style={{ animationDelay: "4.8s", animationDuration: "10.5s" }}
+        >
+          <line
+            x1="0"
+            y1="0"
+            x2="-180"
+            y2="0"
+            stroke="url(#meteorTailA)"
+            strokeWidth="2.0"
+            strokeLinecap="round"
+          />
+          <circle
+            cx="0"
+            cy="0"
+            r="2.8"
+            fill="#FFFFFF"
+            filter="url(#starGlow)"
+          />
+          <circle cx="0" cy="0" r="6" fill="#DDE8F8" opacity="0.4" />
+        </g>
+      </g>
+
+      <g transform="translate(980 340) rotate(-35)" pointerEvents="none">
+        <g
+          className="shoot"
+          style={{ animationDelay: "8.2s", animationDuration: "12s" }}
+        >
+          <line
+            x1="0"
+            y1="0"
+            x2="-130"
+            y2="0"
+            stroke="url(#meteorTailA)"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+          />
+          <circle
+            cx="0"
+            cy="0"
+            r="2.0"
+            fill="#FFFFFF"
+            filter="url(#starGlow)"
+          />
+        </g>
+      </g>
+
+      {/* ============================================================== */}
+      {/* CINEMATIC CAMERA SYSTEM: Smooth Zoom & Pan Per Planet Stage     */}
+      {/* ============================================================== */}
+      <g
+        transform={`translate(${celestialCx + parallaxX + cameraConfig.panX} ${celestialCy + parallaxY + cameraConfig.panY}) scale(${cameraConfig.scale})`}
+        style={{
+          transition: "transform 0.85s cubic-bezier(0.16, 1, 0.3, 1)",
+        }}
+      >
+        {/* Soft diffuse corona behind planet */}
+        <circle
+          r="420"
+          fill={fixedActive ? "url(#behindCyanGlow)" : "url(#behindOrangeGlow)"}
+          style={{ transition: "fill 0.6s ease-out" }}
+          pointerEvents="none"
+        />
+
+        {/* Moving Orbital System (Back of Planet) */}
+        <g
+          transform="rotate(-8) scale(1 0.22)"
+          clipPath="url(#oback)"
+          pointerEvents="none"
+        >
+          <circle
+            r="390"
+            fill="none"
+            stroke="#A9C8EE"
+            strokeWidth="0.55"
+            opacity="0.3"
+            strokeDasharray="6 14"
+          />
+          <g
+            className="spin"
+            style={{ animationDuration: "19s", animationDelay: "-3s" }}
+          >
+            <g transform="translate(390 0)">
+              <g
+                className="spin rev"
+                style={{ animationDuration: "19s", animationDelay: "-3s" }}
+              >
+                <circle r="3.2" fill="#FFFFFF" filter="url(#starGlow)" />
+                <circle r="8" fill="#A9C8EE" opacity="0.35" />
+              </g>
+            </g>
+          </g>
+        </g>
+
+        {/* Fixed Yield Orbit Track (Ice Blue, -15 deg) - Back */}
+        <g
+          transform="rotate(-15) scale(1 0.23)"
+          clipPath="url(#oback)"
+          pointerEvents="none"
+        >
+          <circle
+            r="428"
+            fill="none"
+            stroke="#A9C8EE"
+            strokeWidth="0.6"
+            opacity="0.35"
+          />
+          <circle
+            r="445"
+            fill="none"
+            stroke="#A9C8EE"
+            strokeWidth="1.6"
+            opacity={fixedOp}
+          />
+          <circle
+            className="ringflow"
+            r="445"
+            fill="none"
+            stroke="#FFFFFF"
+            strokeWidth="2.4"
+            strokeDasharray="180 80 40 80"
+            opacity={fixedOp}
+            style={{ animationDuration: "55s" }}
+          />
+          <circle
+            r="462"
+            fill="none"
+            stroke="#A9C8EE"
+            strokeWidth="0.8"
+            opacity="0.4"
+          />
+          <circle
+            className="ringflow"
+            r="462"
+            fill="none"
+            stroke="#DDE8F8"
+            strokeWidth="0.6"
+            strokeDasharray="2 12"
+            opacity="0.6"
+            style={{ animationDuration: "75s" }}
+          />
+        </g>
+
+        {/* Celestial Orbit Track (+24 deg) - Back */}
+        <g
+          transform="rotate(24) scale(1 0.24)"
+          clipPath="url(#oback)"
+          pointerEvents="none"
+        >
+          <circle
+            r="490"
+            fill="none"
+            stroke="#ECEDEA"
+            strokeWidth="0.65"
+            opacity="0.25"
+            strokeDasharray="10 16"
+          />
+          <g
+            className="spin"
+            style={{ animationDuration: "22s", animationDelay: "-5s" }}
+          >
+            <g transform="translate(490 0)">
+              <g
+                className="spin rev"
+                style={{ animationDuration: "22s", animationDelay: "-5s" }}
+              >
+                <circle r="3.8" fill="#FFFFFF" filter="url(#starGlow)" />
+                <circle r="10" fill="#DDE8F8" opacity="0.35" />
+              </g>
+            </g>
+          </g>
+        </g>
+
+        {/* Long Yield Orbit Track (Amber, -15 deg) - Back */}
+        <g
+          transform="rotate(-15) scale(1 0.23)"
+          clipPath="url(#oback)"
+          pointerEvents="none"
+        >
+          <circle
+            r="525"
+            fill="none"
+            stroke="#F0A85C"
+            strokeWidth="0.6"
+            opacity="0.35"
+          />
+          <circle
+            r="545"
+            fill="none"
+            stroke="#F0A85C"
+            strokeWidth="1.8"
+            opacity={longOp}
+          />
+          <circle
+            className="ringflow"
+            r="545"
+            fill="none"
+            stroke="#FFF2D6"
+            strokeWidth="2.5"
+            strokeDasharray="240 100 50 100"
+            opacity={longOp}
+            style={{ animationDuration: "42s" }}
+          />
+          <circle
+            r="568"
+            fill="none"
+            stroke="#F0A85C"
+            strokeWidth="0.8"
+            opacity="0.4"
+          />
+          <circle
+            className="ringflow"
+            r="568"
+            fill="none"
+            stroke="#F0A85C"
+            strokeWidth="0.6"
+            strokeDasharray="4 16"
+            opacity="0.5"
+            style={{ animationDuration: "60s" }}
+          />
+        </g>
+
+        {/* Sweeping Celestial Outer Ring (-26 deg) - Back */}
+        <g
+          transform="rotate(-26) scale(1 0.25)"
+          clipPath="url(#oback)"
+          pointerEvents="none"
+        >
+          <circle
+            r="650"
+            fill="none"
+            stroke="#ECEDEA"
+            strokeWidth="0.75"
+            opacity="0.25"
+          />
+          <circle
+            className="ringflow"
+            r="650"
+            fill="none"
+            stroke="#FFFFFF"
+            strokeWidth="1.6"
+            strokeDasharray="300 160 40 100"
+            opacity="0.85"
+            style={{ animationDuration: "32s" }}
+          />
+        </g>
+
+        {/* ============================================================== */}
+        {/* MONUMENTAL HD WIREFRAME SPHERICAL PLANET BODY (R = 345)        */}
+        {/* (Crisp, High-Tech, Monumental Sphere - Always Recognizable)     */}
+        {/* ============================================================== */}
+        <g pointerEvents="none">
+          {/* Outer boundary circle with subtle stage glow */}
+          <circle
+            r="345"
+            fill="none"
+            stroke={
+              fixedActive
+                ? "#A9C8EE"
+                : longActive
+                  ? "#F0A85C"
+                  : "rgba(255,255,255,0.12)"
+            }
+            strokeWidth={fixedActive || longActive ? "1.4" : "0.8"}
+            opacity={fixedActive || longActive ? "0.6" : "0.3"}
+            style={{
+              transition: "stroke 0.6s ease-out, stroke-width 0.6s ease-out",
+            }}
+          />
+
+          {/* Crisp Wireframe Net with Directional Lighting */}
+          <g clipPath="url(#pclipSphere)">
+            <g mask="url(#planetMeshMask)">
+              {/* Latitudes */}
+              {latitudes.map((lat, i) => (
+                <ellipse
+                  key={`lat-${i}`}
+                  cx={lat.cx}
+                  cy={lat.cy}
+                  rx={lat.rx}
+                  ry={lat.ry}
+                  fill="none"
+                  stroke={
+                    fixedActive ? "#DDE8F8" : longActive ? "#FFE2C4" : "#FFFFFF"
+                  }
+                  strokeWidth={lat.strokeWidth}
+                  opacity={lat.opacity}
+                  style={{ transition: "stroke 0.5s ease-out" }}
+                />
+              ))}
+
+              {/* Longitude Meridians */}
+              {meridians.map((mer, i) => (
+                <ellipse
+                  key={`mer-${i}`}
+                  cx={0}
+                  cy={0}
+                  rx={mer.rx}
+                  ry={mer.ry}
+                  transform={`rotate(${mer.angle})`}
+                  fill="none"
+                  stroke={
+                    fixedActive ? "#DDE8F8" : longActive ? "#FFE2C4" : "#FFFFFF"
+                  }
+                  strokeWidth={mer.strokeWidth}
+                  opacity={mer.opacity}
+                  style={{ transition: "stroke 0.5s ease-out" }}
+                />
+              ))}
+
+              {/* Star Constellation Nodes on Surface */}
+              {starNodes.map(
+                (st, i) =>
+                  st.opacity > 0 && (
+                    <g key={`star-${i}`}>
+                      <circle
+                        cx={st.x}
+                        cy={st.y}
+                        r={st.r}
+                        fill={st.col}
+                        opacity={st.opacity}
+                        className={st.twinkle ? "tw" : undefined}
+                        style={
+                          st.twinkle ? { animationDelay: st.delay } : undefined
+                        }
+                      />
+                      <circle
+                        cx={st.x}
+                        cy={st.y}
+                        r={st.r * 2.2}
+                        fill={st.col}
+                        opacity={st.opacity * 0.28}
+                      />
+                    </g>
+                  ),
+              )}
+            </g>
+          </g>
+
+          {/* Top-Left Razor-Sharp Crescent Rim Arc Lighting */}
+          <path
+            d="M -325 115 A 345 345 0 0 1 115 -325"
+            fill="none"
+            stroke="url(#topRimArcGrad)"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+          />
+
+          {/* Outer boundary tick marks */}
+          <g opacity="0.35">
+            <line
+              x1="-345"
+              y1="0"
+              x2="-335"
+              y2="0"
+              stroke="#FFFFFF"
+              strokeWidth="0.8"
+            />
+            <line
+              x1="345"
+              y1="0"
+              x2="335"
+              y2="0"
+              stroke="#FFFFFF"
+              strokeWidth="0.8"
+            />
+            <line
+              x1="0"
+              y1="-345"
+              x2="0"
+              y2="-335"
+              stroke="#FFFFFF"
+              strokeWidth="0.8"
+            />
+            <line
+              x1="0"
+              y1="345"
+              x2="0"
+              y2="335"
+              stroke="#FFFFFF"
+              strokeWidth="0.8"
+            />
+          </g>
+
+          {/* ============================================================== */}
+          {/* 3D CRYPTOGRAPHIC YIELD VAULT CORE (Zupiter-Style Rotating Box)  */}
+          {/* ============================================================== */}
+          <g>
+            {/* Concentric Gimbal Gyroscope Rings inside sphere */}
+            <g transform="rotate(35) scale(1 0.42)">
+              <circle
+                r="115"
+                fill="none"
+                stroke={
+                  fixedActive ? "#A9C8EE" : longActive ? "#F0A85C" : "#FFFFFF"
+                }
+                strokeWidth="0.65"
+                opacity={engineActive ? 0.85 : 0.28}
+                strokeDasharray="8 10"
+              />
+            </g>
+            <g transform="rotate(-40) scale(1 0.38)">
+              <circle
+                r="92"
+                fill="none"
+                stroke={
+                  fixedActive ? "#A9C8EE" : longActive ? "#F0A85C" : "#A9C8EE"
+                }
+                strokeWidth="0.6"
+                opacity={engineActive ? 0.9 : 0.3}
+                strokeDasharray="5 8"
+              />
+            </g>
+
+            {/* 3D Wireframe Cube Edges */}
+            {cubeEdges.map((e, idx) => (
+              <line
+                key={`cube-e-${idx}`}
+                x1={e.x1}
+                y1={e.y1}
+                x2={e.x2}
+                y2={e.y2}
+                stroke={
+                  engineActive
+                    ? "#A9C8EE"
+                    : fixedActive
+                      ? "#A9C8EE"
+                      : longActive
+                        ? "#F0A85C"
+                        : "#FFFFFF"
+                }
+                strokeWidth={e.strokeWidth}
+                opacity={
+                  engineActive ? Math.min(1, e.opacity * 1.5) : e.opacity
+                }
+              />
+            ))}
+
+            {/* Inner Tesseract Edges */}
+            {innerEdges.map((e, idx) => (
+              <line
+                key={`cube-in-${idx}`}
+                x1={e.x1}
+                y1={e.y1}
+                x2={e.x2}
+                y2={e.y2}
+                stroke={
+                  engineActive
+                    ? "#F0A85C"
+                    : fixedActive
+                      ? "#DDE8F8"
+                      : longActive
+                        ? "#FFF2D6"
+                        : "#DDE8F8"
+                }
+                strokeWidth={e.strokeWidth}
+                opacity={
+                  engineActive ? Math.min(1, e.opacity * 1.6) : e.opacity
+                }
+              />
+            ))}
+
+            {/* Outer Cube Corner Vertices with Micro Nodes */}
+            {cubeCornerNodes.map((v, idx) => (
+              <circle
+                key={`cube-node-${idx}`}
+                cx={v.x}
+                cy={v.y}
+                r={v.z > 0 ? (engineActive ? 3.0 : 2.4) : 1.4}
+                fill={v.z > 0 ? "#FFFFFF" : "#8E929B"}
+                opacity={v.z > 0 ? 0.9 : 0.4}
+                filter={v.z > 0 ? "url(#starGlow)" : undefined}
+              />
+            ))}
+
+            {/* Radiant Central Yield Token Nucleus (USDG Anchor) */}
+            <circle
+              r="12"
+              fill="none"
+              stroke="#FFFFFF"
+              strokeWidth="0.6"
+              opacity="0.35"
+              strokeDasharray="3 3"
+            />
+            <circle r="5.5" fill="#FFFFFF" filter="url(#majorStarGlow)" />
+            <circle
+              r="16"
+              fill={
+                fixedActive
+                  ? "#A9C8EE"
+                  : longActive
+                    ? "#F0A85C"
+                    : engineActive
+                      ? "#A9C8EE"
+                      : "#F0A85C"
+              }
+              opacity={engineActive ? 0.5 : 0.25}
+              filter="url(#starGlow)"
+            />
+
+            {/* Laser Split Vector (Active in Stage 3) */}
+            {engineActive && (
+              <g>
+                <line
+                  x1="-12"
+                  y1="0"
+                  x2="-120"
+                  y2="0"
+                  stroke="#A9C8EE"
+                  strokeWidth="1.8"
+                  filter="url(#starGlow)"
+                />
+                <polygon points="-120,-4 -130,0 -120,4" fill="#A9C8EE" />
+                <text
+                  x="-136"
+                  y="4"
+                  textAnchor="end"
+                  className="mono text-[9px] tracking-[0.18em]"
+                  fill="#A9C8EE"
+                >
+                  PT (PRINCIPAL)
+                </text>
+
+                <line
+                  x1="12"
+                  y1="0"
+                  x2="120"
+                  y2="0"
+                  stroke="#F0A85C"
+                  strokeWidth="1.8"
+                  filter="url(#starGlow)"
+                />
+                <polygon points="120,-4 130,0 120,4" fill="#F0A85C" />
+                <text
+                  x="136"
+                  y="4"
+                  textAnchor="start"
+                  className="mono text-[9px] tracking-[0.18em]"
+                  fill="#F0A85C"
+                >
+                  YT (YIELD)
+                </text>
+              </g>
+            )}
+
+            {/* Micro Technical Sub-label under Core */}
+            <text
+              x="0"
+              y="98"
+              textAnchor="middle"
+              className="mono text-[8px] tracking-[0.24em] select-none"
+              fill="#ECEDEA"
+              opacity={engineActive ? 0.9 : 0.45}
+            >
+              USDG · SPLIT VAULT CORE
+            </text>
+          </g>
+        </g>
+
+        {/* Tactical HUD Overlay for Stage 4 */}
+        {vaultsActive && (
+          <g
+            pointerEvents="none"
+            className="transition-opacity duration-700 ease-out"
+          >
+            <circle
+              r="220"
+              fill="none"
+              stroke="#34D399"
+              strokeWidth="0.6"
+              opacity="0.35"
+              strokeDasharray="8 12"
+            />
+            <line
+              x1="-360"
+              y1="0"
+              x2="-330"
+              y2="0"
+              stroke="#34D399"
+              strokeWidth="1.2"
+              opacity="0.6"
+            />
+            <line
+              x1="330"
+              y1="0"
+              x2="360"
+              y2="0"
+              stroke="#34D399"
+              strokeWidth="1.2"
+              opacity="0.6"
+            />
+            <line
+              x1="0"
+              y1="-360"
+              x2="0"
+              y2="-330"
+              stroke="#34D399"
+              strokeWidth="1.2"
+              opacity="0.6"
+            />
+            <line
+              x1="0"
+              y1="330"
+              x2="0"
+              y2="360"
+              stroke="#34D399"
+              strokeWidth="1.2"
+              opacity="0.6"
+            />
+          </g>
+        )}
+
+        {/* Moving Orbital System (Foreground - in Front of Planet) */}
+        <g
+          transform="rotate(-8) scale(1 0.22)"
+          clipPath="url(#ofront)"
+          pointerEvents="none"
+        >
+          <circle
+            r="390"
+            fill="none"
+            stroke="#A9C8EE"
+            strokeWidth="0.55"
+            opacity="0.3"
+            strokeDasharray="6 14"
+          />
+          <g
+            className="spin"
+            style={{ animationDuration: "19s", animationDelay: "-3s" }}
+          >
+            <g transform="translate(390 0)">
+              <g
+                className="spin rev"
+                style={{ animationDuration: "19s", animationDelay: "-3s" }}
+              >
+                <circle r="3.2" fill="#FFFFFF" filter="url(#starGlow)" />
+                <circle r="8" fill="#A9C8EE" opacity="0.35" />
+              </g>
+            </g>
+          </g>
+        </g>
+
+        {/* Fixed Yield Orbit Track (Ice Blue, -15 deg) - Front */}
+        <g
+          transform="rotate(-15) scale(1 0.23)"
+          clipPath="url(#ofront)"
+          pointerEvents="none"
+        >
+          <circle
+            r="428"
+            fill="none"
+            stroke="#A9C8EE"
+            strokeWidth="0.6"
+            opacity="0.35"
+          />
+          <circle
+            r="445"
+            fill="none"
+            stroke="#A9C8EE"
+            strokeWidth="1.6"
+            opacity={fixedOp}
+          />
+          <circle
+            className="ringflow"
+            r="445"
+            fill="none"
+            stroke="#FFFFFF"
+            strokeWidth="2.4"
+            strokeDasharray="180 80 40 80"
+            opacity={fixedOp}
+            style={{ animationDuration: "55s" }}
+          />
+          <circle
+            r="462"
+            fill="none"
+            stroke="#A9C8EE"
+            strokeWidth="0.8"
+            opacity="0.4"
+          />
+          <circle
+            className="ringflow"
+            r="462"
+            fill="none"
+            stroke="#DDE8F8"
+            strokeWidth="0.6"
+            strokeDasharray="2 12"
+            opacity="0.6"
+            style={{ animationDuration: "75s" }}
+          />
+
+          {/* Primary Fixed Yield Star Satellite */}
+          <g
+            className="spin"
+            style={{ animationDuration: "26s", animationDelay: "-6.5s" }}
+          >
+            <g transform="translate(445 0)">
+              <g
+                className="spin rev"
+                style={{ animationDuration: "26s", animationDelay: "-6.5s" }}
+              >
+                <circle r="5.0" fill="#FFFFFF" filter="url(#majorStarGlow)" />
+                <circle r="14" fill="#A9C8EE" opacity="0.45" />
+                <circle r="24" fill="#A9C8EE" opacity="0.18" />
+              </g>
+            </g>
+          </g>
+        </g>
+
+        {/* Long Yield Orbit Track (Amber, -15 deg) - Front */}
+        <g
+          transform="rotate(-15) scale(1 0.23)"
+          clipPath="url(#ofront)"
+          pointerEvents="none"
+        >
+          <circle
+            r="525"
+            fill="none"
+            stroke="#F0A85C"
+            strokeWidth="0.6"
+            opacity="0.35"
+          />
+          <circle
+            r="545"
+            fill="none"
+            stroke="#F0A85C"
+            strokeWidth="1.8"
+            opacity={longOp}
+          />
+          <circle
+            className="ringflow"
+            r="545"
+            fill="none"
+            stroke="#FFF2D6"
+            strokeWidth="2.5"
+            strokeDasharray="240 100 50 100"
+            opacity={longOp}
+            style={{ animationDuration: "42s" }}
+          />
+          <circle
+            r="568"
+            fill="none"
+            stroke="#F0A85C"
+            strokeWidth="0.8"
+            opacity="0.4"
+          />
+          <circle
+            className="ringflow"
+            r="568"
+            fill="none"
+            stroke="#F0A85C"
+            strokeWidth="0.6"
+            strokeDasharray="4 16"
+            opacity="0.5"
+            style={{ animationDuration: "60s" }}
+          />
+
+          {/* Primary Long Yield Star Satellite */}
+          <g
+            className="spin"
+            style={{ animationDuration: "38s", animationDelay: "-14s" }}
+          >
+            <g transform="translate(545 0)">
+              <g
+                className="spin rev"
+                style={{ animationDuration: "38s", animationDelay: "-14s" }}
+              >
+                <circle r="5.5" fill="#FFFFFF" filter="url(#majorStarGlow)" />
+                <circle r="15" fill="#F0A85C" opacity="0.45" />
+                <circle r="26" fill="#F0A85C" opacity="0.18" />
+              </g>
+            </g>
+          </g>
+        </g>
+
+        {/* Sweeping Outer Celestial Ring (-26 deg) - Front */}
+        <g
+          transform="rotate(-26) scale(1 0.25)"
+          clipPath="url(#ofront)"
+          pointerEvents="none"
+        >
+          <circle
+            r="650"
+            fill="none"
+            stroke="#ECEDEA"
+            strokeWidth="0.75"
+            opacity="0.25"
+          />
+          <circle
+            className="ringflow"
+            r="650"
+            fill="none"
+            stroke="#FFFFFF"
+            strokeWidth="1.6"
+            strokeDasharray="300 160 40 100"
+            opacity="0.85"
+            style={{ animationDuration: "32s" }}
+          />
+        </g>
+
+        {/* ============================================================== */}
+        {/* INTERACTIVE PINS (Cleanly Positioned on the Right Side)        */}
+        {/* ============================================================== */}
+
+        {/* Pin 1: Fixed Yield (+ FIXED 6.42%) */}
+        <g
+          className="cursor-pointer group pointer-events-auto"
+          transform="translate(-100 240)"
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelectStage?.(1);
+          }}
+        >
+          {fixedActive && (
+            <circle
+              r="26"
+              fill="none"
+              stroke="#A9C8EE"
+              strokeWidth="1.2"
+              opacity="0.5"
+              className="animate-ping"
+              style={{ animationDuration: "2.4s" }}
+            />
+          )}
+          <circle
+            r="16"
+            fill="rgba(6,10,18,0.75)"
+            stroke="#A9C8EE"
+            strokeWidth={fixedActive ? "1.6" : "0.9"}
+            opacity={fixedActive ? 1 : 0.6}
+          />
+          <circle
+            r="10"
+            fill={fixedActive ? "#A9C8EE" : "#0F192C"}
+            opacity="0.8"
+          />
+          <text
+            x="0"
+            y="3.5"
+            textAnchor="middle"
+            fill={fixedActive ? "#030304" : "#A9C8EE"}
+            className="mono text-[10px] font-bold select-none"
+          >
+            +
+          </text>
+          <text
+            x="24"
+            y="4"
+            textAnchor="start"
+            fill="#A9C8EE"
+            className="mono text-[10px] tracking-[0.16em] select-none font-medium"
+          >
+            FIXED · 6.42%
+          </text>
+        </g>
+
+        {/* Pin 2: Long Yield (+ LONG FLOATING) */}
+        <g
+          className="cursor-pointer group pointer-events-auto"
+          transform="translate(260 -130)"
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelectStage?.(2);
+          }}
+        >
+          {longActive && (
+            <circle
+              r="26"
+              fill="none"
+              stroke="#F0A85C"
+              strokeWidth="1.2"
+              opacity="0.5"
+              className="animate-ping"
+              style={{ animationDuration: "2.4s" }}
+            />
+          )}
+          <circle
+            r="16"
+            fill="rgba(18,12,6,0.75)"
+            stroke="#F0A85C"
+            strokeWidth={longActive ? "1.6" : "0.9"}
+            opacity={longActive ? 1 : 0.6}
+          />
+          <circle
+            r="10"
+            fill={longActive ? "#F0A85C" : "#2C1B0F"}
+            opacity="0.8"
+          />
+          <text
+            x="0"
+            y="3.5"
+            textAnchor="middle"
+            fill={longActive ? "#030304" : "#F0A85C"}
+            className="mono text-[10px] font-bold select-none"
+          >
+            +
+          </text>
+          <text
+            x="24"
+            y="4"
+            textAnchor="start"
+            fill="#F0A85C"
+            className="mono text-[10px] tracking-[0.16em] select-none font-medium"
+          >
+            LONG · FLOATING
+          </text>
+        </g>
+
+        {/* Pin 3: Vault Core (+ SPLIT ENGINE) */}
+        <g
+          className="cursor-pointer group pointer-events-auto"
+          transform="translate(0 -190)"
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelectStage?.(3);
+          }}
+        >
+          {engineActive && (
+            <circle
+              r="24"
+              fill="none"
+              stroke="#FFFFFF"
+              strokeWidth="1.2"
+              opacity="0.5"
+              className="animate-ping"
+              style={{ animationDuration: "2.4s" }}
+            />
+          )}
+          <circle
+            r="15"
+            fill="rgba(8,10,14,0.75)"
+            stroke="#ECEDEA"
+            strokeWidth={engineActive ? "1.6" : "0.8"}
+            opacity={engineActive ? 1 : 0.5}
+          />
+          <circle
+            r="9"
+            fill={engineActive ? "#FFFFFF" : "#1A2230"}
+            opacity="0.8"
+          />
+          <text
+            x="0"
+            y="3.5"
+            textAnchor="middle"
+            fill={engineActive ? "#030304" : "#FFFFFF"}
+            className="mono text-[9px] font-bold select-none"
+          >
+            +
+          </text>
+          <text
+            x="22"
+            y="4"
+            textAnchor="start"
+            fill="#ECEDEA"
+            className="mono text-[9px] tracking-[0.18em] select-none"
+          >
+            SPLIT ENGINE
+          </text>
+        </g>
+
+        {/* Pin 4: Live Market (+ USDG VAULT) */}
+        <g
+          className="cursor-pointer group pointer-events-auto"
+          transform="translate(200 240)"
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelectStage?.(4);
+          }}
+        >
+          {vaultsActive && (
+            <circle
+              r="24"
+              fill="none"
+              stroke="#34D399"
+              strokeWidth="1.2"
+              opacity="0.5"
+              className="animate-ping"
+              style={{ animationDuration: "2.4s" }}
+            />
+          )}
+          <circle
+            r="15"
+            fill="rgba(8,10,14,0.75)"
+            stroke="#34D399"
+            strokeWidth={vaultsActive ? "1.6" : "0.8"}
+            opacity={vaultsActive ? 1 : 0.5}
+          />
+          <circle
+            r="9"
+            fill={vaultsActive ? "#34D399" : "#1A2230"}
+            opacity="0.8"
+          />
+          <text
+            x="0"
+            y="3.5"
+            textAnchor="middle"
+            fill={vaultsActive ? "#030304" : "#34D399"}
+            className="mono text-[9px] font-bold select-none"
+          >
+            +
+          </text>
+          <text
+            x="22"
+            y="4"
+            textAnchor="start"
+            fill="#ECEDEA"
+            className="mono text-[9px] tracking-[0.18em] select-none"
+          >
+            USDG VAULT
+          </text>
+        </g>
+      </g>
+
+      {/* ============================================================== */}
+      {/* RIGHT-EDGE TECHNICAL PERSPECTIVE & RESET CONTROLS (Zupiter)     */}
+      {/* ============================================================== */}
+      <g
+        transform="translate(1412 630)"
+        className="pointer-events-none select-none"
+      >
+        <text
+          x="0"
+          y="0"
+          transform="rotate(90)"
+          textAnchor="middle"
+          className="mono text-[9px] tracking-[0.26em]"
+          fill="#8E929B"
+          opacity="0.55"
+        >
+          DRAG OR MOVE TO EXPLORE PERSPECTIVE
+        </text>
+      </g>
+
+      {/* Orientation Reset Button (Bottom Right) */}
+      <g
+        transform="translate(1392 880)"
+        className="cursor-pointer group pointer-events-auto"
+        onClick={handleResetOrientation}
+      >
+        <circle
+          r="18"
+          fill="rgba(10,12,18,0.75)"
+          stroke="rgba(255,255,255,0.2)"
+          strokeWidth="0.9"
+          className="group-hover:stroke-white transition-colors"
+        />
+        <path
+          d="M -5 -2 A 6 6 0 1 1 -3 5 L -1 3 M -3 5 L -3 1"
+          fill="none"
+          stroke="#ECEDEA"
+          strokeWidth="1.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity="0.8"
+        />
+      </g>
+    </svg>
   );
 }

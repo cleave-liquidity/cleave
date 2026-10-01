@@ -1,36 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { FixedYieldQuote } from "@/types/quote";
 import { yieldAdapter } from "@/lib/adapters/mock-adapter";
+import { queryKeys } from "@/lib/query-keys";
 
 export function useFixedYieldQuote(marketId: string, inputAmount: number) {
-  const [quote, setQuote] = useState<FixedYieldQuote | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const query = useQuery<FixedYieldQuote>({
+    queryKey: queryKeys.fixedQuote(marketId, inputAmount),
+    queryFn: () => yieldAdapter.getFixedQuote(marketId, inputAmount),
+    enabled: Boolean(marketId) && Number.isFinite(inputAmount) && inputAmount > 0,
+    staleTime: 5_000,
+  });
 
-  useEffect(() => {
-    if (!inputAmount || inputAmount <= 0) {
-      setQuote(null);
-      return;
-    }
-    let mounted = true;
-    setIsLoading(true);
-    yieldAdapter
-      .getFixedQuote(marketId, inputAmount)
-      .then((res) => {
-        if (mounted) {
-          setQuote(res);
-          setIsLoading(false);
-        }
-      })
-      .catch(() => {
-        if (mounted) setIsLoading(false);
-      });
-
-    return () => {
-      mounted = false;
-    };
-  }, [marketId, inputAmount]);
-
-  return { quote, isLoading };
+  return {
+    quote: query.data ?? null,
+    isLoading: query.isFetching,
+    error: query.error,
+    refresh: query.refetch,
+  };
 }
