@@ -1,19 +1,113 @@
+import { YieldDomainError } from "@/types/errors";
 import { YieldMarket } from "@/types/market";
 import { FixedYieldQuote, LongYieldQuote } from "@/types/quote";
-import { FixedYieldPosition, LongYieldPosition, YieldPosition } from "@/types/position";
-import { YieldMarketAdapter } from "./types";
+import {
+  FixedYieldPosition,
+  LongYieldPosition,
+  YieldPosition,
+} from "@/types/position";
+import {
+  getMarketStatus,
+  getTimeToMaturity,
+  isMarketTradable,
+} from "@/lib/markets/status";
+import {
+  canClaimYield,
+  canRedeemFixed,
+  canSellPosition,
+  getClaimableYield as calculateClaimableYield,
+  refreshPositionValuation,
+} from "@/lib/positions/valuation";
+import {
+  calculateFixedQuote,
+  calculateLongQuote,
+} from "@/lib/quotes/mock-quotes";
+import {
+  balanceAdapter,
+  MOCK_NETWORK_FEE_ETH,
+} from "@/lib/adapters/balance-adapter";
+import { isSupportedRobinhoodChain } from "@/lib/web3/chains";
+import { PositionTransactionResult, YieldMarketAdapter } from "./types";
+
+const STORAGE_PREFIX = "cleave:mock-positions:v1:";
+const QUOTE_TTL_MS = 30_000;
+const MOCK_INITIAL_CLAIMABLE_YIELD_RATE = 0.01;
+const DEMO_OWNER =
+  "0x000000000000000000000000000000000000dEaD" as `0x${string}`;
+
+const MOCK_TX_HASHES = {
+  openFixed:
+    "0x1111111111111111111111111111111111111111111111111111111111111111" as `0x${string}`,
+  openLong:
+    "0x2222222222222222222222222222222222222222222222222222222222222222" as `0x${string}`,
+  claim:
+    "0x3333333333333333333333333333333333333333333333333333333333333333" as `0x${string}`,
+  redeem:
+    "0x4444444444444444444444444444444444444444444444444444444444444444" as `0x${string}`,
+  sell: "0x5555555555555555555555555555555555555555555555555555555555555555" as `0x${string}`,
+};
+
+function round(value: number, decimals = 2): number {
+  return Number(value.toFixed(decimals));
+}
+
+function clonePosition(position: YieldPosition): YieldPosition {
+  return { ...position };
+}
+
+function isPositionRecord(value: unknown): value is YieldPosition {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<YieldPosition>;
+  const commonValid =
+    typeof candidate.id === "string" &&
+    typeof candidate.owner === "string" &&
+    typeof candidate.marketId === "string" &&
+    (candidate.strategy === "fixed" || candidate.strategy === "long") &&
+    typeof candidate.maturityDate === "string" &&
+    typeof candidate.openedAt === "string" &&
+    typeof candidate.mockTxHash === "string" &&
+    ["active", "matured", "closed", "redeemed"].includes(
+      candidate.status as string,
+    ) &&
+    typeof candidate.depositedAmount === "number" &&
+    typeof candidate.currentValue === "number" &&
+    typeof candidate.pnl === "number";
+  if (!commonValid) return false;
+  if (candidate.strategy === "fixed") {
+    const fixed = candidate as Partial<FixedYieldPosition>;
+    return (
+      typeof fixed.ptAmount === "number" &&
+      typeof fixed.entryImpliedApy === "number" &&
+      typeof fixed.quotedFixedApy === "number"
+    );
+  }
+  if (candidate.strategy === "long") {
+    const long = candidate as Partial<LongYieldPosition>;
+    return (
+      typeof long.ytAmount === "number" &&
+      typeof long.claimableYield === "number" &&
+      typeof long.entryUnderlyingApy === "number" &&
+      typeof long.entryImpliedApy === "number" &&
+      typeof long.breakEvenApy === "number" &&
+      typeof long.currentUnderlyingApy === "number" &&
+      typeof long.lastClaimedAt === "string"
+    );
+  }
+  return false;
+}
 
 export const MOCK_MARKETS: YieldMarket[] = [
   {
     id: "usdg-morpho-26mar27",
     symbol: "USDG",
     name: "Paxos USDG",
-    description: "Yield-bearing USDG in Morpho Prime lending vault on Robinhood Chain.",
+    description:
+      "Yield-bearing USDG in Morpho Prime lending vault on Robinhood Chain.",
     underlyingAsset: "USDG",
     quoteAsset: "USDG",
     yieldSource: "Morpho lending vault",
     sourceProtocol: "Morpho",
-    underlyingApy: 7.10,
+    underlyingApy: 7.1,
     impliedApy: 6.42,
     maturity: "26 Mar 2027",
     maturityDate: "2027-03-26",
@@ -28,13 +122,14 @@ export const MOCK_MARKETS: YieldMarket[] = [
     id: "susde-ethena-24jun27",
     symbol: "sUSDe",
     name: "Staked USDe",
-    description: "Synthetic dollar yield from delta-neutral basis trading on Ethena.",
+    description:
+      "Synthetic dollar yield from delta-neutral basis trading on Ethena.",
     underlyingAsset: "sUSDe",
     quoteAsset: "USDG",
     yieldSource: "Ethena staking",
     sourceProtocol: "Ethena",
     underlyingApy: 9.85,
-    impliedApy: 8.90,
+    impliedApy: 8.9,
     maturity: "24 Jun 2027",
     maturityDate: "2027-06-24",
     daysRemaining: 265,
@@ -53,7 +148,7 @@ export const MOCK_MARKETS: YieldMarket[] = [
     quoteAsset: "NET",
     yieldSource: "NetNet staking",
     sourceProtocol: "NetNet",
-    underlyingApy: 5.40,
+    underlyingApy: 5.4,
     impliedApy: 5.95,
     maturity: "17 Dec 2026",
     maturityDate: "2026-12-17",
@@ -68,13 +163,14 @@ export const MOCK_MARKETS: YieldMarket[] = [
     id: "wsteth-lido-30sep27",
     symbol: "wstETH",
     name: "Wrapped Staked ETH",
-    description: "Liquid staking yield from Ethereum proof-of-stake consensus rewards.",
+    description:
+      "Liquid staking yield from Ethereum proof-of-stake consensus rewards.",
     underlyingAsset: "wstETH",
     quoteAsset: "ETH",
     yieldSource: "Lido staking",
     sourceProtocol: "Lido",
     underlyingApy: 3.45,
-    impliedApy: 3.20,
+    impliedApy: 3.2,
     maturity: "30 Sep 2027",
     maturityDate: "2027-09-30",
     daysRemaining: 363,
@@ -86,146 +182,294 @@ export const MOCK_MARKETS: YieldMarket[] = [
   },
 ];
 
-export const INITIAL_POSITIONS: YieldPosition[] = [
-  {
-    id: "pos-fixed-1",
-    marketId: "usdg-morpho-26mar27",
-    assetSymbol: "USDG",
-    strategy: "fixed",
-    depositedAmount: 1000.0,
-    ptAmount: 1030.08,
-    currentValue: 1009.56,
-    pnl: 9.56,
-    quotedFixedApy: 6.38,
-    maturity: "26 Mar 2027",
-    maturityDate: "2027-03-26",
-    openedAt: "02 Oct 2026",
-    status: "active",
-  },
-  {
-    id: "pos-long-1",
-    marketId: "usdg-morpho-26mar27",
-    assetSymbol: "USDG",
-    strategy: "long",
-    depositedAmount: 100.0,
-    ytAmount: 3402.0,
-    currentValue: 67.74,
-    pnl: 4.37, // total PnL including claimable
-    claimableYield: 36.63,
-    underlyingApyAtOpen: 7.10,
-    impliedApyAtOpen: 6.42,
-    currentUnderlyingApy: 7.10,
-    maturity: "26 Mar 2027",
-    maturityDate: "2027-03-26",
-    openedAt: "02 Oct 2026",
-    status: "active",
-  },
-];
-
 export class MockYieldMarketAdapter implements YieldMarketAdapter {
-  private markets: YieldMarket[] = [...MOCK_MARKETS];
-  private positions: YieldPosition[] = [...INITIAL_POSITIONS];
+  private readonly markets: YieldMarket[] = [...MOCK_MARKETS];
+  private readonly positionsByOwner = new Map<string, YieldPosition[]>();
+  private positionSequence = 0;
+
+  private ownerKey(userAddress?: `0x${string}`): string {
+    return (userAddress || DEMO_OWNER).toLowerCase();
+  }
+
+  private storageKey(owner: string): string {
+    return `${STORAGE_PREFIX}${owner}`;
+  }
+
+  private readStoredPositions(owner: string): YieldPosition[] {
+    if (typeof window === "undefined") return [];
+    try {
+      const raw = window.localStorage.getItem(this.storageKey(owner));
+      if (!raw) return [];
+      const parsed: unknown = JSON.parse(raw);
+      if (!Array.isArray(parsed) || !parsed.every(isPositionRecord)) {
+        window.localStorage.removeItem(this.storageKey(owner));
+        return [];
+      }
+      return parsed as YieldPosition[];
+    } catch {
+      try {
+        window.localStorage.removeItem(this.storageKey(owner));
+      } catch {
+        // Storage can be blocked by privacy settings; memory fallback remains valid.
+      }
+      return [];
+    }
+  }
+
+  private persistPositions(owner: string, positions: YieldPosition[]): void {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(
+        this.storageKey(owner),
+        JSON.stringify(positions),
+      );
+    } catch {
+      // localStorage is an enhancement, never a prerequisite for the mock flow.
+    }
+  }
+
+  private positionsForOwner(userAddress: `0x${string}`): YieldPosition[] {
+    const owner = this.ownerKey(userAddress);
+    const existing = this.positionsByOwner.get(owner);
+    if (existing) return existing;
+    const positions = this.readStoredPositions(owner);
+    this.positionsByOwner.set(owner, positions);
+    return positions;
+  }
+
+  private resolveMarket(marketId: string): YieldMarket {
+    const market = this.markets.find((candidate) => candidate.id === marketId);
+    if (!market) {
+      throw new YieldDomainError(
+        "market-not-found",
+        "This yield market could not be found.",
+      );
+    }
+    const status = getMarketStatus(market);
+    return {
+      ...market,
+      status,
+      daysRemaining: getTimeToMaturity(market.maturityDate).days,
+    };
+  }
+
+  private requireOwner(userAddress?: `0x${string}`): `0x${string}` {
+    if (!userAddress) {
+      throw new YieldDomainError(
+        "wallet-disconnected",
+        "Connect a wallet to perform this action.",
+      );
+    }
+    return userAddress;
+  }
+
+  private requireNetwork(chainId?: number): void {
+    if (!isSupportedRobinhoodChain(chainId)) {
+      throw new YieldDomainError(
+        "wrong-network",
+        "Switch your wallet to Robinhood Chain before continuing.",
+      );
+    }
+  }
+
+  private assertValidAmount(inputAmount: number): void {
+    if (!Number.isFinite(inputAmount) || inputAmount <= 0) {
+      throw new YieldDomainError(
+        "invalid-amount",
+        "Enter an amount greater than zero.",
+      );
+    }
+  }
+
+  private assertTradable(market: YieldMarket, inputAmount: number): void {
+    if (market.status === "paused") {
+      throw new YieldDomainError(
+        "market-paused",
+        "This market is currently paused.",
+      );
+    }
+    if (!isMarketTradable(market)) {
+      throw new YieldDomainError(
+        "market-expired",
+        "This market has passed maturity.",
+      );
+    }
+    if (market.liquidityUsd <= 0 || inputAmount > market.liquidityUsd) {
+      throw new YieldDomainError(
+        "insufficient-liquidity",
+        "This trade is larger than the available market liquidity.",
+      );
+    }
+  }
+
+  private assertQuote(
+    quote: FixedYieldQuote | LongYieldQuote,
+    marketId: string,
+    inputAmount: number,
+  ): void {
+    if (
+      !quote ||
+      quote.marketId !== marketId ||
+      quote.inputAmount !== inputAmount ||
+      !Number.isFinite(quote.quoteTimestamp) ||
+      !Number.isFinite(quote.quoteExpiry) ||
+      quote.quoteExpiry <= Date.now()
+    ) {
+      throw new YieldDomainError(
+        "quote-expired",
+        "This quote has expired. Refresh the quote before confirming.",
+      );
+    }
+  }
+
+  private async assertFunding(
+    owner: `0x${string}`,
+    market: YieldMarket,
+    inputAmount: number,
+  ): Promise<void> {
+    const tokenBalance = await balanceAdapter.getTokenBalance(
+      owner,
+      market.quoteAsset,
+    );
+    if (inputAmount > tokenBalance) {
+      throw new YieldDomainError(
+        "insufficient-token-balance",
+        `Insufficient ${market.quoteAsset} balance for this trade.`,
+      );
+    }
+    const gasBalance = await balanceAdapter.getGasBalance(owner);
+    if (gasBalance < MOCK_NETWORK_FEE_ETH) {
+      throw new YieldDomainError(
+        "insufficient-eth-for-gas",
+        "You need more ETH in your wallet to pay the network fee.",
+      );
+    }
+  }
+
+  private findOwnedPosition(
+    positionId: string,
+    owner: `0x${string}`,
+  ): { position: YieldPosition; ownerKey: string } {
+    const ownerKey = this.ownerKey(owner);
+    const positions = this.positionsForOwner(owner);
+    const index = positions.findIndex(
+      (candidate) => candidate.id === positionId,
+    );
+    if (index !== -1) {
+      const refreshed = refreshPositionValuation(positions[index]);
+      positions[index] = refreshed;
+      return { position: refreshed, ownerKey };
+    }
+
+    for (const [
+      knownOwner,
+      knownPositions,
+    ] of this.positionsByOwner.entries()) {
+      if (
+        knownOwner !== ownerKey &&
+        knownPositions.some((candidate) => candidate.id === positionId)
+      ) {
+        throw new YieldDomainError(
+          "position-owner-mismatch",
+          "This wallet does not own the selected position.",
+        );
+      }
+    }
+    throw new YieldDomainError(
+      "position-not-found",
+      "This position could not be found.",
+    );
+  }
 
   async getMarkets(): Promise<YieldMarket[]> {
-    return Promise.resolve(this.markets);
+    return this.markets.map((market) => {
+      const status = getMarketStatus(market);
+      return {
+        ...market,
+        status,
+        daysRemaining: getTimeToMaturity(market.maturityDate).days,
+      };
+    });
   }
 
   async getMarket(id: string): Promise<YieldMarket | null> {
-    const market = this.markets.find((m) => m.id === id) || null;
-    return Promise.resolve(market);
+    try {
+      return this.resolveMarket(id);
+    } catch (error) {
+      if (
+        error instanceof YieldDomainError &&
+        error.code === "market-not-found"
+      )
+        return null;
+      throw error;
+    }
   }
 
-  async getPositions(_userAddress?: string): Promise<YieldPosition[]> {
-    return Promise.resolve(this.positions);
+  async getPositions(userAddress?: `0x${string}`): Promise<YieldPosition[]> {
+    if (!userAddress) return [];
+    const owner = this.ownerKey(userAddress);
+    const positions = this.positionsForOwner(userAddress);
+    const refreshed = positions.map((position) =>
+      refreshPositionValuation(position),
+    );
+    positions.splice(0, positions.length, ...refreshed);
+    this.persistPositions(owner, positions);
+    return positions.map(clonePosition);
   }
 
-  async getFixedQuote(marketId: string, inputAmount: number): Promise<FixedYieldQuote> {
-    const market = this.markets.find((m) => m.id === marketId) || this.markets[0];
-    const days = market.daysRemaining;
-    const yearFraction = days / 365;
-
-    // Price impact scales slightly with input amount relative to liquidity
-    const priceImpact = Math.min(0.005, (inputAmount / market.liquidityUsd) * 0.05);
-    const effectiveImpliedApy = market.impliedApy * (1 - priceImpact * 0.1);
-
-    // PT price discount formula: 1 / (1 + APY * t)
-    const ptPrice = 1 / (1 + (effectiveImpliedApy / 100) * yearFraction);
-    const ptReceived = inputAmount / ptPrice;
-    const quotedFixedApy = ((ptReceived / inputAmount - 1) / yearFraction) * 100;
-    const estimatedMaturityValue = ptReceived;
-
-    return Promise.resolve({
-      inputAmount,
-      ptReceived,
-      quotedFixedApy: Number(quotedFixedApy.toFixed(2)),
-      priceImpact: Number((priceImpact * 100).toFixed(2)),
-      estimatedMaturityValue: Number(estimatedMaturityValue.toFixed(2)),
-      ptPrice: Number(ptPrice.toFixed(4)),
-      daysToMaturity: days,
-    });
+  async getFixedQuote(
+    marketId: string,
+    inputAmount: number,
+  ): Promise<FixedYieldQuote> {
+    this.assertValidAmount(inputAmount);
+    const market = this.resolveMarket(marketId);
+    this.assertTradable(market, inputAmount);
+    const quoteTimestamp = Date.now();
+    return {
+      ...calculateFixedQuote(market, inputAmount),
+      marketId,
+      networkFeeEstimate: MOCK_NETWORK_FEE_ETH,
+      quoteTimestamp,
+      quoteExpiry: quoteTimestamp + QUOTE_TTL_MS,
+    };
   }
 
-  async getLongQuote(marketId: string, inputAmount: number): Promise<LongYieldQuote> {
-    const market = this.markets.find((m) => m.id === marketId) || this.markets[0];
-    const days = market.daysRemaining;
-    const yearFraction = days / 365;
-
-    const priceImpact = Math.min(0.008, (inputAmount / market.liquidityUsd) * 0.08);
-
-    // YT price is roughly the present value of expected yield:
-    // ytPrice = 1 - ptPrice
-    const ptPrice = 1 / (1 + (market.impliedApy / 100) * yearFraction);
-    const ytPrice = Math.max(0.015, 1 - ptPrice);
-
-    const ytReceived = inputAmount / ytPrice;
-    const estimatedYieldExposure = ytReceived; // Notional exposure
-    const estimatedBreakEvenApy = Number((market.impliedApy * 0.97).toFixed(2));
-
-    // Calculate sample scenarios based on rate behavior
-    const rateNowReturn = (ytReceived * (market.underlyingApy / 100) * yearFraction);
-    const rateFallReturn = (ytReceived * (5.0 / 100) * yearFraction);
-    const rateRiseReturn = (ytReceived * (8.5 / 100) * yearFraction);
-
-    return Promise.resolve({
-      inputAmount,
-      ytReceived: Number(ytReceived.toFixed(2)),
-      underlyingApy: market.underlyingApy,
-      impliedApy: market.impliedApy,
-      estimatedBreakEvenApy,
-      priceImpact: Number((priceImpact * 100).toFixed(2)),
-      estimatedYieldExposure: Number(estimatedYieldExposure.toFixed(0)),
-      ytPrice: Number(ytPrice.toFixed(4)),
-      daysToMaturity: days,
-      estimatedReturns: {
-        currentRate: {
-          apy: market.underlyingApy,
-          returnAmount: Number(rateNowReturn.toFixed(2)),
-          percentChange: Number((((rateNowReturn - inputAmount) / inputAmount) * 100).toFixed(1)),
-        },
-        lowerRate: {
-          apy: 5.0,
-          returnAmount: Number(rateFallReturn.toFixed(2)),
-          percentChange: Number((((rateFallReturn - inputAmount) / inputAmount) * 100).toFixed(1)),
-        },
-        higherRate: {
-          apy: 8.5,
-          returnAmount: Number(rateRiseReturn.toFixed(2)),
-          percentChange: Number((((rateRiseReturn - inputAmount) / inputAmount) * 100).toFixed(1)),
-        },
-      },
-    });
+  async getLongQuote(
+    marketId: string,
+    inputAmount: number,
+  ): Promise<LongYieldQuote> {
+    this.assertValidAmount(inputAmount);
+    const market = this.resolveMarket(marketId);
+    this.assertTradable(market, inputAmount);
+    const quoteTimestamp = Date.now();
+    return {
+      ...calculateLongQuote(market, inputAmount),
+      marketId,
+      networkFeeEstimate: MOCK_NETWORK_FEE_ETH,
+      quoteTimestamp,
+      quoteExpiry: quoteTimestamp + QUOTE_TTL_MS,
+    };
   }
 
   async openFixedPosition(
     marketId: string,
     inputAmount: number,
-    _userAddress?: string
+    userAddress: `0x${string}`,
+    quote: FixedYieldQuote,
+    chainId?: number,
   ): Promise<FixedYieldPosition> {
-    const quote = await this.getFixedQuote(marketId, inputAmount);
-    const market = (await this.getMarket(marketId))!;
+    const owner = this.requireOwner(userAddress);
+    this.requireNetwork(chainId);
+    this.assertValidAmount(inputAmount);
+    const market = this.resolveMarket(marketId);
+    this.assertTradable(market, inputAmount);
+    this.assertQuote(quote, marketId, inputAmount);
+    await this.assertFunding(owner, market, inputAmount);
 
-    const newPosition: FixedYieldPosition = {
-      id: `pos-fixed-${Date.now()}`,
+    const now = new Date().toISOString();
+    const position: FixedYieldPosition = {
+      id: `pos-fixed-${Date.now()}-${this.positionSequence++}`,
+      owner,
       marketId,
       assetSymbol: market.symbol,
       strategy: "fixed",
@@ -233,31 +477,40 @@ export class MockYieldMarketAdapter implements YieldMarketAdapter {
       ptAmount: quote.ptReceived,
       currentValue: inputAmount,
       pnl: 0,
+      entryImpliedApy: quote.impliedApy,
       quotedFixedApy: quote.quotedFixedApy,
       maturity: market.maturity,
       maturityDate: market.maturityDate,
-      openedAt: new Date().toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      }),
+      openedAt: now,
+      mockTxHash: MOCK_TX_HASHES.openFixed,
       status: "active",
     };
-
-    this.positions.unshift(newPosition);
-    return newPosition;
+    const ownerKey = this.ownerKey(owner);
+    const positions = this.positionsForOwner(owner);
+    positions.unshift(position);
+    this.persistPositions(ownerKey, positions);
+    return clonePosition(position) as FixedYieldPosition;
   }
 
   async openLongPosition(
     marketId: string,
     inputAmount: number,
-    _userAddress?: string
+    userAddress: `0x${string}`,
+    quote: LongYieldQuote,
+    chainId?: number,
   ): Promise<LongYieldPosition> {
-    const quote = await this.getLongQuote(marketId, inputAmount);
-    const market = (await this.getMarket(marketId))!;
+    const owner = this.requireOwner(userAddress);
+    this.requireNetwork(chainId);
+    this.assertValidAmount(inputAmount);
+    const market = this.resolveMarket(marketId);
+    this.assertTradable(market, inputAmount);
+    this.assertQuote(quote, marketId, inputAmount);
+    await this.assertFunding(owner, market, inputAmount);
 
-    const newPosition: LongYieldPosition = {
-      id: `pos-long-${Date.now()}`,
+    const now = new Date().toISOString();
+    const position: LongYieldPosition = {
+      id: `pos-long-${Date.now()}-${this.positionSequence++}`,
+      owner,
       marketId,
       assetSymbol: market.symbol,
       strategy: "long",
@@ -265,66 +518,150 @@ export class MockYieldMarketAdapter implements YieldMarketAdapter {
       ytAmount: quote.ytReceived,
       currentValue: inputAmount,
       pnl: 0,
-      claimableYield: 0,
-      underlyingApyAtOpen: market.underlyingApy,
-      impliedApyAtOpen: market.impliedApy,
-      currentUnderlyingApy: market.underlyingApy,
+      // Seed a small deterministic amount so the mock demo can exercise Claim
+      // Yield immediately; real adapters derive this from protocol accrual.
+      claimableYield: round(inputAmount * MOCK_INITIAL_CLAIMABLE_YIELD_RATE),
+      entryUnderlyingApy: quote.underlyingApy,
+      entryImpliedApy: quote.impliedApy,
+      breakEvenApy: quote.estimatedBreakEvenApy,
+      currentUnderlyingApy: quote.underlyingApy,
       maturity: market.maturity,
       maturityDate: market.maturityDate,
-      openedAt: new Date().toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      }),
+      openedAt: now,
+      lastClaimedAt: now,
+      mockTxHash: MOCK_TX_HASHES.openLong,
       status: "active",
     };
+    const ownerKey = this.ownerKey(owner);
+    const positions = this.positionsForOwner(owner);
+    positions.unshift(position);
+    this.persistPositions(ownerKey, positions);
+    return clonePosition(position) as LongYieldPosition;
+  }
 
-    this.positions.unshift(newPosition);
-    return newPosition;
+  async getClaimableYield(
+    position: LongYieldPosition,
+    now = Date.now(),
+  ): Promise<number> {
+    return round(calculateClaimableYield(position, now));
   }
 
   async claimYield(
-    positionId: string
-  ): Promise<{ claimedAmount: number; txHash: `0x${string}` }> {
-    const pos = this.positions.find((p) => p.id === positionId && p.strategy === "long") as
-      | LongYieldPosition
-      | undefined;
-    if (!pos) throw new Error("Long position not found");
-    const claimed = pos.claimableYield;
-    pos.claimableYield = 0;
-    return {
-      claimedAmount: claimed,
-      txHash: "0x892a0129bcfe345239a9c1e18d3b5b154a01f5f75e5ba2e9f101123456789abc",
+    positionId: string,
+    userAddress: `0x${string}`,
+  ): Promise<PositionTransactionResult> {
+    const owner = this.requireOwner(userAddress);
+    const { position, ownerKey } = this.findOwnedPosition(positionId, owner);
+    if (position.strategy !== "long") {
+      throw new YieldDomainError(
+        "position-not-found",
+        "Only a Long Yield position can claim yield.",
+      );
+    }
+    if (position.status === "closed") {
+      throw new YieldDomainError(
+        "position-closed",
+        "This Long Yield position is already closed.",
+      );
+    }
+    const claimable = await this.getClaimableYield(position);
+    if (
+      claimable <= 0 ||
+      !canClaimYield({ ...position, claimableYield: claimable })
+    ) {
+      throw new YieldDomainError(
+        "nothing-claimable",
+        "There is no yield available to claim yet.",
+      );
+    }
+    const now = new Date().toISOString();
+    const updated: LongYieldPosition = {
+      ...position,
+      claimableYield: 0,
+      lastClaimedAt: now,
+      pnl: round(position.currentValue - position.depositedAmount),
     };
+    const positions = this.positionsByOwner.get(ownerKey) ?? [];
+    const index = positions.findIndex(
+      (candidate) => candidate.id === positionId,
+    );
+    positions[index] = updated;
+    this.persistPositions(ownerKey, positions);
+    return { claimedAmount: claimable, txHash: MOCK_TX_HASHES.claim };
   }
 
   async redeemFixed(
-    positionId: string
-  ): Promise<{ redeemedAmount: number; txHash: `0x${string}` }> {
-    const pos = this.positions.find((p) => p.id === positionId && p.strategy === "fixed") as
-      | FixedYieldPosition
-      | undefined;
-    if (!pos) throw new Error("Fixed position not found");
-    pos.status = "redeemed";
-    return {
-      redeemedAmount: pos.ptAmount,
-      txHash: "0x5b154a01f5f75e5ba2e9f101892a0129bcfe345239a9c1e18d3123456789abc",
-    };
+    positionId: string,
+    userAddress: `0x${string}`,
+  ): Promise<PositionTransactionResult> {
+    const owner = this.requireOwner(userAddress);
+    const { position, ownerKey } = this.findOwnedPosition(positionId, owner);
+    if (position.strategy !== "fixed") {
+      throw new YieldDomainError(
+        "position-not-found",
+        "Only a Fixed Yield position can be redeemed.",
+      );
+    }
+    if (position.status === "redeemed") {
+      throw new YieldDomainError(
+        "pt-already-redeemed",
+        "This PT position has already been redeemed.",
+      );
+    }
+    if (!canRedeemFixed(position)) {
+      throw new YieldDomainError(
+        "pt-not-redeemable",
+        "PT can only be redeemed after the market reaches maturity.",
+      );
+    }
+    const positions = this.positionsByOwner.get(ownerKey) ?? [];
+    const index = positions.findIndex(
+      (candidate) => candidate.id === positionId,
+    );
+    positions[index] = { ...position, status: "redeemed", currentValue: 0 };
+    this.persistPositions(ownerKey, positions);
+    return { redeemedAmount: position.ptAmount, txHash: MOCK_TX_HASHES.redeem };
   }
 
   async sellPosition(
-    positionId: string
-  ): Promise<{ returnedAmount: number; txHash: `0x${string}` }> {
-    const index = this.positions.findIndex((p) => p.id === positionId);
-    if (index === -1) throw new Error("Position not found");
-    const pos = this.positions[index];
-    const returnedAmount = pos.currentValue;
-    this.positions.splice(index, 1);
-    return {
-      returnedAmount,
-      txHash: "0x1e18d3b5b154a01f5f75e5ba2e9f101892a0129bcfe345239a9c123456789abc",
-    };
+    positionId: string,
+    userAddress: `0x${string}`,
+  ): Promise<PositionTransactionResult> {
+    const owner = this.requireOwner(userAddress);
+    const { position, ownerKey } = this.findOwnedPosition(positionId, owner);
+    if (!canSellPosition(position)) {
+      throw new YieldDomainError(
+        "position-not-sellable",
+        "Only an active position can be sold before maturity.",
+      );
+    }
+    const claimable =
+      position.strategy === "long" ? position.claimableYield : 0;
+    const returnedAmount = round(position.currentValue + claimable);
+    const closed =
+      position.strategy === "long"
+        ? {
+            ...position,
+            status: "closed" as const,
+            currentValue: 0,
+            claimableYield: 0,
+            pnl: round(returnedAmount - position.depositedAmount),
+          }
+        : {
+            ...position,
+            status: "closed" as const,
+            currentValue: 0,
+            pnl: round(returnedAmount - position.depositedAmount),
+          };
+    const positions = this.positionsByOwner.get(ownerKey) ?? [];
+    const index = positions.findIndex(
+      (candidate) => candidate.id === positionId,
+    );
+    positions[index] = closed;
+    this.persistPositions(ownerKey, positions);
+    return { returnedAmount, txHash: MOCK_TX_HASHES.sell };
   }
 }
 
+export { DEMO_OWNER };
 export const yieldAdapter = new MockYieldMarketAdapter();

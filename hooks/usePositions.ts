@@ -1,31 +1,21 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { YieldPosition } from "@/types/position";
+import { useQuery } from "@tanstack/react-query";
 import { yieldAdapter } from "@/lib/adapters/mock-adapter";
+import { queryKeys } from "@/lib/query-keys";
 
-export function usePositions(userAddress?: string) {
-  const [positions, setPositions] = useState<YieldPosition[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+export function usePositions(userAddress?: `0x${string}`) {
+  const query = useQuery({
+    queryKey: queryKeys.positions(userAddress),
+    queryFn: () => yieldAdapter.getPositions(userAddress),
+    enabled: Boolean(userAddress),
+    staleTime: 15_000,
+  });
 
-  const fetchPositions = useCallback(() => {
-    setIsLoading(true);
-    yieldAdapter
-      .getPositions(userAddress)
-      .then((data) => {
-        setPositions([...data]);
-        setIsLoading(false);
-      })
-      .catch((err) => {
-        setError(err);
-        setIsLoading(false);
-      });
-  }, [userAddress]);
-
-  useEffect(() => {
-    fetchPositions();
-  }, [fetchPositions]);
-
-  return { positions, isLoading, error, refresh: fetchPositions };
+  return {
+    positions: query.data ?? [],
+    isLoading: query.isFetching,
+    error: query.error,
+    refresh: query.refetch,
+  };
 }

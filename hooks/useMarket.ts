@@ -1,35 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { YieldMarket } from "@/types/market";
 import { yieldAdapter } from "@/lib/adapters/mock-adapter";
+import { queryKeys } from "@/lib/query-keys";
 
 export function useMarket(id: string) {
-  const [market, setMarket] = useState<YieldMarket | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const query = useQuery<YieldMarket | null>({
+    queryKey: queryKeys.market(id),
+    queryFn: () => yieldAdapter.getMarket(id),
+    enabled: Boolean(id),
+    staleTime: 60_000,
+  });
 
-  useEffect(() => {
-    let mounted = true;
-    yieldAdapter
-      .getMarket(id)
-      .then((data) => {
-        if (mounted) {
-          setMarket(data);
-          setIsLoading(false);
-        }
-      })
-      .catch((err) => {
-        if (mounted) {
-          setError(err);
-          setIsLoading(false);
-        }
-      });
-
-    return () => {
-      mounted = false;
-    };
-  }, [id]);
-
-  return { market, isLoading, error };
+  return {
+    market: query.data ?? null,
+    isLoading: query.isPending,
+    error: query.error,
+  };
 }
