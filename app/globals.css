@@ -141,35 +141,6 @@ a:hover {
   }
 }
 
-/* Decorative background orbit rings */
-@keyframes orbit-cw {
-  to { transform: rotate(360deg); }
-}
-@keyframes orbit-ccw {
-  to { transform: rotate(-360deg); }
-}
-@keyframes orbit-pulse {
-  0%, 100% { opacity: 0.03; }
-  50% { opacity: 0.07; }
-}
-
-.orbit-slow-cw {
-  animation: orbit-cw 80s linear infinite;
-  transform-origin: 0 0;
-}
-.orbit-slow-ccw {
-  animation: orbit-ccw 120s linear infinite;
-  transform-origin: 0 0;
-}
-.orbit-med-cw {
-  animation: orbit-cw 50s linear infinite;
-  transform-origin: 0 0;
-}
-.orbit-pulse {
-  animation: orbit-pulse 8s ease-in-out infinite;
-}
-
-
 .spin {
   animation: spin 60s linear infinite;
 }
@@ -233,11 +204,7 @@ a:hover {
 .still .tw,
 .still .ringflow,
 .still .spin,
-.still .drift,
-.still .orbit-slow-cw,
-.still .orbit-slow-ccw,
-.still .orbit-med-cw,
-.still .orbit-pulse {
+.still .drift {
   animation: none;
 }
 
@@ -263,11 +230,7 @@ a:hover {
   .tw,
   .ringflow,
   .spin,
-  .drift,
-  .orbit-slow-cw,
-  .orbit-slow-ccw,
-  .orbit-med-cw,
-  .orbit-pulse {
+  .drift {
     animation: none;
   }
   .fade,
@@ -356,65 +319,34 @@ input:focus-visible {
 
 
 
-/* ── Hero visual ─────────────────────────────────────────────────────────── */
-/* Pause every CSS animation while the hero is off-screen / tab hidden. */
-.hero-svg[data-paused="true"] * {
-  animation-play-state: paused !important;
+/* ── Hero copy ───────────────────────────────────────────────────────────── */
+/* Stage change: the old copy eases out (data-phase="out"), then the new copy mounts
+   and each block rises in, staggered by --i. COPY_OUT_MS in Hero.tsx matches 170ms. */
+.hero-copy {
+  transition: opacity 0.17s cubic-bezier(0.4, 0, 1, 1), transform 0.17s cubic-bezier(0.4, 0, 1, 1);
 }
-
-/* Opacity cross-fades for persistent (never unmounted) stage elements. */
-.pin-fade {
-  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+.hero-copy[data-phase="out"] {
+  opacity: 0;
+  transform: translateY(-8px);
 }
-.pin-fade-slow {
-  transition: opacity 0.6s ease-out;
+.hero-copy[data-phase="in"] {
+  transition: none; /* snaps back the instant the new copy mounts (it starts at opacity 0) */
 }
-
-.pin-ping {
-  animation: pin-ping 2.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+.hero-rise {
+  animation: hero-rise 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * 55ms);
 }
-.pin-pulse {
-  animation: pin-pulse 2s ease-in-out infinite;
-}
-@keyframes pin-ping {
-  0% { transform: scale(0.8); opacity: 1; }
-  75%, 100% { transform: scale(2); opacity: 0; }
-}
-@keyframes pin-pulse {
-  50% { opacity: 0.4; }
-}
-
-.pin-body {
-  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.pin-badge {
-  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s ease-out;
-}
-@media (hover: hover) {
-  .pin:hover .pin-body { transform: scale(1.15); }
-  .pin:hover .pin-badge { transform: translateX(8px); }
-}
-
-/* Hero copy swap on stage change */
-.hero-stage-in {
-  animation: hero-stage-in 0.45s cubic-bezier(0.16, 1, 0.3, 1);
-}
-@keyframes hero-stage-in {
-  from { opacity: 0; transform: translateY(8px); }
+@keyframes hero-rise {
+  from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pin-ping,
-  .pin-pulse,
-  .hero-stage-in {
-    animation: none;
-  }
-  .pin-fade,
-  .pin-fade-slow,
-  .pin-body,
-  .pin-badge {
+  .hero-copy {
     transition: none;
+  }
+  .hero-rise {
+    animation: none;
   }
 }
 

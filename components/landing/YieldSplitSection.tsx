@@ -1,22 +1,25 @@
 "use client";
 
 import React, { useState, useRef, useCallback, useMemo } from "react";
+import {
+  getTimelineMilestones,
+  getYieldSplitSimulation,
+  yieldSplitDemoMarket,
+} from "@/lib/demo/yield-split-demo";
 
 // Timeline coordinate bounds in SVG (1440 x 600)
 const START_X = 420;
 const END_X = 1200;
 const BASE_Y = 330;
 
-// Milestone dates along the timeline
-const MILESTONES = [
-  { x: 420, label: "TODAY", date: "02 Oct 2026" },
-  { x: 554, label: "NOV", date: "15 Nov 2026" },
-  { x: 687, label: "DEC", date: "15 Dec 2026" },
-  { x: 826, label: "JAN", date: "15 Jan 2027" },
-  { x: 964, label: "FEB", date: "15 Feb 2027" },
-  { x: 1089, label: "MAR", date: "10 Mar 2027" },
-  { x: 1200, label: "MATURITY", date: "26 Mar 2027" },
-];
+// SVG x positions are presentation geometry; milestone dates come from the
+// deterministic demo market and are derived in the pure data helper.
+const MILESTONE_X = [420, 554, 687, 826, 964, 1089, 1200] as const;
+const MILESTONES = getTimelineMilestones(yieldSplitDemoMarket).map((milestone, index) => ({
+  ...milestone,
+  x: MILESTONE_X[index],
+}));
+const MATURITY_MILESTONE = MILESTONES[MILESTONES.length - 1];
 
 export function YieldSplitSection() {
   // Current split position (from START_X = 420 to END_X = 1200)
@@ -27,26 +30,18 @@ export function YieldSplitSection() {
   // Normalized progress: 0.0 = Today (fully split) -> 1.0 = Maturity (fully zipped / unified)
   const progress = Math.max(0, Math.min(1, (splitX - START_X) / (END_X - START_X)));
 
-  // Current simulated stats
-  const daysLeft = Math.round(175 * (1 - progress));
-  const daysElapsed = 175 - daysLeft;
-  const currentPtPrice = (0.941 + progress * (1.0 - 0.941)).toFixed(3);
-  const yieldStreamed = (progress * 0.059).toFixed(3);
-  const isFullZipped = progress >= 0.98;
-
-  // Approximate current date string
-  const currentDateStr = useMemo(() => {
-    if (progress <= 0.02) return "02 Oct 2026";
-    if (progress >= 0.98) return "26 Mar 2027";
-    // Interpolate date
-    const d = new Date(2026, 9, 2); // Oct 2, 2026
-    d.setDate(d.getDate() + Math.round(progress * 175));
-    return d.toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-  }, [progress]);
+  const {
+    currentDate: currentDateStr,
+    daysLeft,
+    currentPtPrice,
+    yieldStreamed,
+    yieldPaidPercentage,
+    leverage,
+    isFullZipped,
+  } = useMemo(
+    () => getYieldSplitSimulation(yieldSplitDemoMarket, progress),
+    [progress],
+  );
 
   // Convert pointer event clientX to SVG viewBox coordinate (0..1440)
   const updateSplitFromClientX = useCallback((clientX: number) => {
@@ -173,7 +168,7 @@ export function YieldSplitSection() {
 
         <div data-reveal="1" className="flex flex-col gap-4">
           <p className="m-0 text-[15px] sm:text-[17px] leading-[1.6] text-muted font-light">
-            USDG in a lending vault earns a rate that changes daily. We split that position:
+            {yieldSplitDemoMarket.symbol} in a lending vault earns a rate that changes daily. We split that position:
             one side holds steady to maturity, the other rides the rate.
           </p>
 
@@ -307,11 +302,11 @@ export function YieldSplitSection() {
                 MATURITY
               </text>
               <text x={END_X + 16} y="150" fill="#8E9390">
-                26 MAR 2027
+                {MATURITY_MILESTONE.date.toUpperCase()}
               </text>
             </g>
 
-            {/* 1. Unified USDG Line (before splitX) */}
+            {/* 1. Unified collateral line (before splitX) */}
             <path
               d={pathUnified}
               stroke="#ECEDEA"
@@ -329,13 +324,13 @@ export function YieldSplitSection() {
               className="flow slow"
             />
 
-            {/* Left label: USDG Lending Vault */}
+            {/* Left label: lending vault */}
             <g className="mono" fontSize="12" letterSpacing="0.12em">
               <text x="40" y="306" fill="#ECEDEA">
-                USDG LENDING VAULT
+                {yieldSplitDemoMarket.symbol} LENDING VAULT
               </text>
               <text x="40" y="360" fill="#8E9390">
-                COLLATERAL · 1.00 USDG
+                COLLATERAL · {yieldSplitDemoMarket.underlyingAmount.toFixed(2)} {yieldSplitDemoMarket.symbol}
               </text>
             </g>
 
@@ -365,13 +360,13 @@ export function YieldSplitSection() {
                     fill="#A9C8EE"
                     opacity={progress > 0.85 ? 0.3 : 1}
                   >
-                    FIXED YIELD · APY 6.42%
+                    FIXED YIELD · APY {yieldSplitDemoMarket.impliedApy.toFixed(2)}%
                   </text>
                   <text x={END_X + 16} y={fixedEndPt.y - 4} fill="#A9C8EE">
                     PAYS 1 : 1
                   </text>
                   <text x={END_X + 16} y={fixedEndPt.y + 16} fill="#A9C8EE">
-                    IN USDG
+                    IN {yieldSplitDemoMarket.symbol}
                   </text>
                 </g>
                 <circle cx={END_X} cy={fixedEndPt.y} r="5" fill="#A9C8EE" />
@@ -433,7 +428,7 @@ export function YieldSplitSection() {
                   REUNITED AT MATURITY
                 </text>
                 <text x={END_X + 24} y={BASE_Y + 14} fill="#ECEDEA">
-                  1 PT + 1 YT = 1 USDG REDEEMED
+                  1 PT + 1 YT = {yieldSplitDemoMarket.underlyingAmount.toFixed(0)} {yieldSplitDemoMarket.symbol} REDEEMED
                 </text>
               </g>
             )}
@@ -511,15 +506,15 @@ export function YieldSplitSection() {
               <span className="w-2 h-2 rounded-full bg-ice shrink-0" />
               <span className="text-[16px] text-ice font-medium">Fixed Yield (PT)</span>
             </div>
-            <span className="mono text-[13px] text-ice">${currentPtPrice}</span>
+            <span className="mono text-[13px] text-ice">${currentPtPrice.toFixed(3)}</span>
           </div>
           <span className="text-[14px] sm:text-[15px] leading-[1.6] text-muted font-light">
-            Worth exactly 1 USDG at maturity, bought below 1 today. The gap is your locked
+            Worth exactly {yieldSplitDemoMarket.underlyingAmount.toFixed(0)} {yieldSplitDemoMarket.symbol} at maturity, bought below 1 today. The gap is your locked
             return upfront with zero liquidation.
           </span>
           <div className="mono text-[11px] tracking-[0.12em] text-muted-dark mt-1 flex justify-between">
-            <span>APY: 6.42% LOCKED</span>
-            <span>MATURES: 1.00 USDG</span>
+            <span>APY: {yieldSplitDemoMarket.impliedApy.toFixed(2)}% LOCKED</span>
+            <span>MATURES: {yieldSplitDemoMarket.underlyingAmount.toFixed(2)} {yieldSplitDemoMarket.symbol}</span>
           </div>
         </div>
 
@@ -530,7 +525,7 @@ export function YieldSplitSection() {
               <span className="text-[16px] text-amber font-medium">Long Yield (YT)</span>
             </div>
             <span className="mono text-[13px] text-amber">
-              +{((progress * 0.059) / 0.059 * 100).toFixed(0)}% paid
+              +{yieldPaidPercentage.toFixed(0)}% paid
             </span>
           </div>
           <span className="text-[14px] sm:text-[15px] leading-[1.6] text-muted font-light">
@@ -538,8 +533,8 @@ export function YieldSplitSection() {
             the variable rate stays above break-even.
           </span>
           <div className="mono text-[11px] tracking-[0.12em] text-muted-dark mt-1 flex justify-between">
-            <span>CLAIMED: ${yieldStreamed}</span>
-            <span>LEVERAGE: ~16.9x</span>
+            <span>CLAIMED: ${yieldStreamed.toFixed(3)}</span>
+            <span>LEVERAGE: ~{leverage.toFixed(1)}x</span>
           </div>
         </div>
 
@@ -551,7 +546,7 @@ export function YieldSplitSection() {
             <span className="text-ice">1 PT</span> +{" "}
             <span className="text-amber">1 YT</span>
             <br />
-            = 1 USDG Vault
+            = {yieldSplitDemoMarket.underlyingAmount.toFixed(0)} {yieldSplitDemoMarket.symbol} Vault
           </span>
           <span className="mono text-[11px] tracking-[0.1em] text-muted-dark">
             {isFullZipped

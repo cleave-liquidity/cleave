@@ -63,7 +63,7 @@ const STAGES: StageInfo[] = [
       { label: "MATURITY", value: "26 Mar 2027" },
     ],
     primaryCtaText: "Lock Fixed Rate (PT)",
-    primaryCtaHref: "/trade?market=usdg-morpho-26mar27&side=fixed",
+    primaryCtaHref: "/markets/usdg-morpho-26mar27?strategy=fixed",
     secondaryCtaText: "View Fixed Markets",
     secondaryCtaHref: "/markets",
   },
@@ -86,7 +86,7 @@ const STAGES: StageInfo[] = [
       { label: "EFFECTIVE LEV", value: "~16.9x", color: "#F0A85C" },
     ],
     primaryCtaText: "Trade Long Yield (YT)",
-    primaryCtaHref: "/trade?market=usdg-morpho-26mar27&side=long",
+    primaryCtaHref: "/markets/usdg-morpho-26mar27?strategy=long",
     secondaryCtaText: "View Long Markets",
     secondaryCtaHref: "/markets",
   },
@@ -109,7 +109,7 @@ const STAGES: StageInfo[] = [
       { label: "SOLVENCY", value: "100% On-Chain" },
     ],
     primaryCtaText: "Explore Contract Specs",
-    primaryCtaHref: "/markets",
+    primaryCtaHref: "/contracts",
     secondaryCtaText: "How It Works",
     secondaryCtaHref: "#how",
   },
@@ -132,7 +132,7 @@ const STAGES: StageInfo[] = [
       { label: "NETWORK", value: "Robinhood Chain" },
     ],
     primaryCtaText: "Launch Trading Terminal",
-    primaryCtaHref: "/trade?market=usdg-morpho-26mar27",
+    primaryCtaHref: "/markets/usdg-morpho-26mar27",
     secondaryCtaText: "All Vaults",
     secondaryCtaHref: "/markets",
   },
@@ -145,6 +145,7 @@ const DESKTOP_QUERY = "(min-width: 1024px)";
 const STAGE_SEGMENT = 1 / STAGE_COUNT;
 const HYSTERESIS = 0.028; // progress buffer that stops edge flicker
 const NAV_TIMEOUT_MS = 1600; // safety net if `scrollend` never fires
+const COPY_OUT_MS = 170; // keep in sync with `.hero-copy` in globals.css
 
 const STAGE_SHORT = ["The Split", "Fixed Yield", "Long Yield", "Split Engine", "Live Vaults"];
 const STAGE_ACCENT = ["#ECEDEA", "#A9C8EE", "#F0A85C", "#DDE8F8", "#34D399"];
@@ -169,13 +170,18 @@ function tabKeyDown(
   select(next);
 }
 
+/** Stagger index for the copy entrance (see `.hero-rise`). */
+const rise = (i: number) => ({ "--i": i }) as React.CSSProperties;
+
 const isDesktop = () => window.matchMedia(DESKTOP_QUERY).matches;
 
 const prefersReducedMotion = () =>
   typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 export function Hero() {
-  const [activeStage, setActiveStage] = useState(0);
+  const [activeStage, setActiveStage] = useState(0); // timeline + camera: always current
+  const [shownStage, setShownStage] = useState(0); // copy on screen: swaps after the exit animation
+  const [copyPhase, setCopyPhase] = useState<"in" | "out">("in");
   const [activeSubTab, setActiveSubTab] = useState(0);
 
   const runwayRef = useRef<HTMLElement>(null);
@@ -188,15 +194,37 @@ export function Hero() {
   // Continuous stage position (0…4) for the camera; null on mobile.
   const stagePosRef = useRef<number | null>(null);
 
-  const stage = STAGES[activeStage];
-  const accentColor = STAGE_ACCENT[activeStage];
+  const stage = STAGES[shownStage];
+  const accentColor = STAGE_ACCENT[shownStage];
 
   const commitStage = useCallback((next: number) => {
     if (next === stageRef.current) return;
     stageRef.current = next;
     setActiveStage(next);
-    setActiveSubTab(0);
   }, []);
+
+  // Copy swap: the old copy eases out, then the new copy rises in (staggered). The
+  // layout change between stages happens while nothing is visible, so there is no
+  // one-frame blank and no jump — and a fast scroll through several stages only
+  // ever shows the one it lands on.
+  useEffect(() => {
+    if (activeStage === shownStage) {
+      setCopyPhase("in");
+      return;
+    }
+    if (prefersReducedMotion()) {
+      setShownStage(activeStage);
+      setActiveSubTab(0);
+      return;
+    }
+    setCopyPhase("out");
+    const t = window.setTimeout(() => {
+      setShownStage(activeStage);
+      setActiveSubTab(0);
+      setCopyPhase("in");
+    }, COPY_OUT_MS);
+    return () => window.clearTimeout(t);
+  }, [activeStage, shownStage]);
 
   // ─── Scroll → stage (desktop runway) ──────────────────────────────────────
   // Passive native `scroll` listener, coalesced to one read per frame. It only
@@ -343,57 +371,6 @@ export function Hero() {
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
         >
-          {/* ── DECORATIVE BACKGROUND ORBITS ── */}
-          <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
-            <svg
-              viewBox="0 0 1440 940"
-              className="hero-svg absolute inset-0 w-full h-full"
-              preserveAspectRatio="xMidYMid slice"
-            >
-              {/* Outer <g> owns the static placement; inner <g> owns the CSS rotation
-                  (a CSS transform would otherwise replace the placement transform). */}
-              <g transform="translate(860 480) rotate(-22) scale(1 0.26)">
-                <g className="orbit-slow-cw orbit-pulse">
-                  <ellipse rx="1180" ry="1180" fill="none" stroke="rgba(169,200,238,0.07)" strokeWidth="1" strokeDasharray="16 28 6 28" />
-                  <circle cx="1180" cy="0" r="2.5" fill="#A9C8EE" opacity="0.3" />
-                </g>
-              </g>
-              <g transform="translate(820 510) rotate(16) scale(1 0.20)">
-                <g className="orbit-slow-ccw">
-                  <ellipse rx="1420" ry="1420" fill="none" stroke="rgba(240,168,92,0.05)" strokeWidth="0.85" strokeDasharray="8 32 4 16" />
-                  <circle cx="-1420" cy="0" r="2" fill="#F0A85C" opacity="0.35" />
-                </g>
-              </g>
-              <g transform="translate(900 470) rotate(-14) scale(1 0.28)">
-                <g className="orbit-slow-cw">
-                  <ellipse rx="780" ry="780" fill="none" stroke="rgba(169,200,238,0.08)" strokeWidth="0.9" strokeDasharray="12 18" />
-                </g>
-              </g>
-              <g transform="translate(870 490) rotate(26) scale(1 0.22)">
-                <g className="orbit-slow-ccw">
-                  <ellipse rx="620" ry="620" fill="none" stroke="rgba(240,168,92,0.06)" strokeWidth="1.1" strokeDasharray="6 20" />
-                </g>
-              </g>
-              <g transform="translate(910 460) rotate(-35) scale(1 0.24)">
-                <g className="orbit-med-cw">
-                  <ellipse rx="460" ry="460" fill="none" stroke="rgba(236,237,234,0.07)" strokeWidth="1" strokeDasharray="10 24" />
-                </g>
-              </g>
-              <g transform="translate(760 520) rotate(-6) scale(1 0.12)">
-                <g className="orbit-slow-cw" style={{ animationDuration: "140s" }}>
-                  <ellipse rx="1680" ry="1680" fill="none" stroke="rgba(169,200,238,0.04)" strokeWidth="0.75" />
-                </g>
-              </g>
-
-              <g opacity="0.25" className="mono text-[8px] tracking-[0.25em]" fill="#8E929B">
-                <text x="80" y="260">SECTOR · 045° RA</text>
-                <text x="1260" y="780">ORBITAL PLANE · β-09</text>
-                <line x1="60" y1="264" x2="72" y2="264" stroke="#8E929B" strokeWidth="0.8" />
-                <line x1="1240" y1="784" x2="1252" y2="784" stroke="#8E929B" strokeWidth="0.8" />
-              </g>
-            </svg>
-          </div>
-
           {/* Planet visual (decorative — the timeline below is the accessible control) */}
           <div className="absolute inset-0 pointer-events-auto opacity-35 sm:opacity-50 lg:opacity-100 transition-opacity duration-500">
             <HeroVisual
@@ -404,10 +381,10 @@ export function Hero() {
             />
           </div>
 
-          {/* Legibility scrims: keep wireframe lines out from under the copy and the navbar */}
+          {/* Legibility scrims: keep the planet's lines out from under the copy and the navbar */}
           <div
             aria-hidden="true"
-            className="absolute inset-0 z-10 pointer-events-none bg-background/25 lg:bg-[linear-gradient(90deg,rgba(3,3,4,0.96)_0%,rgba(3,3,4,0.82)_30%,rgba(3,3,4,0.3)_45%,transparent_58%)]"
+            className="absolute inset-0 z-10 pointer-events-none bg-background/25 lg:bg-[linear-gradient(90deg,rgba(3,3,4,0.96)_0%,rgba(3,3,4,0.85)_31%,rgba(3,3,4,0.38)_46%,transparent_60%)]"
           />
           <div
             aria-hidden="true"
@@ -424,17 +401,18 @@ export function Hero() {
           <div className="relative z-20 flex-1 max-w-[1240px] w-full mx-auto px-4 sm:px-6 lg:px-10 flex items-center lg:items-start lg:pt-[clamp(6rem,14vh,10rem)] pointer-events-none pt-20 pb-8 sm:py-0">
             <div className="w-full lg:max-w-[480px] xl:max-w-[520px]">
               <p className="sr-only" aria-live="polite" aria-atomic="true">
-                Stage {activeStage + 1} of {STAGE_COUNT}: {stage.title} {stage.accent}
+                Stage {activeStage + 1} of {STAGE_COUNT}: {STAGES[activeStage].title} {STAGES[activeStage].accent}
               </p>
 
               <div
-                key={activeStage}
                 id="hero-panel"
                 role="tabpanel"
-                aria-labelledby={`hero-tab-${activeStage}`}
-                className="hero-stage-in"
+                aria-labelledby={`hero-tab-${shownStage}`}
+                data-phase={copyPhase}
+                className="hero-copy"
               >
-                <div className="mono flex items-center gap-2 text-[10px] sm:text-[11px] tracking-[0.22em] uppercase text-muted mb-2.5 sm:mb-3.5">
+              <div key={shownStage}>
+                <div style={rise(0)} className="hero-rise mono flex items-center gap-2 text-[10px] sm:text-[11px] tracking-[0.22em] uppercase text-muted mb-2.5 sm:mb-3.5">
                   <span
                     className="w-1.5 h-1.5 rounded-full shrink-0"
                     style={{ backgroundColor: accentColor }}
@@ -443,14 +421,14 @@ export function Hero() {
                   <span className="truncate">{stage.tag}</span>
                 </div>
 
-                <h1 className="m-0 text-[28px] xs:text-[32px] sm:text-[44px] lg:text-[58px] leading-[1.06] font-normal tracking-[-0.035em] text-foreground drop-shadow-[0_2px_30px_rgba(3,3,4,0.95)]">
+                <h1 style={rise(1)} className="hero-rise m-0 text-[28px] xs:text-[32px] sm:text-[44px] lg:text-[58px] leading-[1.06] font-normal tracking-[-0.035em] text-foreground [text-shadow:0_2px_30px_rgba(3,3,4,0.95)]">
                   <span className="block">{stage.title}</span>
                   <span className="block text-balance" style={{ color: accentColor }}>
                     {stage.accent}
                   </span>
                 </h1>
 
-                <p className="mt-3 sm:mt-4 text-[13px] sm:text-[15px] leading-[1.6] text-muted-light font-light max-w-[460px] drop-shadow-[0_1px_16px_rgba(3,3,4,0.95)] line-clamp-3 sm:line-clamp-none">
+                <p style={rise(2)} className="hero-rise mt-3 sm:mt-4 text-[13px] sm:text-[15px] leading-[1.6] text-muted-light font-light max-w-[460px] [text-shadow:0_1px_16px_rgba(3,3,4,0.95)] line-clamp-3 sm:line-clamp-none">
                   {stage.description}
                 </p>
 
@@ -458,7 +436,8 @@ export function Hero() {
                 <div
                   role="tablist"
                   aria-label={`${stage.title} details`}
-                  className="flex gap-1.5 sm:gap-2.5 mt-4 sm:mt-5 pointer-events-auto flex-wrap"
+                  style={rise(3)}
+                  className="hero-rise flex gap-1.5 sm:gap-2.5 mt-4 sm:mt-5 pointer-events-auto flex-wrap"
                 >
                   {stage.subTabs.map((tab, idx) => (
                     <button
@@ -493,13 +472,14 @@ export function Hero() {
                   id="hero-subpanel"
                   role="tabpanel"
                   aria-labelledby={`hero-subtab-${activeSubTab}`}
-                  className="mt-2.5 min-h-[36px] sm:min-h-[44px] text-[12px] sm:text-[13px] text-muted leading-relaxed max-w-[460px] drop-shadow-[0_1px_8px_rgba(3,3,4,0.9)]"
+                  style={rise(3)}
+                  className="hero-rise mt-2.5 min-h-[36px] sm:min-h-[44px] text-[12px] sm:text-[13px] text-muted leading-relaxed max-w-[460px] [text-shadow:0_1px_8px_rgba(3,3,4,0.9)]"
                 >
                   {stage.subDetails[activeSubTab]}
                 </div>
 
                 {/* Stats */}
-                <dl className="flex flex-wrap gap-x-6 sm:gap-x-8 gap-y-3 mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-white/10 max-w-[460px] m-0">
+                <dl style={rise(4)} className="hero-rise flex flex-wrap gap-x-6 sm:gap-x-8 gap-y-3 mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-white/10 max-w-[460px] m-0">
                   {stage.stats.map((st) => (
                     <div key={st.label} className="flex flex-col">
                       <dt className="mono text-[8px] sm:text-[9px] tracking-[0.16em] text-muted uppercase whitespace-nowrap">
@@ -516,7 +496,7 @@ export function Hero() {
                 </dl>
 
                 {/* CTAs */}
-                <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap mt-5 sm:mt-6 pointer-events-auto">
+                <div style={rise(5)} className="hero-rise flex items-center gap-2.5 sm:gap-3 flex-wrap mt-5 sm:mt-6 pointer-events-auto">
                   <Link
                     href={stage.primaryCtaHref}
                     className={`inline-flex items-center gap-2 min-h-[42px] sm:min-h-[46px] px-5 sm:px-6 bg-foreground text-background font-medium text-[13px] sm:text-[14px] hover:bg-white transition-colors shadow-[0_0_30px_rgba(255,255,255,0.15)] ${FOCUS_RING}`}
@@ -531,11 +511,12 @@ export function Hero() {
                   </a>
                 </div>
               </div>
+              </div>
             </div>
           </div>
 
           {/* Bottom Stage Timeline Bar */}
-          <div className="relative z-30 border-t border-white/10 bg-background/85 backdrop-blur-md py-3 pointer-events-auto">
+          <div className="relative z-30 border-t border-white/10 bg-background/90 py-3 pointer-events-auto">
             <div className="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-10 flex items-center justify-between gap-2 sm:gap-4">
               <div className="hidden lg:flex items-center gap-2 text-muted mono text-[11px] tracking-[0.16em] uppercase shrink-0" aria-hidden="true">
                 <span className="text-foreground font-semibold">+</span>
