@@ -10,29 +10,16 @@ export function Footer() {
         <span className="text-[13px] text-muted-dark text-center sm:text-left">
           Independent app on Robinhood Chain. Not affiliated with Robinhood Markets.
         </span>
-        <nav aria-label="Footer" className="flex items-center gap-6 text-[14px]">
-          <Link href="/markets" className="text-muted hover:text-foreground transition-colors">
+        <nav aria-label="Footer" className="flex items-center gap-5 text-[14px]">
+          <Link href="/markets" className="text-muted transition-colors hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ice">
             Markets
           </Link>
-          <Link href="/docs" className="text-muted hover:text-foreground transition-colors">
+          <Link href="/docs" className="text-muted transition-colors hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ice">
             Docs
           </Link>
-          <a
-            href="https://x.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-muted hover:text-foreground transition-colors"
-          >
-            X
-          </a>
-          <a
-            href="https://github.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-muted hover:text-foreground transition-colors"
-          >
-            GitHub
-          </a>
+          <Link href="/contracts" className="text-muted transition-colors hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ice">
+            Contracts
+          </Link>
         </nav>
       </div>
     </footer>

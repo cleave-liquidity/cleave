@@ -17,8 +17,9 @@ export function EnvironmentStrip() {
           <span className="mono shrink-0 uppercase tracking-[0.16em] text-muted-faint">
             Network
           </span>
-          <span className={`truncate ${isWrongNetwork ? "text-negative" : "text-muted"}`}>
-            {networkLabel}
+          <span className={`${isWrongNetwork ? "text-negative" : "text-muted"}`}>
+            <span className="sm:hidden">{isWrongNetwork ? "Wrong Network" : getNetworkShortLabel(chainId, isConnected)}</span>
+            <span className="hidden sm:inline">{networkLabel}</span>
           </span>
           <span className="hidden h-3 w-px bg-white/12 sm:block" aria-hidden="true" />
           <span className="hidden shrink-0 sm:inline">ETH gas</span>

@@ -29,25 +29,27 @@ export function AssetIcon({
   protocol = false,
 }: {
   symbol: string;
-  name: string;
+  name?: string;
   iconUrl?: string;
   size?: IconSize;
   protocol?: boolean;
 }) {
   const [hasError, setHasError] = useState(false);
-  const fallback = protocol ? initials(name) : symbol.slice(0, 4).toUpperCase();
+  const accessibleName = name || symbol;
+  const fallback = protocol ? initials(accessibleName) : symbol.slice(0, 4).toUpperCase();
+  const hasVerifiedLocalIcon = Boolean(iconUrl && iconUrl.startsWith("/") && !iconUrl.startsWith("//"));
 
   return (
     <span
       role="img"
-      aria-label={name}
+      aria-label={accessibleName}
       className={`${sizeClasses[size]} shrink-0 rounded-full border ${
         protocol
           ? "border-amber/30 bg-amber/10 text-amber"
           : "border-ice/30 bg-ice/10 text-ice"
       } mono flex items-center justify-center overflow-hidden font-medium tracking-tight`}
     >
-      {iconUrl && !hasError ? (
+      {hasVerifiedLocalIcon && !hasError ? (
         <img
           src={iconUrl}
           alt=""

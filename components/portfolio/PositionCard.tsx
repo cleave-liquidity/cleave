@@ -89,7 +89,7 @@ export function PositionCard({
 
   return (
     <div
-      className={`relative overflow-hidden border border-white/16 rounded-[10px] bg-surface p-5 sm:p-7 flex flex-col gap-5 ${
+      className={`relative overflow-hidden border border-white/10 rounded-xl bg-surface/80 p-5 flex flex-col gap-5 md:grid md:grid-cols-[2fr_1.1fr_1fr_1fr_1fr_1.25fr] md:items-center md:gap-4 md:rounded-none md:border-0 md:border-b md:border-white/[0.06] last:md:border-b-0 md:px-6 md:py-5 hover:bg-white/[0.025] transition-colors ${
         isFixed ? "border-l-2 border-l-ice" : "border-l-2 border-l-amber"
       }`}
     >
@@ -100,7 +100,7 @@ export function PositionCard({
         </svg>
       </div>
       {/* Header */}
-      <div className="flex justify-between items-start gap-4">
+      <div className="flex justify-between items-start gap-4 md:min-w-0">
         <div>
           <div className="flex items-center gap-2">
             <AssetIcon
@@ -143,8 +143,8 @@ export function PositionCard({
       </div>
 
       {/* Metrics Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 py-3 border-y border-white/10">
-        <div className="flex flex-col gap-1">
+      <div className="grid grid-cols-2 gap-3 border-y border-white/10 py-3 sm:grid-cols-4 md:contents">
+        <div className="flex flex-col gap-1 md:min-w-0 md:border-0 md:py-0">
           <span className="text-[12px] text-muted-dark">Deposited</span>
           <span className="mono text-[17px] text-foreground">
             {formatTokenAmount(position.depositedAmount)}{" "}
@@ -152,14 +152,14 @@ export function PositionCard({
           </span>
         </div>
 
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1 md:min-w-0 md:border-0 md:py-0">
           <span className="text-[12px] text-muted-dark">Current Value</span>
           <span className="mono text-[17px] text-foreground">
             {formatUsd(position.currentValue)}
           </span>
         </div>
 
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1 md:min-w-0 md:border-0 md:py-0">
           <span className="text-[12px] text-muted-dark">Unrealized PnL</span>
           <span
             className={`mono text-[17px] ${
@@ -170,7 +170,7 @@ export function PositionCard({
           </span>
         </div>
 
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1 md:min-w-0 md:border-0 md:py-0">
           <span className="text-[12px] text-muted-dark">
             {isFixed ? "At Maturity" : "Claimable Yield"}
           </span>
@@ -187,10 +187,10 @@ export function PositionCard({
       </div>
 
       {/* Action Buttons */}
-      <div className="flex items-center justify-between gap-3 pt-1 flex-wrap">
+      <div className="flex items-center justify-between gap-3 pt-1 flex-wrap md:col-start-6 md:flex-col md:items-end md:justify-center md:gap-2 md:pt-0">
         <Link
           href={`/markets/${position.marketId}`}
-          className="text-[13px] text-muted hover:text-white transition-colors"
+          className="text-[13px] text-muted transition-colors hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ice"
         >
           View Market →
         </Link>
@@ -204,7 +204,7 @@ export function PositionCard({
                 loadingAction !== null || !canClaim
               }
               onClick={handleClaim}
-              className="min-h-[42px] px-4.5 rounded-lg bg-amber text-[#0A0B0C] text-[14px] font-medium flex items-center gap-1.5 hover:brightness-105 transition-all disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+              className="min-h-[42px] px-4.5 rounded-lg bg-amber text-[#0A0B0C] text-[14px] font-medium flex items-center gap-1.5 hover:brightness-105 transition-all disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber"
             >
               {loadingAction === "claim" && (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -238,7 +238,7 @@ export function PositionCard({
               type="button"
               disabled={loadingAction !== null}
               onClick={handleSellEarly}
-              className="min-h-[42px] px-4 border border-white/25 rounded-lg bg-transparent text-foreground hover:border-white/50 text-[14px] flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="min-h-[42px] px-4 border border-white/25 rounded-lg bg-transparent text-foreground hover:border-white/50 text-[14px] flex items-center gap-1.5 transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice"
             >
               {loadingAction === "sell" && (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />

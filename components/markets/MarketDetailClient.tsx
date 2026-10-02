@@ -16,7 +16,7 @@ import { ArrowLeft, ShieldCheck } from "lucide-react";
 
 export function MarketDetailClient({ market }: { market: YieldMarket }) {
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background text-foreground">
+    <div className="relative min-h-screen overflow-x-clip bg-background text-foreground">
       <ApplicationBackdrop />
       <div className="relative z-10 flex min-h-screen flex-col">
         <Navbar isLanding={false} />
@@ -77,8 +77,8 @@ export function MarketDetailClient({ market }: { market: YieldMarket }) {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-5 rounded-[10px] bg-surface border border-white/12">
-              <div className="flex flex-col gap-1">
+            <div className="grid grid-cols-2 border-y border-white/14 bg-surface/60 sm:grid-cols-4">
+              <div className="flex flex-col gap-1 px-4 py-4 sm:px-5 sm:py-5">
                 <span className="mono text-[11px] text-muted-dark uppercase tracking-wider">
                   Implied APY
                 </span>
@@ -87,7 +87,7 @@ export function MarketDetailClient({ market }: { market: YieldMarket }) {
                 </span>
                 <span className="text-[11px] text-muted-dark">Market pricing</span>
               </div>
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-1 border-l border-white/10 px-4 py-4 first:border-l-0 sm:px-5 sm:py-5">
                 <span className="mono text-[11px] text-muted-dark uppercase tracking-wider">
                   Rate Now
                 </span>
@@ -96,7 +96,7 @@ export function MarketDetailClient({ market }: { market: YieldMarket }) {
                 </span>
                 <span className="text-[11px] text-muted-dark">Underlying APY</span>
               </div>
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-1 px-4 py-4 sm:px-5 sm:py-5">
                 <span className="mono text-[11px] text-muted-dark uppercase tracking-wider">
                   Maturity
                 </span>
@@ -107,7 +107,7 @@ export function MarketDetailClient({ market }: { market: YieldMarket }) {
                   {market.daysRemaining} DAYS LEFT
                 </span>
               </div>
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-1 border-l border-white/10 px-4 py-4 sm:px-5 sm:py-5">
                 <span className="mono text-[11px] text-muted-dark uppercase tracking-wider">
                   Liquidity
                 </span>
@@ -123,7 +123,7 @@ export function MarketDetailClient({ market }: { market: YieldMarket }) {
               impliedApy={market.impliedApy}
             />
 
-            <details open className="group/advanced border border-white/14 rounded-[10px] bg-surface p-5 sm:p-6">
+            <details className="group/advanced border border-white/14 bg-surface/70 p-5 sm:p-6">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 pb-3 text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice">
                 <span className="flex items-center gap-2">
                   <ShieldCheck className="w-5 h-5 text-ice" aria-hidden="true" />
@@ -134,50 +134,26 @@ export function MarketDetailClient({ market }: { market: YieldMarket }) {
                 </span>
                 <span className="mono text-[11px] text-muted-dark group-open/advanced:rotate-180 transition-transform" aria-hidden="true">⌄</span>
               </summary>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-[13px]">
-                <div className="flex flex-col gap-1">
-                  <span className="text-muted-dark">Underlying Asset</span>
-                  <span className="font-mono text-foreground">{market.underlyingAsset}</span>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-muted-dark">Yield Source</span>
-                  <span className="font-mono text-foreground truncate">
-                    {market.yieldSource}
-                  </span>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-muted-dark">Source Protocol</span>
-                  <span className="font-mono text-ice truncate">
-                    {market.protocolMetadata?.name || market.sourceProtocol || "Not specified"}
-                  </span>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-muted-dark">Adapter</span>
-                  <span className="font-mono text-amber truncate">
-                    MockYieldMarketAdapter
-                  </span>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-muted-dark">PT Address</span>
-                  <span className="font-mono text-muted-dark truncate">Not deployed · preview only</span>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-muted-dark">YT Address</span>
-                  <span className="font-mono text-muted-dark truncate">Not deployed · preview only</span>
-                </div>
-              </div>
-              <div className="pt-2 text-[12px] text-muted-dark border-t border-white/10 flex items-center justify-between">
-                <span>
-                  Network: {market.network === "mainnet" ? "Robinhood Chain Mainnet" : "Robinhood Chain Testnet"} · Chain ID {market.network === "mainnet" ? ROBINHOOD_CHAIN_ID : 46630}
-                </span>
-                <span className="mono text-[10px] uppercase tracking-[0.12em] text-amber">
-                  Not deployed · preview only
-                </span>
+              <dl className="divide-y divide-white/10 border-y border-white/10 text-[13px]">
+                <InfoRow label="Underlying Asset" value={market.underlyingAsset} />
+                <InfoRow label="Yield Source" value={market.yieldSource} />
+                <InfoRow label="Source Protocol" value={market.protocolMetadata?.name || market.sourceProtocol || "Not specified"} tone="ice" />
+                <InfoRow label="Network" value={`${market.network === "mainnet" ? "Robinhood Chain Mainnet" : "Robinhood Chain Testnet"} · Chain ID ${market.network === "mainnet" ? ROBINHOOD_CHAIN_ID : 46630}`} />
+                <InfoRow label="Maturity" value={market.maturity} />
+                <InfoRow label="PT Contract" value="Not deployed · preview only" tone="muted" />
+                <InfoRow label="YT Contract" value="Not deployed · preview only" tone="muted" />
+                <InfoRow label="Adapter" value="MockYieldMarketAdapter" tone="amber" />
+              </dl>
+              <div className="flex flex-col gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                <span className="mono text-[10px] uppercase tracking-[0.12em] text-amber">No production contracts configured</span>
+                <Link href="/contracts" className="text-[13px] text-ice hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ice">
+                  View Contract Registry →
+                </Link>
               </div>
             </details>
           </div>
 
-          <div className="w-full">
+          <div className="w-full lg:sticky lg:top-28">
             <TradePanel market={market} />
           </div>
         </div>
@@ -185,6 +161,31 @@ export function MarketDetailClient({ market }: { market: YieldMarket }) {
 
         <Footer />
       </div>
+    </div>
+  );
+}
+
+function InfoRow({
+  label,
+  value,
+  tone = "default",
+}: {
+  label: string;
+  value: string;
+  tone?: "default" | "ice" | "amber" | "muted";
+}) {
+  const toneClass = tone === "ice"
+    ? "text-ice"
+    : tone === "amber"
+      ? "text-amber"
+      : tone === "muted"
+        ? "text-muted-dark"
+        : "text-foreground";
+
+  return (
+    <div className="grid gap-1 px-3 py-3 sm:grid-cols-[180px_1fr] sm:gap-6">
+      <dt className="text-muted-dark">{label}</dt>
+      <dd className={`m-0 font-mono ${toneClass}`}>{value}</dd>
     </div>
   );
 }

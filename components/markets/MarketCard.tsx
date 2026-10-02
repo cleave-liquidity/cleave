@@ -12,7 +12,7 @@ export function MarketCard({ market }: { market: YieldMarket }) {
   return (
     <Link
       href={`/markets/${market.id}`}
-      className="group block rounded-[10px] border border-white/14 bg-surface p-4 transition-all hover:border-ice/40 hover:bg-surface-raised sm:p-5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice"
+      className="group block border border-white/14 bg-surface p-4 transition-colors hover:border-ice/40 hover:bg-surface-raised sm:p-5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice"
     >
       <div className="flex items-center justify-between gap-3 pb-3 border-b border-white/10">
         <div className="flex items-center gap-3">
@@ -41,12 +41,15 @@ export function MarketCard({ market }: { market: YieldMarket }) {
 
       <div className="py-3 text-[13px] text-muted flex items-center justify-between">
         <span className="text-muted-dark">Source</span>
-        <span className="flex items-center gap-2 truncate">
+        <span className="flex min-w-0 items-center gap-2">
           <ProtocolIcon
             name={market.protocolMetadata?.name || market.sourceProtocol || market.yieldSource}
             iconUrl={market.protocolMetadata?.iconUrl}
           />
-          <span className="truncate">{market.yieldSource}</span>
+          <span className="flex min-w-0 flex-col text-right">
+            <span className="text-foreground">{market.sourceProtocol || market.protocolMetadata?.name || market.yieldSource}</span>
+            <span className="text-[11px] capitalize text-muted-dark">{market.yieldSource.replace(new RegExp(`^${market.sourceProtocol || market.protocolMetadata?.name || ""}\\s*`, "i"), "")}</span>
+          </span>
         </span>
       </div>
 
@@ -55,7 +58,7 @@ export function MarketCard({ market }: { market: YieldMarket }) {
           <span className="text-[11px] mono uppercase tracking-wider text-muted-dark">
             Implied Yield
           </span>
-          <span className="mono text-[18px] text-ice font-medium">
+          <span className="mono tabular-nums text-[18px] font-medium text-ice">
             {formatApy(market.impliedApy)}
           </span>
         </div>
@@ -63,7 +66,7 @@ export function MarketCard({ market }: { market: YieldMarket }) {
           <span className="text-[11px] mono uppercase tracking-wider text-muted-dark">
             Rate Now
           </span>
-          <span className="mono text-[18px] text-foreground">
+          <span className="mono tabular-nums text-[18px] text-foreground">
             {formatApy(market.underlyingApy)}
           </span>
         </div>
@@ -79,7 +82,7 @@ export function MarketCard({ market }: { market: YieldMarket }) {
         </div>
         <div className="flex flex-col items-end">
           <span className="text-[11px] mono text-muted-dark">LIQUIDITY</span>
-          <span className="mono text-foreground font-medium">
+          <span className="mono tabular-nums font-medium text-foreground">
             {formatUsd(market.liquidityUsd)}
           </span>
         </div>

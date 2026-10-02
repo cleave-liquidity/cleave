@@ -209,7 +209,7 @@ export function TradePanel({ market }: { market: YieldMarket }) {
   };
 
   return (
-    <div className="border border-white/16 rounded-[10px] bg-surface p-5 sm:p-7 flex flex-col gap-5 sticky top-24">
+    <div className="border border-white/16 rounded-[10px] bg-surface p-5 sm:p-7 flex flex-col gap-5">
       {/* Panel Header */}
       <div className="flex justify-between items-center pb-2 border-b border-white/10">
         <span className="mono text-[13px] tracking-wider text-muted-dark uppercase">
@@ -235,7 +235,7 @@ export function TradePanel({ market }: { market: YieldMarket }) {
           }}
           className={`min-h-[46px] border-0 text-[14px] font-medium transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ice ${
             isFixed
-              ? "bg-ice text-[#0A0B0C]"
+              ? "border-b-2 border-ice bg-ice/10 text-ice"
               : "bg-transparent text-muted hover:text-white"
           }`}
         >
@@ -250,7 +250,7 @@ export function TradePanel({ market }: { market: YieldMarket }) {
           }}
           className={`min-h-[46px] border-0 text-[14px] font-medium transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-amber ${
             !isFixed
-              ? "bg-amber text-[#0A0B0C]"
+              ? "border-b-2 border-amber bg-amber/10 text-amber"
               : "bg-transparent text-muted hover:text-white"
           }`}
         >
@@ -291,21 +291,21 @@ export function TradePanel({ market }: { market: YieldMarket }) {
           <button
             type="button"
             onClick={() => handlePreset(0.25)}
-            className="px-2.5 py-1 text-[11px] mono border border-white/12 rounded text-muted hover:border-white/30 transition-colors"
+            className="px-2.5 py-1 text-[11px] mono border border-white/12 rounded text-muted hover:border-white/30 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice"
           >
             25%
           </button>
           <button
             type="button"
             onClick={() => handlePreset(0.5)}
-            className="px-2.5 py-1 text-[11px] mono border border-white/12 rounded text-muted hover:border-white/30 transition-colors"
+            className="px-2.5 py-1 text-[11px] mono border border-white/12 rounded text-muted hover:border-white/30 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice"
           >
             50%
           </button>
           <button
             type="button"
             onClick={() => handlePreset(1.0)}
-            className="px-2.5 py-1 text-[11px] mono border border-white/12 rounded text-muted hover:border-white/30 transition-colors"
+            className="px-2.5 py-1 text-[11px] mono border border-white/12 rounded text-muted hover:border-white/30 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice"
           >
             MAX
           </button>
@@ -515,7 +515,7 @@ export function TradePanel({ market }: { market: YieldMarket }) {
         <button
           type="button"
           onClick={() => setShowAdvanced(!showAdvanced)}
-          className="flex items-center justify-between w-full text-[13px] text-muted-dark hover:text-muted transition-colors py-1"
+          className="flex items-center justify-between w-full text-[13px] text-muted-dark hover:text-muted transition-colors py-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice"
         >
           <span className="mono tracking-wider">ADVANCED SPECIFICATION</span>
           <ChevronDown
@@ -537,7 +537,7 @@ export function TradePanel({ market }: { market: YieldMarket }) {
                 </div>
                 <div className="flex justify-between">
                   <span>Contract Address</span>
-                  <span className="truncate max-w-[140px]">{market.ptAddress}</span>
+                  <span className="text-muted-dark">Not deployed · preview only</span>
                 </div>
               </>
             ) : (
@@ -552,7 +552,7 @@ export function TradePanel({ market }: { market: YieldMarket }) {
                 </div>
                 <div className="flex justify-between">
                   <span>Contract Address</span>
-                  <span className="truncate max-w-[140px]">{market.ytAddress}</span>
+                  <span className="text-muted-dark">Not deployed · preview only</span>
                 </div>
               </>
             )}

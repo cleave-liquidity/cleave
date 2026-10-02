@@ -21,9 +21,9 @@ export function useOpenFixedPosition() {
     mutationFn: ({ marketId, inputAmount, userAddress, quote, chainId }) =>
       yieldAdapter.openFixedPosition(marketId, inputAmount, userAddress, quote, chainId),
     onSuccess: (_, variables) => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.positions(variables.userAddress) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.positions(variables.userAddress, variables.chainId) });
       void queryClient.invalidateQueries({
-        queryKey: queryKeys.balance(variables.userAddress, variables.quoteAsset),
+        queryKey: queryKeys.balance(variables.userAddress, variables.quoteAsset, variables.chainId),
       });
     },
   });
