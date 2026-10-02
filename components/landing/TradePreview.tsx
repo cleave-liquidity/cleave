@@ -39,7 +39,7 @@ export function TradePreview() {
     >
       <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1.3fr] gap-12 lg:gap-20 items-start">
         {/* Left Information */}
-        <div className="flex flex-col gap-6">
+        <div data-reveal className="flex flex-col gap-6">
           <div className="mono flex items-center gap-2 text-[11px] tracking-[0.22em] text-muted uppercase">
             <span className="w-1.5 h-1.5 rounded-full bg-ice shrink-0" />
             04 — OPEN A POSITION
@@ -108,7 +108,7 @@ export function TradePreview() {
         </div>
 
         {/* Right Trading Terminal Preview Card */}
-        <div className="border border-white/15 rounded-2xl bg-surface/90 backdrop-blur-md p-6 sm:p-8 flex flex-col gap-6 shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
+        <div data-reveal="1" className="border border-white/15 rounded-2xl bg-surface/90 backdrop-blur-md p-6 sm:p-8 flex flex-col gap-6 shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
           {/* Header row */}
           <div className="flex justify-between items-start gap-4 pb-4 border-b border-white/10">
             <div className="flex flex-col gap-1">

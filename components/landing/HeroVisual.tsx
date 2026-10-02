@@ -57,12 +57,13 @@ const S_INNER = 36;
 // Cinematic camera keyframes. Each stage brings its planet to a focal point on
 // the right-hand side (clear of the copy column) with a *gentle* zoom — the
 // scene should read as a living background, not a camera that swings across
-// the page.
+// the page. Frames are tuned so the sphere's left rim stays right of the copy,
+// the vault core never slides under the navbar, and badges stay inside 1440.
 const PIN_POS: ReadonlyArray<readonly [number, number]> = [
   [0, 0],
   [-100, 240], // 1 fixed yield (diamond)
   [260, -130], // 2 long yield (bio-particle)
-  [0, -190], // 3 split engine (prisms)
+  [0, 0], // 3 split engine — frame the core's PT/YT laser, not the prism pin
   [200, 240], // 4 USDG vault (gyroscope)
 ];
 const SPHERE_CX = 890;
@@ -73,11 +74,11 @@ const focusOn = (stage: number, scale: number, fx: number, fy: number) => ({
   y: fy - SPHERE_CY - scale * PIN_POS[stage][1],
 });
 const CAMERA_STAGES = [
-  { scale: 0.88, x: 30, y: 0 }, // 0 overview
-  focusOn(1, 1.3, 1100, 470),
-  focusOn(2, 1.15, 1170, 450),
-  focusOn(3, 1.3, 1060, 500),
-  focusOn(4, 1.3, 1150, 470),
+  { scale: 0.86, x: 70, y: 0 }, // 0 overview
+  focusOn(1, 1.1, 980, 545),
+  focusOn(2, 1.0, 1230, 390),
+  focusOn(3, 1.1, 1040, 480),
+  focusOn(4, 1.0, 1220, 600),
 ];
 
 const smootherstep = (t: number) => {

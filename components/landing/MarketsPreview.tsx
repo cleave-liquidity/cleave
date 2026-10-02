@@ -52,7 +52,7 @@ export function MarketsPreview() {
       id="markets"
       className="relative max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-10 pt-24 sm:pt-32 lg:pt-40"
     >
-      <div className="flex justify-between items-end gap-6 flex-wrap">
+      <div data-reveal className="flex justify-between items-end gap-6 flex-wrap">
         <div className="flex flex-col gap-5 sm:gap-6">
           <div className="mono flex items-center gap-2 text-[11px] tracking-[0.22em] text-muted-dark uppercase">
             <span className="w-1 h-1 rounded-full bg-foreground/30 shrink-0" />
@@ -77,7 +77,7 @@ export function MarketsPreview() {
       </div>
 
       {/* Table */}
-      <div className="mt-10 overflow-x-auto">
+      <div data-reveal="1" className="mt-10 overflow-x-auto">
         <div className="min-w-[900px]">
           {/* Header */}
           <div className="mono grid grid-cols-[2.1fr_1.5fr_1fr_1fr_1.25fr_1fr_1.1fr] gap-4 px-5 pb-3.5 text-[11px] tracking-[0.14em] text-muted-dark border-b border-white/10">
@@ -139,7 +139,7 @@ export function MarketsPreview() {
         </div>
       </div>
 
-      <p className="mono m-0 mt-4 text-[11px] tracking-[0.06em] text-muted-dark">
+      <p data-reveal="2" className="mono m-0 mt-4 text-[11px] tracking-[0.06em] text-muted-dark">
         Fixed rate is the market rate before price impact. Rate now is today&apos;s
         variable rate. Positions are illustrative.
       </p>

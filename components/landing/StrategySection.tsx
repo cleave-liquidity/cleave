@@ -67,7 +67,7 @@ export function StrategySection() {
     >
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-white/10">
-        <div className="flex flex-col gap-4 max-w-[680px]">
+        <div data-reveal className="flex flex-col gap-4 max-w-[680px]">
           <div className="mono flex items-center gap-2 text-[11px] tracking-[0.22em] text-muted uppercase">
             <span className="w-1.5 h-1.5 rounded-full bg-amber shrink-0" />
             02 — INTERACTIVE SIMULATOR
@@ -84,7 +84,7 @@ export function StrategySection() {
         </div>
 
         {/* Amount Selector */}
-        <div className="flex flex-col gap-2">
+        <div data-reveal="1" className="flex flex-col gap-2">
           <span className="mono text-[11px] tracking-[0.14em] text-muted-dark uppercase">
             Simulated Capital:
           </span>
@@ -107,7 +107,7 @@ export function StrategySection() {
       </div>
 
       {/* ── Rate Simulator Bar ── */}
-      <div className="mt-8 p-5 sm:p-6 bg-surface/70 border border-white/10 rounded-xl backdrop-blur-sm flex flex-col md:flex-row items-center justify-between gap-5">
+      <div data-reveal className="mt-8 p-5 sm:p-6 bg-surface/70 border border-white/10 rounded-xl backdrop-blur-sm flex flex-col md:flex-row items-center justify-between gap-5">
         <div className="flex flex-col gap-1 w-full md:w-auto">
           <div className="flex items-center justify-between md:justify-start gap-3">
             <span className="mono text-[11px] tracking-[0.16em] text-muted-dark uppercase">
@@ -161,7 +161,7 @@ export function StrategySection() {
       </div>
 
       {/* ── Two Strategy Interactive Cards ── */}
-      <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+      <div data-reveal="1" className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
         {/* ── CARD 1: FIXED YIELD (PT) ── */}
         <div className="border border-white/15 hover:border-ice/50 rounded-xl bg-surface/80 p-6 sm:p-8 flex flex-col justify-between gap-6 transition-all shadow-[0_4px_30px_rgba(0,0,0,0.4)]">
           <div className="flex flex-col gap-4">

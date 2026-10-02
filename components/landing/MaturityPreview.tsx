@@ -11,7 +11,7 @@ export function MaturityPreview() {
       id="portfolio"
       className="relative max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-10 pt-24 sm:pt-32 lg:pt-40 select-none"
     >
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-white/10">
+      <div data-reveal className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-white/10">
         <div className="flex flex-col gap-4 max-w-[680px]">
           <div className="mono flex items-center gap-2 text-[11px] tracking-[0.22em] text-muted uppercase">
             <span className="w-1.5 h-1.5 rounded-full bg-ice shrink-0" />
@@ -30,7 +30,7 @@ export function MaturityPreview() {
       </div>
 
       {/* ── Precision Timeline Progress Track ── */}
-      <div className="mt-10 p-5 rounded-2xl bg-surface/80 border border-white/10 flex flex-col gap-4">
+      <div data-reveal="1" className="mt-10 p-5 rounded-2xl bg-surface/80 border border-white/10 flex flex-col gap-4">
         <div className="mono flex justify-between items-center text-[11px] tracking-[0.14em] text-muted-dark flex-wrap gap-2">
           <span>ORIGIN: 02 OCT 2026</span>
           <div className="flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full text-foreground font-medium">
@@ -61,7 +61,7 @@ export function MaturityPreview() {
       </div>
 
       {/* ── Position Cards Grid ── */}
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+      <div data-reveal="1" className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
         {/* Fixed Yield Position Card */}
         <div className="border border-white/15 hover:border-ice/50 rounded-2xl bg-surface/90 backdrop-blur-md p-6 sm:p-8 flex flex-col justify-between gap-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-all">
           <div className="flex flex-col gap-5">

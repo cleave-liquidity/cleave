@@ -140,7 +140,7 @@ export function YieldSplitSection() {
   return (
     <section
       id="how"
-      className="relative pt-20 sm:pt-28 lg:pt-36 pb-0 select-none overflow-hidden"
+      className="relative pt-16 sm:pt-20 lg:pt-24 pb-0 select-none overflow-hidden"
       style={{
         background:
           "radial-gradient(ellipse 80% 40% at 50% 0%, rgba(169,200,238,0.05) 0%, transparent 70%)",
@@ -158,8 +158,8 @@ export function YieldSplitSection() {
       </div>
 
       {/* Section Header */}
-      <div className="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-10 grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-6 sm:gap-10 items-end mt-12">
-        <div className="flex flex-col gap-4 sm:gap-5">
+      <div className="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-10 grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-6 sm:gap-10 items-end mt-10">
+        <div data-reveal className="flex flex-col gap-4 sm:gap-5">
           <div className="mono flex items-center gap-2 text-[11px] tracking-[0.22em] text-muted uppercase">
             <span className="w-1.5 h-1.5 rounded-full bg-ice shrink-0" />
             01 — THE SPLIT ENGINE
@@ -171,7 +171,7 @@ export function YieldSplitSection() {
           </h2>
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div data-reveal="1" className="flex flex-col gap-4">
           <p className="m-0 text-[15px] sm:text-[17px] leading-[1.6] text-muted font-light">
             USDG in a lending vault earns a rate that changes daily. We split that position:
             one side holds steady to maturity, the other rides the rate.
@@ -220,7 +220,7 @@ export function YieldSplitSection() {
       </div>
 
       {/* Live Simulation Stats Bar */}
-      <div className="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-10 mt-8 flex items-center justify-end gap-4 flex-wrap">
+      <div data-reveal="2" className="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-10 mt-8 flex items-center justify-end gap-4 flex-wrap">
         <div className="mono flex items-center gap-4 text-[11px] tracking-[0.12em] text-muted">
           <div>
             DATE: <span className="text-foreground font-medium">{currentDateStr}</span>
@@ -238,11 +238,11 @@ export function YieldSplitSection() {
       </div>
 
       {/* ─── YIELD SPLIT INTERACTIVE SVG DIAGRAM ─── */}
-      <div className="mt-4 sm:mt-6 overflow-x-auto no-scrollbar">
+      <div data-reveal className="mt-2 sm:mt-4 overflow-x-auto no-scrollbar">
         <div className="min-w-[900px] lg:min-w-full">
           <svg
             ref={svgRef}
-            viewBox="0 0 1440 600"
+            viewBox="0 80 1440 520"
             className="block w-full h-auto cursor-default"
             role="img"
             aria-label="Interactive Yield Split Zipper Diagram"
@@ -505,7 +505,7 @@ export function YieldSplitSection() {
 
       {/* ─── SUMMARY INVARIANT CARDS BELOW ─── */}
       <div className="max-w-[1240px] mx-auto mt-6 px-4 sm:px-6 lg:px-10 grid grid-cols-1 md:grid-cols-3 border-t border-white/10">
-        <div className="flex flex-col gap-3 py-8 sm:py-10 md:border-r border-b md:border-b-0 border-white/10 md:pr-10">
+        <div data-reveal className="flex flex-col gap-3 py-8 sm:py-10 md:border-r border-b md:border-b-0 border-white/10 md:pr-10">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-ice shrink-0" />
@@ -523,7 +523,7 @@ export function YieldSplitSection() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 py-8 sm:py-10 md:border-r border-b md:border-b-0 border-white/10 md:px-10">
+        <div data-reveal="1" className="flex flex-col gap-3 py-8 sm:py-10 md:border-r border-b md:border-b-0 border-white/10 md:px-10">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-amber shrink-0" />
@@ -543,7 +543,7 @@ export function YieldSplitSection() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 py-8 sm:py-10 md:pl-10">
+        <div data-reveal="2" className="flex flex-col gap-3 py-8 sm:py-10 md:pl-10">
           <span className="mono text-[12px] text-muted-dark tracking-[0.14em] uppercase">
             Conservation Invariant
           </span>

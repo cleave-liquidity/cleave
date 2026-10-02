@@ -25,7 +25,7 @@ const STAGES: StageInfo[] = [
     index: 0,
     tag: "00 / THE PRINCIPLE",
     title: "Yield, split in two.",
-    accent: "Fixed or Long — you choose.",
+    accent: "Fixed or Long\u00A0— you choose.", // nbsp keeps the dash on the previous line
     description:
       "Cleave splits USDG yield into PT (fixed rate, locked upfront) and YT (variable rate, amplified exposure). Settle instantly on Robinhood Chain — no liquidations, ever.",
     subTabs: ["01 Overview", "02 Dual Paths", "03 USDG Anchor"],
@@ -420,7 +420,8 @@ export function Hero() {
           </div>
 
           {/* Main Content */}
-          <div className="relative z-20 flex-1 max-w-[1440px] w-full mx-auto px-5 sm:px-8 lg:px-16 flex items-center lg:items-start lg:pt-[clamp(6rem,14vh,10rem)] pointer-events-none pt-20 pb-8 sm:py-0">
+          {/* Same 1240px / px-10 container as the Navbar and every section below, so the copy shares the logo's left edge. */}
+          <div className="relative z-20 flex-1 max-w-[1240px] w-full mx-auto px-4 sm:px-6 lg:px-10 flex items-center lg:items-start lg:pt-[clamp(6rem,14vh,10rem)] pointer-events-none pt-20 pb-8 sm:py-0">
             <div className="w-full lg:max-w-[480px] xl:max-w-[520px]">
               <p className="sr-only" aria-live="polite" aria-atomic="true">
                 Stage {activeStage + 1} of {STAGE_COUNT}: {stage.title} {stage.accent}
@@ -443,9 +444,10 @@ export function Hero() {
                 </div>
 
                 <h1 className="m-0 text-[28px] xs:text-[32px] sm:text-[44px] lg:text-[58px] leading-[1.06] font-normal tracking-[-0.035em] text-foreground drop-shadow-[0_2px_30px_rgba(3,3,4,0.95)]">
-                  <span>{stage.title}</span>
-                  <br />
-                  <span style={{ color: accentColor }}>{stage.accent}</span>
+                  <span className="block">{stage.title}</span>
+                  <span className="block text-balance" style={{ color: accentColor }}>
+                    {stage.accent}
+                  </span>
                 </h1>
 
                 <p className="mt-3 sm:mt-4 text-[13px] sm:text-[15px] leading-[1.6] text-muted-light font-light max-w-[460px] drop-shadow-[0_1px_16px_rgba(3,3,4,0.95)] line-clamp-3 sm:line-clamp-none">
@@ -497,14 +499,14 @@ export function Hero() {
                 </div>
 
                 {/* Stats */}
-                <dl className="grid grid-cols-3 gap-2 sm:gap-2.5 mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-white/10 max-w-[460px] m-0">
+                <dl className="flex flex-wrap gap-x-6 sm:gap-x-8 gap-y-3 mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-white/10 max-w-[460px] m-0">
                   {stage.stats.map((st) => (
                     <div key={st.label} className="flex flex-col">
-                      <dt className="mono text-[8px] sm:text-[9px] tracking-[0.16em] text-muted uppercase truncate">
+                      <dt className="mono text-[8px] sm:text-[9px] tracking-[0.16em] text-muted uppercase whitespace-nowrap">
                         {st.label}
                       </dt>
                       <dd
-                        className="mono text-[12px] sm:text-[15px] font-medium mt-0.5 truncate m-0"
+                        className="mono text-[12px] sm:text-[15px] font-medium mt-0.5 whitespace-nowrap m-0"
                         style={{ color: st.color || "#ECEDEA" }}
                       >
                         {st.value}
@@ -533,8 +535,8 @@ export function Hero() {
           </div>
 
           {/* Bottom Stage Timeline Bar */}
-          <div className="relative z-30 border-t border-white/10 bg-background/85 backdrop-blur-md px-4 sm:px-8 lg:px-16 py-3 pointer-events-auto">
-            <div className="max-w-[1440px] mx-auto flex items-center justify-between gap-2 sm:gap-4">
+          <div className="relative z-30 border-t border-white/10 bg-background/85 backdrop-blur-md py-3 pointer-events-auto">
+            <div className="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-10 flex items-center justify-between gap-2 sm:gap-4">
               <div className="hidden lg:flex items-center gap-2 text-muted mono text-[11px] tracking-[0.16em] uppercase shrink-0" aria-hidden="true">
                 <span className="text-foreground font-semibold">+</span>
                 <span>Scroll to travel</span>
@@ -572,7 +574,8 @@ export function Hero() {
                         className={`w-1.5 h-1.5 rounded-full shrink-0 ${isActive ? "bg-amber-primary" : "bg-white/20"}`}
                       />
                       <span aria-hidden="true">
-                        0{s.index} <span className="hidden md:inline">{STAGE_SHORT[idx]}</span>
+                        0{s.index}{" "}
+                        <span className={isActive ? "hidden md:inline" : "hidden xl:inline"}>{STAGE_SHORT[idx]}</span>
                       </span>
                     </button>
                   );
