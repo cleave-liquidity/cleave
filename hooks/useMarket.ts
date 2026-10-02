@@ -13,6 +13,8 @@ export function useMarket(id: string) {
     queryFn: () => yieldAdapter.getMarket(id),
     enabled: Boolean(id),
     staleTime: 60_000,
+    refetchInterval: yieldAdapter.mode === "live" ? 60_000 : false,
+    refetchOnWindowFocus: yieldAdapter.mode === "live",
     retry: 2,
   });
 

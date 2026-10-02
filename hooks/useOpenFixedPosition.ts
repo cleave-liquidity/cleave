@@ -5,6 +5,7 @@ import { FixedYieldQuote } from "@/types/quote";
 import { FixedYieldPosition } from "@/types/position";
 import { yieldAdapter } from "@/lib/adapters/mock-adapter";
 import { queryKeys } from "@/lib/query-keys";
+import { usePublicClient, useWalletClient } from "wagmi";
 
 export interface OpenFixedPositionInput {
   marketId: string;
@@ -17,13 +18,15 @@ export interface OpenFixedPositionInput {
 
 export function useOpenFixedPosition() {
   const queryClient = useQueryClient();
+  const publicClient = usePublicClient();
+  const { data: walletClient } = useWalletClient();
   return useMutation<FixedYieldPosition, Error, OpenFixedPositionInput>({
     mutationFn: ({ marketId, inputAmount, userAddress, quote, chainId }) =>
-      yieldAdapter.openFixedPosition(marketId, inputAmount, userAddress, quote, chainId),
+      yieldAdapter.openFixedPosition(marketId, inputAmount, userAddress, quote, chainId, { publicClient, walletClient }),
     onSuccess: (_, variables) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.positions(variables.userAddress, variables.chainId) });
       void queryClient.invalidateQueries({
-        queryKey: queryKeys.balance(variables.userAddress, variables.quoteAsset, variables.chainId),
+        queryKey: queryKeys.balancePrefix(variables.userAddress, variables.chainId),
       });
     },
   });

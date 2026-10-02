@@ -138,7 +138,9 @@ export function MarketDetailClient({
                   <ShieldCheck className="w-5 h-5 text-ice" aria-hidden="true" />
                   <span>
                     <span className="block text-[16px] font-medium">Advanced market architecture</span>
-                    <span className="mono mt-1 block text-[10px] uppercase tracking-[0.14em] text-muted-dark">Preview metadata · no production contracts</span>
+                    <span className="mono mt-1 block text-[10px] uppercase tracking-[0.14em] text-muted-dark">
+                      {market.dataMode === "live" ? "Verified external protocol metadata" : "Preview metadata · no production contracts"}
+                    </span>
                   </span>
                 </span>
                 <span className="mono text-[11px] text-muted-dark group-open/advanced:rotate-180 transition-transform" aria-hidden="true">⌄</span>
@@ -149,12 +151,14 @@ export function MarketDetailClient({
                 <InfoRow label="Source Protocol" value={market.protocolMetadata?.name || market.sourceProtocol || "Not specified"} tone="ice" />
                 <InfoRow label="Network" value={`${market.network === "mainnet" ? "Robinhood Chain Mainnet" : "Robinhood Chain Testnet"} · Chain ID ${market.network === "mainnet" ? ROBINHOOD_CHAIN_ID : 46630}`} />
                 <InfoRow label="Maturity" value={market.maturity} />
-                <InfoRow label="PT Contract" value="Not deployed · preview only" tone="muted" />
-                <InfoRow label="YT Contract" value="Not deployed · preview only" tone="muted" />
-                <InfoRow label="Adapter" value="MockYieldMarketAdapter" tone="amber" />
+                <InfoRow label="PT Contract" value={market.ptAddress || "Unavailable"} tone={market.ptAddress ? "ice" : "muted"} />
+                <InfoRow label="YT Contract" value={market.ytAddress || "Unavailable"} tone={market.ytAddress ? "amber" : "muted"} />
+                <InfoRow label="Adapter" value={market.dataMode === "live" ? "PendleLiveYieldMarketAdapter" : "MockYieldMarketAdapter"} tone={market.dataMode === "live" ? "ice" : "amber"} />
               </dl>
               <div className="flex flex-col gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                <span className="mono text-[10px] uppercase tracking-[0.12em] text-amber">No production contracts configured</span>
+                <span className="mono text-[10px] uppercase tracking-[0.12em] text-amber">
+                  {market.dataMode === "live" ? "External Pendle contracts · not CLEAVE-owned" : "No production contracts configured"}
+                </span>
                 <Link href="/contracts" className="text-[13px] text-ice hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ice">
                   View Contract Registry →
                 </Link>

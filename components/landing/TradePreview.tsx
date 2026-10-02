@@ -154,7 +154,7 @@ export function TradePreview() {
     });
   }, []);
 
-  const scenario = longQuote?.estimatedReturns[rateCase];
+  const scenario = longQuote?.estimatedReturns?.[rateCase];
   const checkout = marketHref(strategy, amountValid ? amount : undefined);
 
   return (
@@ -233,7 +233,7 @@ export function TradePreview() {
                 <div className="flex min-w-0 flex-col gap-1">
                   <div className="flex items-center gap-2">
                     <span className="h-2 w-2 shrink-0 rounded-full bg-positive" />
-                    <span className="truncate text-[16px] font-medium text-foreground">
+                    <span className="text-[16px] font-medium text-foreground sm:truncate">
                       {market.symbol} · {market.sourceProtocol} Prime Vault
                     </span>
                   </div>
@@ -416,7 +416,7 @@ export function TradePreview() {
                             }`}
                           >
                             {c.label}
-                            {longQuote ? ` · ${longQuote.estimatedReturns[c.key].apy}%` : ""}
+                            {longQuote?.estimatedReturns ? ` · ${longQuote.estimatedReturns[c.key].apy}%` : ""}
                           </button>
                         ))}
                       </div>

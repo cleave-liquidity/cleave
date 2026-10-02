@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { TransactionState } from "@/types/transaction";
 import { YieldDomainError, getYieldErrorMessage } from "@/types/errors";
 import { AlertCircle, CheckCircle2, ChevronDown, Loader2 } from "lucide-react";
+import { yieldAdapter } from "@/lib/adapters/mock-adapter";
 
 export function TradePanel({
   market,
@@ -27,7 +28,13 @@ export function TradePanel({
 }) {
   const router = useRouter();
   const { address, chainId, isConnected, status: networkStatus, switchToRobinhood } = useNetworkGuard();
-  const { balance } = useTokenBalance(address, market.quoteAsset);
+  const { balance } = useTokenBalance(
+    address,
+    market.quoteAsset,
+    market.underlyingTokenAddress,
+    market.underlyingDecimals,
+    market.chainId,
+  );
   const openFixedPosition = useOpenFixedPosition();
   const openLongPosition = useOpenLongPosition();
   const { openConnectModal } = useConnectModal();
@@ -59,7 +66,9 @@ export function TradePanel({
   );
 
   const isFixed = strategy === "fixed";
-  const isWrongNetwork = networkStatus === "unsupported-chain";
+  const isWrongNetwork =
+    networkStatus === "unsupported-chain" ||
+    (isConnected && chainId !== market.chainId);
   const isInvalidAmount = !hasNumericAmount || inputAmount <= 0;
   const isInsufficientBalance = isConnected && !isInvalidAmount && inputAmount > balance;
   const isMarketUnavailable = market.status === "paused" || market.status === "matured";
@@ -160,17 +169,21 @@ export function TradePanel({
         throw new YieldDomainError("wallet-disconnected", "Connect a wallet to continue.");
       }
 
-      setTxState({ step: "approval-required" });
-      await new Promise((resolve) => setTimeout(resolve, 900));
-
-      setTxState({ step: "approving" });
-      await new Promise((resolve) => setTimeout(resolve, 900));
-      setTxState({ step: "approval-success" });
-      toast.success(`${market.quoteAsset} approval granted`);
-
-      setTxState({ step: "ready" });
-      setTxState({ step: "confirming" });
-      await new Promise((resolve) => setTimeout(resolve, 1400));
+      if (yieldAdapter.mode === "mock") {
+        setTxState({ step: "approval-required" });
+        await new Promise((resolve) => setTimeout(resolve, 900));
+        setTxState({ step: "approving" });
+        await new Promise((resolve) => setTimeout(resolve, 900));
+        setTxState({ step: "approval-success" });
+        toast.success(`${market.quoteAsset} approval granted`);
+        setTxState({ step: "ready" });
+        setTxState({ step: "confirming" });
+        await new Promise((resolve) => setTimeout(resolve, 1400));
+      } else {
+        // The live adapter checks the verified spender, approves only the required
+        // amount, waits for that receipt, and then submits the route transaction.
+        setTxState({ step: "pending" });
+      }
 
       setTxState({ step: "pending" });
       if (isFixed) {
@@ -182,7 +195,8 @@ export function TradePanel({
           chainId,
           quoteAsset: market.quoteAsset,
         });
-        setTxState({ step: "success", txHash: openedPosition.mockTxHash });
+        const txHash = openedPosition.txHash ?? openedPosition.mockTxHash;
+        setTxState({ step: "success", txHash });
         toast.success(
           `Successfully opened Fixed Yield position for ${inputAmount} ${market.quoteAsset}!`
         );
@@ -195,7 +209,8 @@ export function TradePanel({
           chainId,
           quoteAsset: market.quoteAsset,
         });
-        setTxState({ step: "success", txHash: openedPosition.mockTxHash });
+        const txHash = openedPosition.txHash ?? openedPosition.mockTxHash;
+        setTxState({ step: "success", txHash });
         toast.success(
           `Successfully opened Long Yield position for ${inputAmount} ${market.quoteAsset}!`
         );
@@ -386,7 +401,9 @@ export function TradePanel({
             <div className="flex justify-between py-2.5 border-b border-white/10">
               <span className="text-muted-dark">Network Fee</span>
               <span className="text-muted-dark text-[13px]">
-                {fixedQuote ? `~${fixedQuote.networkFeeEstimate} ETH` : "Shown before you confirm"}
+                {fixedQuote && fixedQuote.networkFeeEstimate !== undefined
+                  ? `~${fixedQuote.networkFeeEstimate} ETH`
+                  : "Shown before you confirm"}
               </span>
             </div>
           </div>
@@ -413,7 +430,7 @@ export function TradePanel({
           </div>
 
           {/* Scenario Table */}
-          {longQuote && (
+          {longQuote?.estimatedReturns && (
             <div className="flex flex-col gap-2">
               <span className="mono text-[11px] tracking-wider text-muted-dark uppercase">
                 If average realized rate is…
@@ -508,7 +525,9 @@ export function TradePanel({
             <div className="flex justify-between py-2 border-b border-white/10">
               <span className="text-muted-dark">Network Fee</span>
               <span className="text-muted-dark text-[13px]">
-                {longQuote ? `~${longQuote.networkFeeEstimate} ETH` : "Shown before you confirm"}
+                {longQuote && longQuote.networkFeeEstimate !== undefined
+                  ? `~${longQuote.networkFeeEstimate} ETH`
+                  : "Shown before you confirm"}
               </span>
             </div>
           </div>
@@ -548,7 +567,7 @@ export function TradePanel({
                 </div>
                 <div className="flex justify-between">
                   <span>Contract Address</span>
-                  <span className="text-muted-dark">Not deployed · preview only</span>
+                  <span className="text-muted-dark">{market.ptAddress || "Unavailable"}</span>
                 </div>
               </>
             ) : (
@@ -563,7 +582,7 @@ export function TradePanel({
                 </div>
                 <div className="flex justify-between">
                   <span>Contract Address</span>
-                  <span className="text-muted-dark">Not deployed · preview only</span>
+                  <span className="text-muted-dark">{market.ytAddress || "Unavailable"}</span>
                 </div>
               </>
             )}

@@ -12,6 +12,8 @@ export function useMarkets() {
     queryKey: queryKeys.markets(chainId),
     queryFn: () => yieldAdapter.getMarkets(),
     staleTime: 60_000,
+    refetchInterval: yieldAdapter.mode === "live" ? 60_000 : false,
+    refetchOnWindowFocus: yieldAdapter.mode === "live",
     retry: 2,
   });
 

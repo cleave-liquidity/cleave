@@ -147,7 +147,7 @@ export function PositionCard({
         <div className="flex flex-col gap-1 md:min-w-0 md:border-0 md:py-0">
           <span className="text-[12px] text-muted-dark">Deposited</span>
           <span className="mono text-[17px] text-foreground">
-            {formatTokenAmount(position.depositedAmount)}{" "}
+            {position.entryDataAvailable === false ? "—" : formatTokenAmount(position.depositedAmount)}{" "}
             <span className="text-[13px] text-muted">{position.assetSymbol}</span>
           </span>
         </div>
@@ -166,7 +166,9 @@ export function PositionCard({
               position.pnl >= 0 ? "text-positive" : "text-negative"
             }`}
           >
-            {position.pnl >= 0 ? `+${position.pnl.toFixed(2)}` : position.pnl.toFixed(2)} USDG
+            {position.entryDataAvailable === false
+              ? "—"
+              : `${position.pnl >= 0 ? `+${position.pnl.toFixed(2)}` : position.pnl.toFixed(2)} USDG`}
           </span>
         </div>
 

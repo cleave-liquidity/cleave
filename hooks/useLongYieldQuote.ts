@@ -5,14 +5,18 @@ import { LongYieldQuote } from "@/types/quote";
 import { yieldAdapter } from "@/lib/adapters/mock-adapter";
 import { queryKeys } from "@/lib/query-keys";
 import { useAccount } from "wagmi";
+import { usePublicClient } from "wagmi";
 
 export function useLongYieldQuote(marketId: string, inputAmount: number) {
   const { chainId } = useAccount();
+  const publicClient = usePublicClient();
   const query = useQuery<LongYieldQuote>({
     queryKey: queryKeys.longQuote(marketId, inputAmount, chainId),
-    queryFn: () => yieldAdapter.getLongQuote(marketId, inputAmount),
+    queryFn: () => yieldAdapter.getLongQuote(marketId, inputAmount, { publicClient }),
     enabled: Boolean(marketId) && Number.isFinite(inputAmount) && inputAmount > 0,
     staleTime: 5_000,
+    refetchInterval: yieldAdapter.mode === "live" ? 15_000 : false,
+    refetchOnWindowFocus: yieldAdapter.mode === "live",
     retry: 2,
   });
 
