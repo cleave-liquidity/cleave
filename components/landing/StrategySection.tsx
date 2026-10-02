@@ -9,16 +9,16 @@ const SCENARIOS = [
   { label: "Rate Surge (12.0%)", rate: 12.0 },
 ];
 
+// Constants for 175-day maturity (from 02 Oct 2026 to 26 Mar 2027)
+const FIXED_APY = 6.42;
+const BREAK_EVEN_RATE = 6.23;
+const YEAR_FRAC = 175 / 365; // ~0.4795
+
 export function StrategySection() {
   // Simulated lending rate in percentage (3.0% to 15.0%)
   const [simulatedRate, setSimulatedRate] = useState<number>(7.1);
   // Reference deposit amount in USDG
   const [depositAmount, setDepositAmount] = useState<number>(1000);
-
-  // Constants for 175-day maturity (from 02 Oct 2026 to 26 Mar 2027)
-  const FIXED_APY = 6.42;
-  const BREAK_EVEN_RATE = 6.23;
-  const YEAR_FRAC = 175 / 365; // ~0.4795
 
   // Calculations for Fixed Yield (PT):
   // Buy at discount, redeem at 1.0. Fixed return is locked regardless of rate!
