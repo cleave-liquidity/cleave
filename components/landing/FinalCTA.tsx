@@ -92,7 +92,7 @@ export function FinalCTA() {
           Explore markets &rarr;
         </Link>
         <Link
-          href="/trade?market=usdg-morpho-26mar27"
+          href="/markets/usdg-morpho-26mar27"
           className="inline-flex items-center gap-2 min-h-[48px] sm:min-h-[52px] px-6 border border-white/20 text-[14px] sm:text-[15px] hover:border-white/40 transition-colors"
         >
           Open a position

@@ -145,7 +145,8 @@ const DESKTOP_QUERY = "(min-width: 1024px)";
 const STAGE_SEGMENT = 1 / STAGE_COUNT;
 const HYSTERESIS = 0.028; // progress buffer that stops edge flicker
 const NAV_TIMEOUT_MS = 1600; // safety net if `scrollend` never fires
-const COPY_OUT_MS = 170; // keep in sync with `.hero-copy` in globals.css
+// A little longer than the 170ms fade in `.hero-copy` (globals.css), so the old copy is fully gone before the swap.
+const COPY_OUT_MS = 210;
 
 const STAGE_SHORT = ["The Split", "Fixed Yield", "Long Yield", "Split Engine", "Live Vaults"];
 const STAGE_ACCENT = ["#ECEDEA", "#A9C8EE", "#F0A85C", "#DDE8F8", "#34D399"];

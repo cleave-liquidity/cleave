@@ -321,7 +321,7 @@ input:focus-visible {
 
 /* ── Hero copy ───────────────────────────────────────────────────────────── */
 /* Stage change: the old copy eases out (data-phase="out"), then the new copy mounts
-   and each block rises in, staggered by --i. COPY_OUT_MS in Hero.tsx matches 170ms. */
+   and each block rises in, staggered by --i. COPY_OUT_MS in Hero.tsx is a bit longer than 170ms. */
 .hero-copy {
   transition: opacity 0.17s cubic-bezier(0.4, 0, 1, 1), transform 0.17s cubic-bezier(0.4, 0, 1, 1);
 }
@@ -346,6 +346,37 @@ input:focus-visible {
     transition: none;
   }
   .hero-rise {
+    animation: none;
+  }
+}
+
+/* ── Open a position walkthrough ─────────────────────────────────────────── */
+/* Pinned on roomy desktops: the runway is tall, the panel sticks, scroll picks the step.
+   Anywhere else it is a plain stack. Keep the query in sync with PIN_QUERY in TradePreview.tsx. */
+@media (min-width: 1024px) and (min-height: 700px) {
+  .trade-runway {
+    height: 290vh;
+  }
+  .trade-pin {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+  }
+  .trade-step-body {
+    min-height: 392px;
+  }
+}
+.trade-step-in {
+  animation: trade-step-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes trade-step-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .trade-step-in {
     animation: none;
   }
 }

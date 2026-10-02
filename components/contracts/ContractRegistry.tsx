@@ -6,10 +6,11 @@ import type { ContractCategory, ContractDeployment } from "@/lib/contracts/deplo
 import { getContractDeployments } from "@/lib/contracts/deployments";
 import type { RobinhoodNetwork } from "@/types/market";
 import { getConfiguredNetwork } from "@/lib/web3/environment";
+import { NetworkSelect, type NetworkOption } from "@/components/contracts/NetworkSelect";
 
-const networkOptions: Array<{ value: RobinhoodNetwork; label: string; chainId: number }> = [
-  { value: "mainnet", label: "Robinhood Chain Mainnet", chainId: 4663 },
-  { value: "testnet", label: "Robinhood Chain Testnet", chainId: 46630 },
+const networkOptions: readonly NetworkOption[] = [
+  { value: "mainnet", label: "Robinhood Chain Mainnet", chainId: 4663, hint: "Production" },
+  { value: "testnet", label: "Robinhood Chain Testnet", chainId: 46630, hint: "Testing" },
 ];
 
 const categoryLabels: Record<ContractCategory, string> = {
@@ -48,7 +49,7 @@ export function ContractRegistry() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="flex flex-col gap-5 border-b border-white/12 pb-6 lg:flex-row lg:items-end lg:justify-between">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="mono text-[11px] uppercase tracking-[0.18em] text-muted-dark">Deployment registry / Transparency</div>
           <h1 className="mt-3 text-[36px] font-normal leading-none tracking-[-0.04em] text-foreground sm:text-[48px]">CLEAVE Contract Registry</h1>
@@ -62,27 +63,18 @@ export function ContractRegistry() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-5 border-y border-white/12 py-5 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex flex-col gap-2">
-          <label htmlFor="registry-network" className="mono text-[10px] uppercase tracking-[0.14em] text-muted-dark">Network</label>
-          <select
-            id="registry-network"
-            value={network}
-            onChange={(event) => {
-              setNetwork(event.target.value as RobinhoodNetwork);
-              setCategory("all");
-            }}
-            className="min-h-[42px] min-w-[260px] border border-white/16 bg-surface px-3 text-[13px] text-foreground focus:border-ice/50 focus:outline-none"
-          >
-            {networkOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label} · Chain {option.chainId}
-              </option>
-            ))}
-          </select>
-        </div>
+      <div className="flex flex-col gap-5 border-y border-white/10 py-5 sm:flex-row sm:items-end sm:justify-between">
+        <NetworkSelect
+          label="Network"
+          value={network}
+          options={networkOptions}
+          onChange={(next) => {
+            setNetwork(next);
+            setCategory("all");
+          }}
+        />
 
-        <div className="mono text-[11px] uppercase tracking-[0.12em] text-muted-dark">
+        <div className="mono pb-3.5 text-[11px] uppercase tracking-[0.12em] text-muted-dark">
           {filteredDeployments.length} verified {filteredDeployments.length === 1 ? "deployment" : "deployments"}
         </div>
       </div>
@@ -99,7 +91,7 @@ export function ContractRegistry() {
       )}
 
       {filteredDeployments.length === 0 ? (
-        <div className="border border-white/14 bg-surface/70 px-6 py-16 text-center sm:px-12">
+        <div className="border border-white/15 bg-surface/70 px-6 py-16 text-center sm:px-12">
           <div className="mono text-[11px] uppercase tracking-[0.16em] text-amber">{network === "mainnet" ? "Robinhood Chain Mainnet" : "Robinhood Chain Testnet"}</div>
           <h2 className="mt-3 text-[22px] font-normal text-foreground">No verified CLEAVE contracts configured.</h2>
           <p className="mx-auto mt-3 max-w-[520px] text-[14px] leading-6 text-muted">
@@ -107,9 +99,9 @@ export function ContractRegistry() {
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto border border-white/14 bg-surface/70">
+        <div className="overflow-x-auto border border-white/15 bg-surface/70">
           <div className="min-w-[760px]">
-            <div className="mono grid grid-cols-[1.7fr_0.8fr_0.7fr_1.4fr_0.7fr_0.9fr] gap-4 border-b border-white/16 px-5 py-3 text-[10px] uppercase tracking-[0.14em] text-muted-dark">
+            <div className="mono grid grid-cols-[1.7fr_0.8fr_0.7fr_1.4fr_0.7fr_0.9fr] gap-4 border-b border-white/15 px-5 py-3 text-[10px] uppercase tracking-[0.14em] text-muted-dark">
               <span>Contract</span><span>Category</span><span>Version</span><span>Address</span><span>Status</span><span className="text-right">Actions</span>
             </div>
             {filteredDeployments.map((deployment) => (
@@ -120,10 +112,10 @@ export function ContractRegistry() {
                 <span className="mono text-muted">{shortAddress(deployment.address)}</span>
                 <span className={deployment.verified ? "text-positive" : "text-amber"}>{deployment.verified ? "Verified" : "Unverified"}</span>
                 <div className="flex justify-end gap-2">
-                  <button type="button" onClick={() => copyAddress(deployment)} aria-label={`Copy ${deployment.name} address`} className="inline-flex min-h-[30px] items-center gap-1 border border-white/16 px-2 text-[11px] text-muted hover:border-white/35 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice">
+                  <button type="button" onClick={() => copyAddress(deployment)} aria-label={`Copy ${deployment.name} address`} className="inline-flex min-h-[30px] items-center gap-1 border border-white/15 px-2 text-[11px] text-muted hover:border-white/35 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice">
                     {copiedId === deployment.id ? <Check className="h-3.5 w-3.5" aria-hidden="true" /> : <Copy className="h-3.5 w-3.5" aria-hidden="true" />} Copy
                   </button>
-                  {deployment.explorerUrl && <a href={deployment.explorerUrl} target="_blank" rel="noopener noreferrer" aria-label={`Open ${deployment.name} in explorer`} className="inline-flex min-h-[30px] items-center border border-white/16 px-2 text-muted hover:border-white/35 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice"><ExternalLink className="h-3.5 w-3.5" aria-hidden="true" /></a>}
+                  {deployment.explorerUrl && <a href={deployment.explorerUrl} target="_blank" rel="noopener noreferrer" aria-label={`Open ${deployment.name} in explorer`} className="inline-flex min-h-[30px] items-center border border-white/15 px-2 text-muted hover:border-white/35 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice"><ExternalLink className="h-3.5 w-3.5" aria-hidden="true" /></a>}
                 </div>
               </div>
             ))}
