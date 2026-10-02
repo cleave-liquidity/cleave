@@ -15,11 +15,15 @@ import { formatApy } from "@/lib/utils/formatters";
 import { DEFAULT_TICKET, pickFeaturedMarket } from "./featuredMarket";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// The Split Engine — one frame.
-// Header + a single diagram that tells the whole story: one asset enters a vault, splits
-// at the node, Fixed settles and Long keeps moving, both converge at maturity. The three
-// summary cards that used to sit below now live *inside* the diagram (chips + legend), so
-// the section is exactly one screen.
+// The Split Engine — one pinned frame, driven by scroll.
+// On roomy desktops the whole frame sticks to the viewport (`.zs-runway` / `.zs-pin` in
+// globals.css) and scrolling travels the timeline: the split handle moves from Today to
+// Maturity, the two branches stretch and zip, and the three summary cards (Fixed, Long,
+// Conservation Invariant) appear one after another underneath. Anywhere else it is a normal
+// stack and the handle is dragged.
+//
+// Scroll is the single source of truth while pinned: dragging, keyboard and the preset
+// buttons all move the page scroll, and the scroll position sets the handle.
 //
 // Data: market name / symbol / APY / maturity / icon come from `useMarkets()`, the PT price
 // from the shared fixed quote (`useFixedYieldQuote`). The simulation itself is the untouched
@@ -29,7 +33,7 @@ import { DEFAULT_TICKET, pickFeaturedMarket } from "./featuredMarket";
 // Long branch out → labels → flow starts. Replays each time the frame comes back into view.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Timeline coordinate bounds in SVG (viewBox 1440 × 520, y from 92)
+// Timeline coordinate bounds in SVG (viewBox 1440 × 500, y from 92)
 const START_X = 420;
 const END_X = 1200;
 const BASE_Y = 330;
@@ -39,6 +43,17 @@ const AXIS_Y = 550;
 // pure demo helper.
 const MILESTONE_X = [420, 554, 687, 826, 964, 1089, 1200] as const;
 const DAY_MS = 86_400_000;
+const LINE_LEFT = -700; // lines run past the viewBox so they reach the screen edge when the diagram is letterboxed
+
+/** Keep in sync with `.zs-runway` / `.zs-pin` in globals.css. */
+const PIN_QUERY = "(min-width: 1100px) and (min-height: 760px)";
+/** Share of the runway at each end where the handle rests (Today / Maturity). */
+const DWELL = 0.06;
+/** Timeline progress at which each summary card appears (pinned layout). */
+const CARD_AT = [0, 0.3, 0.7] as const;
+
+const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+const prefersReducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /** Entrance delay (seconds) for an element — consumed by the `.zs-*` classes. */
 const at = (seconds: number) => ({ "--d": `${seconds}s` }) as React.CSSProperties;
@@ -49,7 +64,8 @@ export function YieldSplitSection() {
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [hinted, setHinted] = useState(false); // the handle pulses until it has been used once
   const [entered, setEntered] = useState<boolean | null>(null); // null = not observed yet → everything visible
-  const sectionRef = useRef<HTMLElement>(null);
+  const sectionRef = useRef<HTMLElement>(null); // the runway
+  const pinRef = useRef<HTMLDivElement>(null); // the pinned frame
   const svgRef = useRef<SVGSVGElement>(null);
 
   // ─── Data: normalized market + shared quote through the existing hooks ───
@@ -105,7 +121,7 @@ export function YieldSplitSection() {
 
   // ─── Entrance: play when the frame is in view, reset when it has left ────
   useEffect(() => {
-    const el = sectionRef.current;
+    const el = pinRef.current;
     if (!el || typeof IntersectionObserver === "undefined") return;
     const io = new IntersectionObserver(
       ([entry]) => {
@@ -118,17 +134,66 @@ export function YieldSplitSection() {
     return () => io.disconnect();
   }, []);
 
-  // Convert pointer position to SVG user space (exact whatever the scaling).
-  const updateSplitFromPointer = useCallback((clientX: number, clientY: number) => {
-    const svg = svgRef.current;
-    const ctm = svg?.getScreenCTM();
-    if (!svg || !ctm) return;
-    const pt = svg.createSVGPoint();
-    pt.x = clientX;
-    pt.y = clientY;
-    const svgX = pt.matrixTransform(ctm.inverse()).x;
-    setSplitX(Math.max(START_X, Math.min(END_X, svgX)));
+  // ─── Scroll → handle (pinned desktop) ───────────────────────────────────
+  useEffect(() => {
+    let raf = 0;
+    const sync = () => {
+      raf = 0;
+      const run = sectionRef.current;
+      if (!run || !window.matchMedia(PIN_QUERY).matches) return;
+      const travel = run.offsetHeight - window.innerHeight;
+      if (travel <= 0) return;
+      const p = clamp(-run.getBoundingClientRect().top / travel, 0, 1);
+      const t = clamp((p - DWELL) / (1 - 2 * DWELL), 0, 1);
+      setSplitX(START_X + (END_X - START_X) * t);
+    };
+    const schedule = () => {
+      if (!raf) raf = requestAnimationFrame(sync);
+    };
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule, { passive: true });
+    schedule(); // e.g. reload mid-section
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+    };
   }, []);
+
+  /**
+   * Move the handle. Pinned: the page scrolls to that point of the runway (and the scroll
+   * handler sets the handle, so scroll stays the one source of truth). Otherwise: set it directly.
+   */
+  const moveTo = useCallback((x: number, smooth = false) => {
+    const next = clamp(x, START_X, END_X);
+    const run = sectionRef.current;
+    if (run && window.matchMedia(PIN_QUERY).matches) {
+      const t = (next - START_X) / (END_X - START_X);
+      const top = run.getBoundingClientRect().top + window.scrollY;
+      const travel = run.offsetHeight - window.innerHeight;
+      if (!smooth) setSplitX(next);
+      window.scrollTo({
+        top: Math.round(top + (DWELL + t * (1 - 2 * DWELL)) * travel),
+        behavior: smooth && !prefersReducedMotion() ? "smooth" : "auto",
+      });
+      return;
+    }
+    setSplitX(next);
+  }, []);
+
+  // Convert pointer position to SVG user space (exact whatever the scaling).
+  const updateSplitFromPointer = useCallback(
+    (clientX: number, clientY: number) => {
+      const svg = svgRef.current;
+      const ctm = svg?.getScreenCTM();
+      if (!svg || !ctm) return;
+      const pt = svg.createSVGPoint();
+      pt.x = clientX;
+      pt.y = clientY;
+      moveTo(pt.matrixTransform(ctm.inverse()).x);
+    },
+    [moveTo],
+  );
 
   const handlePointerDown = (e: React.PointerEvent<SVGGElement>) => {
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -162,18 +227,18 @@ export function YieldSplitSection() {
     else return;
     e.preventDefault();
     setHinted(true);
-    setSplitX(Math.max(START_X, Math.min(END_X, next)));
+    moveTo(next);
   };
 
   // Generate dynamic smooth paths based on splitX
   const { pathUnified, pathFixed, pathLong, fixedEndPt, longEndPt } = useMemo(() => {
-    // 1. Unified line: from x=0 to x=splitX
-    const unified = `M 0 ${BASE_Y} L ${splitX} ${BASE_Y}`;
+    // 1. Unified line: from off the left edge to x=splitX
+    const unified = `M ${LINE_LEFT} ${BASE_Y} L ${splitX} ${BASE_Y}`;
 
     // If fully zipped (at or very near maturity), lines merge completely into straight line
     if (splitX >= END_X - 6) {
       return {
-        pathUnified: `M 0 ${BASE_Y} L ${END_X} ${BASE_Y}`,
+        pathUnified: `M ${LINE_LEFT} ${BASE_Y} L ${END_X} ${BASE_Y}`,
         pathFixed: `M ${END_X} ${BASE_Y} L ${END_X} ${BASE_Y}`,
         pathLong: `M ${END_X} ${BASE_Y} L ${END_X} ${BASE_Y}`,
         fixedEndPt: { x: END_X, y: BASE_Y },
@@ -232,16 +297,14 @@ export function YieldSplitSection() {
   const branchOpacity = isFullZipped ? 0 : 1;
   const labelOpacity = progress > 0.85 ? 0.3 : 1;
 
+  const cardOn = (i: number) => progress >= CARD_AT[i] - 1e-6;
+
   return (
     <section
       id="how"
       ref={sectionRef}
       data-zs={entered === null ? undefined : String(entered)}
-      className="zs-frame relative flex select-none flex-col overflow-hidden pb-4 pt-12 sm:pt-14"
-      style={{
-        background:
-          "radial-gradient(ellipse 80% 40% at 50% 0%, rgba(169,200,238,0.05) 0%, transparent 70%)",
-      }}
+      className="zs-runway relative select-none overflow-x-clip"
     >
       {/* Top divider: a hairline with a soft light that falls off smoothly on every side (no box). */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
@@ -259,6 +322,14 @@ export function YieldSplitSection() {
         style={{ background: "linear-gradient(90deg, transparent, rgba(214,230,252,0.75), transparent)" }}
       />
 
+      <div
+        ref={pinRef}
+        className="zs-pin relative pb-3 pt-14 lg:pt-10"
+        style={{
+          background:
+            "radial-gradient(ellipse 80% 40% at 50% 0%, rgba(169,200,238,0.05) 0%, transparent 70%)",
+        }}
+      >
       {/* Section Header */}
       <div className="relative mx-auto grid w-full max-w-[1240px] grid-cols-1 items-end gap-5 px-4 sm:px-6 lg:grid-cols-[1.2fr_0.8fr] lg:gap-10 lg:px-10">
         <div data-reveal className="flex flex-col gap-3 sm:gap-4">
@@ -284,7 +355,7 @@ export function YieldSplitSection() {
             <span className="mono mr-1 text-[11px] uppercase tracking-[0.14em] text-muted-dark">Timeline:</span>
             <button
               type="button"
-              onClick={() => setSplitX(START_X)}
+              onClick={() => moveTo(START_X, true)}
               className={`mono border px-2.5 py-1 text-[10px] tracking-[0.1em] transition-all ${
                 progress <= 0.05
                   ? "border-ice bg-ice/15 font-medium text-ice"
@@ -295,7 +366,7 @@ export function YieldSplitSection() {
             </button>
             <button
               type="button"
-              onClick={() => setSplitX(START_X + (END_X - START_X) * 0.5)}
+              onClick={() => moveTo(START_X + (END_X - START_X) * 0.5, true)}
               className={`mono border px-2.5 py-1 text-[10px] tracking-[0.1em] transition-all ${
                 progress > 0.4 && progress < 0.6
                   ? "border-ice bg-ice/15 font-medium text-ice"
@@ -306,7 +377,7 @@ export function YieldSplitSection() {
             </button>
             <button
               type="button"
-              onClick={() => setSplitX(END_X)}
+              onClick={() => moveTo(END_X, true)}
               className={`mono border px-2.5 py-1 text-[10px] tracking-[0.1em] transition-all ${
                 isFullZipped
                   ? "border-amber bg-amber/15 font-medium text-amber"
@@ -338,12 +409,12 @@ export function YieldSplitSection() {
       </div>
 
       {/* ─── YIELD SPLIT INTERACTIVE SVG DIAGRAM ─── */}
-      <div className="no-scrollbar relative mt-1 flex flex-1 items-center overflow-x-auto">
-        <div className="min-w-[900px] flex-1 lg:min-w-full">
+      <div className="zs-stage no-scrollbar relative mt-1 flex items-center">
+        <div className="zs-stage-inner flex-1">
           <svg
             ref={svgRef}
-            viewBox="0 92 1440 520"
-            className="block h-auto w-full cursor-default"
+            viewBox="0 92 1440 500"
+            className="zs-svg cursor-default"
             role="group"
             aria-label={`Interactive yield split diagram: one ${symbol || "asset"} position splits into Fixed and Long yield and reunites at maturity`}
           >
@@ -368,7 +439,7 @@ export function YieldSplitSection() {
                 <stop offset="100%" stopColor="rgba(240,168,92,0)" />
               </linearGradient>
               {/* The asset line fades in from the left edge — it is entering the scene */}
-              <linearGradient id="unifiedGrad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="360" y2="0">
+              <linearGradient id="unifiedGrad" gradientUnits="userSpaceOnUse" x1="-300" y1="0" x2="360" y2="0">
                 <stop offset="0%" stopColor="rgba(236,237,234,0.1)" />
                 <stop offset="100%" stopColor="rgba(236,237,234,1)" />
               </linearGradient>
@@ -394,7 +465,7 @@ export function YieldSplitSection() {
                   <path key={`${m.label}-${i}`} d={`M ${m.x} 120 V ${AXIS_Y}`} />
                 ))}
               </g>
-              <path d={`M 0 ${AXIS_Y} H 1440`} stroke="rgba(236,237,234,0.14)" strokeWidth="1" />
+              <path d={`M ${LINE_LEFT} ${AXIS_Y} H ${1440 - LINE_LEFT}`} stroke="rgba(236,237,234,0.14)" strokeWidth="1" />
               <g stroke="rgba(236,237,234,0.3)" strokeWidth="1">
                 {milestones.slice(0, -1).map((m, i) => (
                   <path key={`${m.label}-${i}`} d={`M ${m.x} ${AXIS_Y} v 6`} />
@@ -593,16 +664,6 @@ export function YieldSplitSection() {
               </g>
             )}
 
-            {/* Footer legend: the invariant and the state, in one line */}
-            <g className="mono zs-fade" fontSize="11" letterSpacing="0.12em" style={at(3.2)}>
-              <text x="40" y="600" fill="#8E9390">
-                <tspan fill="#A9C8EE">1 PT</tspan> + <tspan fill="#F0A85C">1 YT</tspan> = {splitMarket.underlyingAmount.toFixed(0)} {symbol} VAULT
-              </text>
-              <text x="1400" y="600" textAnchor="end" fill="#6F7471">
-                {isFullZipped ? "MATURITY REACHED — 100% COLLATERAL REDEEMABLE" : "ACTIVE SPLIT — NO PROTOCOL DEBT OR MARGIN CALL"}
-              </text>
-            </g>
-
             {/* 4. DRAGGABLE ZIPPER HANDLE (At splitX) */}
             <g
               transform={`translate(${splitX} 0)`}
@@ -687,6 +748,63 @@ export function YieldSplitSection() {
             </g>
           </svg>
         </div>
+      </div>
+
+      {/* ─── Summary cards: appear one after another as the timeline travels (pinned) ─── */}
+      <div className="relative mx-auto mt-2 grid w-full max-w-[1240px] grid-cols-1 border-t border-white/10 px-4 sm:px-6 md:grid-cols-3 lg:px-10">
+        <div
+          data-on={cardOn(0)}
+          className="zs-card flex flex-col gap-1.5 border-b border-white/10 py-4 md:border-b-0 md:border-r md:py-3 md:pr-8"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 shrink-0 rounded-full bg-ice" />
+              <span className="text-[16px] font-medium text-ice">Fixed Yield (PT)</span>
+            </div>
+            <span className="mono text-[13px] text-ice">{ptReady ? `$${currentPtPrice.toFixed(3)}` : dash}</span>
+          </div>
+          <span className="text-[13px] font-light leading-[1.5] text-muted">
+            Worth exactly {splitMarket.underlyingAmount.toFixed(0)} {symbol} at maturity, bought below 1 today. The gap is your locked
+            return, with zero liquidation.
+          </span>
+          <div className="mono flex justify-between text-[10px] tracking-[0.1em] text-muted-dark">
+            <span>APY: {formatApy(splitMarket.impliedApy)} LOCKED</span>
+            <span>
+              MATURES: {splitMarket.underlyingAmount.toFixed(2)} {symbol}
+            </span>
+          </div>
+        </div>
+
+        <div
+          data-on={cardOn(1)}
+          className="zs-card flex flex-col gap-1.5 border-b border-white/10 py-4 md:border-b-0 md:border-r md:px-8 md:py-3"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 shrink-0 rounded-full bg-amber" />
+              <span className="text-[16px] font-medium text-amber">Long Yield (YT)</span>
+            </div>
+            <span className="mono text-[13px] text-amber">+{yieldPaidPercentage.toFixed(0)}% paid</span>
+          </div>
+          <span className="text-[13px] font-light leading-[1.5] text-muted">
+            Collects streaming yield until maturity, then ends at zero. You win if the variable rate stays above break-even.
+          </span>
+          <div className="mono flex justify-between text-[10px] tracking-[0.1em] text-muted-dark">
+            <span>CLAIMED: {ptReady ? `$${yieldStreamed.toFixed(3)}` : dash}</span>
+            <span>LEVERAGE: {ptReady ? `~${leverage.toFixed(1)}x` : dash}</span>
+          </div>
+        </div>
+
+        <div data-on={cardOn(2)} className="zs-card flex flex-col gap-1.5 py-4 md:py-3 md:pl-8">
+          <span className="mono text-[11px] uppercase tracking-[0.14em] text-muted-dark">Conservation Invariant</span>
+          <span className="mono text-[19px] leading-[1.3] text-foreground">
+            <span className="text-ice">1 PT</span> + <span className="text-amber">1 YT</span> = {splitMarket.underlyingAmount.toFixed(0)} {symbol} Vault
+          </span>
+          <span className="mono text-[10px] tracking-[0.08em] text-muted-dark">
+            {isFullZipped ? "MATURITY REACHED · 100% REDEEMABLE" : "ACTIVE SPLIT · NO PROTOCOL DEBT"}
+          </span>
+        </div>
+      </div>
       </div>
     </section>
   );

@@ -352,9 +352,58 @@ input:focus-visible {
 
 /* ── The split engine: one frame + entrance ───────────────────────────────── */
 /* On roomy screens the section is exactly one viewport tall; elsewhere it just flows. */
-@media (min-width: 1024px) and (min-height: 700px) {
-  .zs-frame {
-    min-height: 100svh;
+/* Pinned on roomy desktops: a tall runway, a sticky frame, scroll travels the timeline.
+   Keep the query in sync with PIN_QUERY in YieldSplitSection.tsx. */
+.zs-stage {
+  overflow-x: auto;
+}
+.zs-stage-inner {
+  min-width: 900px;
+}
+.zs-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+@media (min-width: 1100px) and (min-height: 760px) {
+  .zs-runway {
+    height: 360vh;
+  }
+  .zs-pin {
+    position: sticky;
+    top: 0;
+    height: 100svh;
+    display: flex;
+    flex-direction: column;
+  }
+  .zs-stage {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow: visible;
+  }
+  .zs-stage-inner {
+    min-width: 0;
+    height: 100%;
+  }
+  .zs-svg {
+    height: 100%;
+  }
+  .zs-card {
+    transition: opacity 0.5s ease, transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .zs-card[data-on="false"] {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .zs-card {
+    transition: none;
+  }
+  .zs-card[data-on="false"] {
+    opacity: 1;
+    transform: none;
   }
 }
 /* Entrance choreography. The section reports data-zs="true" (play) / "false" (reset); with no
