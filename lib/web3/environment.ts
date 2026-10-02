@@ -1,10 +1,22 @@
 import type { RobinhoodNetwork } from "@/types/market";
-import { getRobinhoodNetwork } from "@/lib/web3/chains";
+import {
+  ROBINHOOD_CHAIN_ID,
+  ROBINHOOD_TESTNET_CHAIN_ID,
+  getRobinhoodNetwork,
+} from "@/lib/web3/chains";
 
 export function getConfiguredNetwork(): RobinhoodNetwork {
   return process.env.NEXT_PUBLIC_ROBINHOOD_CHAIN_ENV === "mainnet"
     ? "mainnet"
     : "testnet";
+}
+
+export function getConfiguredChainId():
+  | typeof ROBINHOOD_CHAIN_ID
+  | typeof ROBINHOOD_TESTNET_CHAIN_ID {
+  return getConfiguredNetwork() === "mainnet"
+    ? ROBINHOOD_CHAIN_ID
+    : ROBINHOOD_TESTNET_CHAIN_ID;
 }
 
 export function getNetworkLabel(

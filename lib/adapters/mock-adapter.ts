@@ -60,41 +60,49 @@ function clonePosition(position: YieldPosition): YieldPosition {
   return { ...position };
 }
 
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function isHex32(value: unknown): value is `0x${string}` {
+  return typeof value === "string" && /^0x[a-fA-F0-9]{64}$/.test(value);
+}
+
 function isPositionRecord(value: unknown): value is YieldPosition {
   if (!value || typeof value !== "object") return false;
   const candidate = value as Partial<YieldPosition>;
   const commonValid =
     typeof candidate.id === "string" &&
-    typeof candidate.owner === "string" &&
+    /^0x[a-fA-F0-9]{40}$/.test(candidate.owner ?? "") &&
     typeof candidate.marketId === "string" &&
     (candidate.strategy === "fixed" || candidate.strategy === "long") &&
     typeof candidate.maturityDate === "string" &&
     typeof candidate.openedAt === "string" &&
-    typeof candidate.mockTxHash === "string" &&
+    isHex32(candidate.mockTxHash) &&
     ["active", "matured", "closed", "redeemed"].includes(
       candidate.status as string,
     ) &&
-    typeof candidate.depositedAmount === "number" &&
-    typeof candidate.currentValue === "number" &&
-    typeof candidate.pnl === "number";
+    isFiniteNumber(candidate.depositedAmount) &&
+    isFiniteNumber(candidate.currentValue) &&
+    isFiniteNumber(candidate.pnl);
   if (!commonValid) return false;
   if (candidate.strategy === "fixed") {
     const fixed = candidate as Partial<FixedYieldPosition>;
     return (
-      typeof fixed.ptAmount === "number" &&
-      typeof fixed.entryImpliedApy === "number" &&
-      typeof fixed.quotedFixedApy === "number"
+      isFiniteNumber(fixed.ptAmount) &&
+      isFiniteNumber(fixed.entryImpliedApy) &&
+      isFiniteNumber(fixed.quotedFixedApy)
     );
   }
   if (candidate.strategy === "long") {
     const long = candidate as Partial<LongYieldPosition>;
     return (
-      typeof long.ytAmount === "number" &&
-      typeof long.claimableYield === "number" &&
-      typeof long.entryUnderlyingApy === "number" &&
-      typeof long.entryImpliedApy === "number" &&
-      typeof long.breakEvenApy === "number" &&
-      typeof long.currentUnderlyingApy === "number" &&
+      isFiniteNumber(long.ytAmount) &&
+      isFiniteNumber(long.claimableYield) &&
+      isFiniteNumber(long.entryUnderlyingApy) &&
+      isFiniteNumber(long.entryImpliedApy) &&
+      isFiniteNumber(long.breakEvenApy) &&
+      isFiniteNumber(long.currentUnderlyingApy) &&
       typeof long.lastClaimedAt === "string"
     );
   }
@@ -215,7 +223,14 @@ export class MockYieldMarketAdapter implements YieldMarketAdapter {
       const raw = window.localStorage.getItem(this.storageKey(owner));
       if (!raw) return [];
       const parsed: unknown = JSON.parse(raw);
-      if (!Array.isArray(parsed) || !parsed.every(isPositionRecord)) {
+      if (
+        !Array.isArray(parsed) ||
+        !parsed.every(
+          (position) =>
+            isPositionRecord(position) &&
+            position.owner.toLowerCase() === owner.toLowerCase(),
+        )
+      ) {
         window.localStorage.removeItem(this.storageKey(owner));
         return [];
       }
@@ -423,7 +438,10 @@ export class MockYieldMarketAdapter implements YieldMarketAdapter {
     }
   }
 
-  async getPositions(userAddress?: `0x${string}`): Promise<YieldPosition[]> {
+  async getPositions(
+    userAddress?: `0x${string}`,
+    _chainId?: number,
+  ): Promise<YieldPosition[]> {
     if (!userAddress) return [];
     const owner = this.ownerKey(userAddress);
     const positions = this.positionsForOwner(userAddress);

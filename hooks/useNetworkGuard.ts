@@ -1,10 +1,8 @@
 "use client";
 
 import { useAccount, useSwitchChain } from "wagmi";
-import {
-  ROBINHOOD_CHAIN_ID,
-  isSupportedRobinhoodChain,
-} from "@/lib/web3/chains";
+import { isSupportedRobinhoodChain } from "@/lib/web3/chains";
+import { getConfiguredChainId } from "@/lib/web3/environment";
 import { YieldDomainError } from "@/types/errors";
 
 export type NetworkGuardStatus = "disconnected" | "unsupported-chain" | "switching-chain" | "ready";
@@ -27,7 +25,7 @@ export function useNetworkGuard() {
         "Your wallet cannot switch networks automatically. Switch to Robinhood Chain manually."
       );
     }
-    await switchChainAsync({ chainId: ROBINHOOD_CHAIN_ID });
+    await switchChainAsync({ chainId: getConfiguredChainId() });
   };
 
   return {

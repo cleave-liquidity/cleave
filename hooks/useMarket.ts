@@ -13,6 +13,7 @@ export function useMarket(id: string) {
     queryFn: () => yieldAdapter.getMarket(id),
     enabled: Boolean(id),
     staleTime: 60_000,
+    retry: 2,
   });
 
   return {

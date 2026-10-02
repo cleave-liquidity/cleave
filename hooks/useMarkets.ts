@@ -12,6 +12,7 @@ export function useMarkets() {
     queryKey: queryKeys.markets(chainId),
     queryFn: () => yieldAdapter.getMarkets(),
     staleTime: 60_000,
+    retry: 2,
   });
 
   return {

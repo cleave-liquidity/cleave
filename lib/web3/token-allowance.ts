@@ -58,7 +58,7 @@ export class ViemTokenAllowanceAdapter implements TokenAllowanceAdapter {
 
   async approve(request: TokenApprovalRequest): Promise<Hex> {
     this.assertRequest(request.tokenAddress, request.owner, request.spender, request.chainId);
-    if (request.amount <= 0n) {
+    if (request.amount <= BigInt(0)) {
       throw new YieldDomainError("invalid-amount", "Approval amount must be greater than zero.");
     }
 
