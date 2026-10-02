@@ -1,31 +1,89 @@
 "use client";
 
-import React, { useState, useRef, useCallback, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AssetIcon } from "@/components/markets/AssetIcon";
+import { useFixedYieldQuote } from "@/hooks/useFixedYieldQuote";
+import { useMarkets } from "@/hooks/useMarkets";
 import {
+  getDaysToMaturity,
   getTimelineMilestones,
   getYieldSplitSimulation,
   yieldSplitDemoMarket,
+  type YieldSplitDemoMarket,
 } from "@/lib/demo/yield-split-demo";
+import { formatApy } from "@/lib/utils/formatters";
+import { DEFAULT_TICKET, pickFeaturedMarket } from "./featuredMarket";
 
-// Timeline coordinate bounds in SVG (1440 x 600)
+// ─────────────────────────────────────────────────────────────────────────────
+// The Split Engine — one frame.
+// Header + a single diagram that tells the whole story: one asset enters a vault, splits
+// at the node, Fixed settles and Long keeps moving, both converge at maturity. The three
+// summary cards that used to sit below now live *inside* the diagram (chips + legend), so
+// the section is exactly one screen.
+//
+// Data: market name / symbol / APY / maturity / icon come from `useMarkets()`, the PT price
+// from the shared fixed quote (`useFixedYieldQuote`). The simulation itself is the untouched
+// `lib/demo/yield-split-demo` logic, fed with that market instead of constants.
+//
+// Entrance (CSS, see `.zs-*` in globals.css): vault → line draws → split node → Fixed and
+// Long branch out → labels → flow starts. Replays each time the frame comes back into view.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Timeline coordinate bounds in SVG (viewBox 1440 × 520, y from 92)
 const START_X = 420;
 const END_X = 1200;
 const BASE_Y = 330;
+const AXIS_Y = 550;
 
-// SVG x positions are presentation geometry; milestone dates come from the
-// deterministic demo market and are derived in the pure data helper.
+// SVG x positions are presentation geometry; milestone dates come from the market via the
+// pure demo helper.
 const MILESTONE_X = [420, 554, 687, 826, 964, 1089, 1200] as const;
-const MILESTONES = getTimelineMilestones(yieldSplitDemoMarket).map((milestone, index) => ({
-  ...milestone,
-  x: MILESTONE_X[index],
-}));
-const MATURITY_MILESTONE = MILESTONES[MILESTONES.length - 1];
+const DAY_MS = 86_400_000;
+
+/** Entrance delay (seconds) for an element — consumed by the `.zs-*` classes. */
+const at = (seconds: number) => ({ "--d": `${seconds}s` }) as React.CSSProperties;
 
 export function YieldSplitSection() {
   // Current split position (from START_X = 420 to END_X = 1200)
   const [splitX, setSplitX] = useState<number>(START_X);
   const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [hinted, setHinted] = useState(false); // the handle pulses until it has been used once
+  const [entered, setEntered] = useState<boolean | null>(null); // null = not observed yet → everything visible
+  const sectionRef = useRef<HTMLElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+
+  // ─── Data: normalized market + shared quote through the existing hooks ───
+  const { markets } = useMarkets();
+  const market = useMemo(() => pickFeaturedMarket(markets), [markets]);
+  const { quote: fixedQuote } = useFixedYieldQuote(market?.id ?? "", DEFAULT_TICKET);
+  const ptReady = Boolean(market && fixedQuote);
+
+  // The demo logic is parameterised by market. Feed it the live one; only the
+  // simulation parameters (offsets, thresholds, unit amount) stay with the demo.
+  const splitMarket = useMemo<YieldSplitDemoMarket>(() => {
+    if (!market) return yieldSplitDemoMarket;
+    const maturity = Date.parse(market.maturityDate);
+    const demoSpan = getDaysToMaturity(yieldSplitDemoMarket.referenceDate, yieldSplitDemoMarket.maturityDate);
+    return {
+      ...yieldSplitDemoMarket,
+      symbol: market.symbol,
+      name: market.assetMetadata?.name ?? market.name,
+      impliedApy: market.impliedApy,
+      maturityDate: Number.isFinite(maturity) ? new Date(maturity).toISOString() : yieldSplitDemoMarket.maturityDate,
+      referenceDate: Number.isFinite(maturity)
+        ? new Date(maturity - market.daysRemaining * DAY_MS).toISOString()
+        : yieldSplitDemoMarket.referenceDate,
+      // Keep the same shape of timeline whatever the market's length is.
+      timelineDayOffsets: yieldSplitDemoMarket.timelineDayOffsets.map((o) => Math.round((o / demoSpan) * market.daysRemaining)),
+      initialPtPrice: fixedQuote?.ptPrice ?? yieldSplitDemoMarket.initialPtPrice,
+    };
+  }, [market, fixedQuote]);
+
+  const milestones = useMemo(
+    () => getTimelineMilestones(splitMarket).map((m, i) => ({ ...m, x: MILESTONE_X[i] })),
+    [splitMarket],
+  );
+  const maturityMilestone = milestones[milestones.length - 1];
 
   // Normalized progress: 0.0 = Today (fully split) -> 1.0 = Maturity (fully zipped / unified)
   const progress = Math.max(0, Math.min(1, (splitX - START_X) / (END_X - START_X)));
@@ -38,31 +96,50 @@ export function YieldSplitSection() {
     yieldPaidPercentage,
     leverage,
     isFullZipped,
-  } = useMemo(
-    () => getYieldSplitSimulation(yieldSplitDemoMarket, progress),
-    [progress],
-  );
+  } = useMemo(() => getYieldSplitSimulation(splitMarket, progress), [splitMarket, progress]);
 
-  // Convert pointer event clientX to SVG viewBox coordinate (0..1440)
-  const updateSplitFromClientX = useCallback((clientX: number) => {
+  const symbol = market?.symbol ?? "";
+  const assetName = market?.assetMetadata?.name ?? market?.name ?? "Lending vault";
+  const protocol = market?.protocolMetadata?.name ?? market?.sourceProtocol;
+  const dash = "—";
+
+  // ─── Entrance: play when the frame is in view, reset when it has left ────
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.intersectionRatio >= 0.3) setEntered(true);
+        else if (!entry.isIntersecting) setEntered(false);
+      },
+      { threshold: [0, 0.3] },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  // Convert pointer position to SVG user space (exact whatever the scaling).
+  const updateSplitFromPointer = useCallback((clientX: number, clientY: number) => {
     const svg = svgRef.current;
-    if (!svg) return;
-    const rect = svg.getBoundingClientRect();
-    const scaleX = 1440 / rect.width;
-    const svgX = (clientX - rect.left) * scaleX;
-    const clamped = Math.max(START_X, Math.min(END_X, svgX));
-    setSplitX(clamped);
+    const ctm = svg?.getScreenCTM();
+    if (!svg || !ctm) return;
+    const pt = svg.createSVGPoint();
+    pt.x = clientX;
+    pt.y = clientY;
+    const svgX = pt.matrixTransform(ctm.inverse()).x;
+    setSplitX(Math.max(START_X, Math.min(END_X, svgX)));
   }, []);
 
   const handlePointerDown = (e: React.PointerEvent<SVGGElement>) => {
     e.currentTarget.setPointerCapture(e.pointerId);
     setIsDragging(true);
-    updateSplitFromClientX(e.clientX);
+    setHinted(true);
+    updateSplitFromPointer(e.clientX, e.clientY);
   };
 
   const handlePointerMove = (e: React.PointerEvent<SVGGElement>) => {
     if (!isDragging) return;
-    updateSplitFromClientX(e.clientX);
+    updateSplitFromPointer(e.clientX, e.clientY);
   };
 
   const handlePointerUp = (e: React.PointerEvent<SVGGElement>) => {
@@ -72,6 +149,20 @@ export function YieldSplitSection() {
     } catch {
       // ignore
     }
+  };
+
+  // The handle is a slider: ←/→ move it by 5 %, Home / End jump to the ends.
+  const handleKeyDown = (e: React.KeyboardEvent<SVGGElement>) => {
+    const step = (END_X - START_X) * 0.05;
+    let next = splitX;
+    if (e.key === "ArrowRight" || e.key === "ArrowUp") next += step;
+    else if (e.key === "ArrowLeft" || e.key === "ArrowDown") next -= step;
+    else if (e.key === "Home") next = START_X;
+    else if (e.key === "End") next = END_X;
+    else return;
+    e.preventDefault();
+    setHinted(true);
+    setSplitX(Math.max(START_X, Math.min(END_X, next)));
   };
 
   // Generate dynamic smooth paths based on splitX
@@ -132,57 +223,71 @@ export function YieldSplitSection() {
     };
   }, [splitX]);
 
+  // Area between each branch and the parity line: the "locked" side above, the "floating" side below.
+  const areaFixed = `${pathFixed} L ${END_X} ${BASE_Y} Z`;
+  const areaLong = `${pathLong} L ${END_X} ${BASE_Y} Z`;
+
+  const labelX = Math.max(splitX + 60, 560);
+  const chipX = Math.min(1350, Math.max(90, splitX));
+  const branchOpacity = isFullZipped ? 0 : 1;
+  const labelOpacity = progress > 0.85 ? 0.3 : 1;
+
   return (
     <section
       id="how"
-      className="relative pt-16 sm:pt-20 lg:pt-24 pb-0 select-none overflow-hidden"
+      ref={sectionRef}
+      data-zs={entered === null ? undefined : String(entered)}
+      className="zs-frame relative flex select-none flex-col overflow-hidden pb-4 pt-12 sm:pt-14"
       style={{
         background:
           "radial-gradient(ellipse 80% 40% at 50% 0%, rgba(169,200,238,0.05) 0%, transparent 70%)",
       }}
     >
-      {/* Top divider with ambient glow */}
-      <div className="relative h-px max-w-full mx-0 mb-0">
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-        <div
-          className="absolute left-1/2 -translate-x-1/2 -top-6 w-96 h-12 pointer-events-none"
-          style={{
-            background: "radial-gradient(ellipse 100% 100%, rgba(169,200,238,0.14), transparent 70%)",
-          }}
-        />
-      </div>
+      {/* Top divider: a hairline with a soft light that falls off smoothly on every side (no box). */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 h-[260px]"
+        style={{
+          background:
+            "radial-gradient(48% 100% at 50% 0%, rgba(169,200,238,0.16) 0%, rgba(169,200,238,0.07) 38%, rgba(169,200,238,0.02) 62%, transparent 82%)",
+        }}
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute left-1/2 top-0 h-px w-[min(46%,640px)] -translate-x-1/2"
+        style={{ background: "linear-gradient(90deg, transparent, rgba(214,230,252,0.75), transparent)" }}
+      />
 
       {/* Section Header */}
-      <div className="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-10 grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-6 sm:gap-10 items-end mt-10">
-        <div data-reveal className="flex flex-col gap-4 sm:gap-5">
-          <div className="mono flex items-center gap-2 text-[11px] tracking-[0.22em] text-muted uppercase">
-            <span className="w-1.5 h-1.5 rounded-full bg-ice shrink-0" />
+      <div className="relative mx-auto grid w-full max-w-[1240px] grid-cols-1 items-end gap-5 px-4 sm:px-6 lg:grid-cols-[1.2fr_0.8fr] lg:gap-10 lg:px-10">
+        <div data-reveal className="flex flex-col gap-3 sm:gap-4">
+          <div className="mono flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-muted">
+            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-ice" />
             01 — THE SPLIT ENGINE
           </div>
-          <h2 className="m-0 text-[34px] sm:text-[46px] lg:text-[58px] leading-[1.05] font-normal tracking-[-0.035em] text-balance">
+          <h2 className="m-0 text-[34px] font-normal leading-[1.05] tracking-[-0.035em] text-balance sm:text-[46px] lg:text-[50px]">
             One asset.
             <br />
             <span className="text-foreground">Two ways to own its yield.</span>
           </h2>
         </div>
 
-        <div data-reveal="1" className="flex flex-col gap-4">
-          <p className="m-0 text-[15px] sm:text-[17px] leading-[1.6] text-muted font-light">
-            {yieldSplitDemoMarket.symbol} in a lending vault earns a rate that changes daily. We split that position:
-            one side holds steady to maturity, the other rides the rate.
+        <div data-reveal="1" className="flex flex-col gap-3">
+          <p className="m-0 text-[15px] font-light leading-[1.6] text-muted sm:text-[16px]">
+            {symbol ? `${symbol} in a lending vault` : "A yield-bearing asset in a lending vault"} earns a rate that changes daily. We split that
+            position: one side holds steady to maturity, the other rides the rate.
           </p>
 
           {/* Interactive Zipper Control & Preset buttons */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="mono text-[11px] tracking-[0.14em] text-muted-dark uppercase mr-1">
-              Timeline:
-            </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="mono mr-1 text-[11px] uppercase tracking-[0.14em] text-muted-dark">Timeline:</span>
             <button
               type="button"
               onClick={() => setSplitX(START_X)}
-              className={`mono text-[10px] tracking-[0.1em] px-2.5 py-1 border transition-all ${
+              className={`mono border px-2.5 py-1 text-[10px] tracking-[0.1em] transition-all ${
                 progress <= 0.05
-                  ? "border-ice bg-ice/15 text-ice font-medium"
+                  ? "border-ice bg-ice/15 font-medium text-ice"
                   : "border-white/10 text-muted hover:border-white/30 hover:text-foreground"
               }`}
             >
@@ -191,9 +296,9 @@ export function YieldSplitSection() {
             <button
               type="button"
               onClick={() => setSplitX(START_X + (END_X - START_X) * 0.5)}
-              className={`mono text-[10px] tracking-[0.1em] px-2.5 py-1 border transition-all ${
+              className={`mono border px-2.5 py-1 text-[10px] tracking-[0.1em] transition-all ${
                 progress > 0.4 && progress < 0.6
-                  ? "border-ice bg-ice/15 text-ice font-medium"
+                  ? "border-ice bg-ice/15 font-medium text-ice"
                   : "border-white/10 text-muted hover:border-white/30 hover:text-foreground"
               }`}
             >
@@ -202,9 +307,9 @@ export function YieldSplitSection() {
             <button
               type="button"
               onClick={() => setSplitX(END_X)}
-              className={`mono text-[10px] tracking-[0.1em] px-2.5 py-1 border transition-all ${
+              className={`mono border px-2.5 py-1 text-[10px] tracking-[0.1em] transition-all ${
                 isFullZipped
-                  ? "border-amber bg-amber/15 text-amber font-medium"
+                  ? "border-amber bg-amber/15 font-medium text-amber"
                   : "border-white/10 text-muted hover:border-white/30 hover:text-foreground"
               }`}
             >
@@ -215,32 +320,32 @@ export function YieldSplitSection() {
       </div>
 
       {/* Live Simulation Stats Bar */}
-      <div data-reveal="2" className="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-10 mt-8 flex items-center justify-end gap-4 flex-wrap">
-        <div className="mono flex items-center gap-4 text-[11px] tracking-[0.12em] text-muted">
+      <div data-reveal="2" className="relative mx-auto mt-4 flex w-full max-w-[1240px] flex-wrap items-center justify-end gap-4 px-4 sm:px-6 lg:px-10">
+        <div className="mono flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] tracking-[0.12em] text-muted">
           <div>
-            DATE: <span className="text-foreground font-medium">{currentDateStr}</span>
+            DATE: <span className="font-medium text-foreground">{currentDateStr}</span>
           </div>
           <div>
-            REMAINING: <span className="text-ice font-medium">{daysLeft}d</span>
+            REMAINING: <span className="font-medium text-ice">{daysLeft}d</span>
           </div>
           <div>
-            PT VALUE: <span className="text-ice font-medium">${currentPtPrice}</span>
+            PT VALUE: <span className="font-medium text-ice">{ptReady ? `$${currentPtPrice.toFixed(3)}` : dash}</span>
           </div>
           <div>
-            STREAMED: <span className="text-amber font-medium">${yieldStreamed}</span>
+            STREAMED: <span className="font-medium text-amber">{ptReady ? `$${yieldStreamed.toFixed(3)}` : dash}</span>
           </div>
         </div>
       </div>
 
       {/* ─── YIELD SPLIT INTERACTIVE SVG DIAGRAM ─── */}
-      <div data-reveal className="mt-2 sm:mt-4 overflow-x-auto no-scrollbar">
-        <div className="min-w-[900px] lg:min-w-full">
+      <div className="no-scrollbar relative mt-1 flex flex-1 items-center overflow-x-auto">
+        <div className="min-w-[900px] flex-1 lg:min-w-full">
           <svg
             ref={svgRef}
-            viewBox="0 80 1440 520"
-            className="block w-full h-auto cursor-default"
-            role="img"
-            aria-label="Interactive Yield Split Zipper Diagram"
+            viewBox="0 92 1440 520"
+            className="block h-auto w-full cursor-default"
+            role="group"
+            aria-label={`Interactive yield split diagram: one ${symbol || "asset"} position splits into Fixed and Long yield and reunites at maturity`}
           >
             <defs>
               {/* Radial gradient for glowing slider handle */}
@@ -254,7 +359,7 @@ export function YieldSplitSection() {
                 <stop offset="60%" stopColor="rgba(240,168,92,0.15)" />
                 <stop offset="100%" stopColor="rgba(240,168,92,0)" />
               </radialGradient>
-              {/* Vertical line glow */}
+              {/* Vertical guide through the handle */}
               <linearGradient id="splitLineGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="rgba(169,200,238,0)" />
                 <stop offset="30%" stopColor="rgba(169,200,238,0.25)" />
@@ -262,25 +367,58 @@ export function YieldSplitSection() {
                 <stop offset="70%" stopColor="rgba(240,168,92,0.25)" />
                 <stop offset="100%" stopColor="rgba(240,168,92,0)" />
               </linearGradient>
+              {/* The asset line fades in from the left edge — it is entering the scene */}
+              <linearGradient id="unifiedGrad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="360" y2="0">
+                <stop offset="0%" stopColor="rgba(236,237,234,0.1)" />
+                <stop offset="100%" stopColor="rgba(236,237,234,1)" />
+              </linearGradient>
+              <linearGradient id="areaFixedGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="rgba(169,200,238,0.2)" />
+                <stop offset="100%" stopColor="rgba(169,200,238,0.01)" />
+              </linearGradient>
+              <linearGradient id="areaLongGrad" x1="0" y1="1" x2="0" y2="0">
+                <stop offset="0%" stopColor="rgba(240,168,92,0.2)" />
+                <stop offset="100%" stopColor="rgba(240,168,92,0.01)" />
+              </linearGradient>
+              <linearGradient id="vaultEdge" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="rgba(236,237,234,0)" />
+                <stop offset="50%" stopColor="rgba(236,237,234,0.55)" />
+                <stop offset="100%" stopColor="rgba(236,237,234,0)" />
+              </linearGradient>
             </defs>
 
-            {/* Vertical milestone grid lines */}
-            <g stroke="rgba(236,237,234,0.06)" strokeWidth="1">
-              {MILESTONES.slice(0, -1).map((m) => (
-                <path key={m.label} d={`M ${m.x} 120 V 550`} />
-              ))}
+            {/* Vertical milestone grid, axis rule and ticks */}
+            <g className="zs-fade" style={at(0.1)}>
+              <g stroke="rgba(236,237,234,0.06)" strokeWidth="1">
+                {milestones.slice(0, -1).map((m, i) => (
+                  <path key={`${m.label}-${i}`} d={`M ${m.x} 120 V ${AXIS_Y}`} />
+                ))}
+              </g>
+              <path d={`M 0 ${AXIS_Y} H 1440`} stroke="rgba(236,237,234,0.14)" strokeWidth="1" />
+              <g stroke="rgba(236,237,234,0.3)" strokeWidth="1">
+                {milestones.slice(0, -1).map((m, i) => (
+                  <path key={`${m.label}-${i}`} d={`M ${m.x} ${AXIS_Y} v 6`} />
+                ))}
+              </g>
             </g>
 
-            {/* Baseline horizontal rule */}
-            <path d="M 0 550 H 1440" stroke="rgba(236,237,234,0.12)" strokeWidth="1" />
+            {/* Elapsed time along the axis: lights up as the split moves toward maturity */}
+            <path
+              d={`M ${START_X} ${AXIS_Y} H ${splitX}`}
+              stroke="rgba(169,200,238,0.75)"
+              strokeWidth="2"
+              strokeLinecap="round"
+              className="zs-fade"
+              style={at(0.5)}
+            />
 
             {/* Month labels along bottom */}
-            <g className="mono" fontSize="11" letterSpacing="0.12em" fill="#6F7471">
-              {MILESTONES.slice(0, -1).map((m) => (
+            <g className="mono zs-fade" fontSize="11" letterSpacing="0.12em" style={at(0.25)}>
+              {milestones.slice(0, -1).map((m, i) => (
                 <text
-                  key={m.label}
+                  key={`${m.label}-${i}`}
                   x={m.x}
-                  y="576"
+                  y="574"
                   textAnchor="middle"
                   fill={splitX >= m.x ? "#ECEDEA" : "#6F7471"}
                   fontWeight={splitX >= m.x ? "500" : "400"}
@@ -292,146 +430,178 @@ export function YieldSplitSection() {
 
             {/* Maturity line at x=1200 */}
             <path
-              d={`M ${END_X} 110 V 550`}
+              d={`M ${END_X} 112 V ${AXIS_Y}`}
               stroke={isFullZipped ? "#F0A85C" : "rgba(236,237,234,0.45)"}
               strokeWidth={isFullZipped ? "1.8" : "1"}
               strokeDasharray={isFullZipped ? "none" : "3 6"}
+              className="zs-fade"
+              style={at(0.9)}
             />
-            <g className="mono" fontSize="12" letterSpacing="0.14em">
-              <text x={END_X + 16} y="130" fill={isFullZipped ? "#F0A85C" : "#ECEDEA"}>
+            <g className="mono zs-fade" fontSize="12" letterSpacing="0.14em" style={at(2.1)}>
+              <text x={END_X + 16} y="146" fill={isFullZipped ? "#F0A85C" : "#ECEDEA"}>
                 MATURITY
               </text>
-              <text x={END_X + 16} y="150" fill="#8E9390">
-                {MATURITY_MILESTONE.date.toUpperCase()}
+              <text x={END_X + 16} y="166" fill="#8E9390">
+                {maturityMilestone.date.toUpperCase()}
               </text>
             </g>
 
-            {/* 1. Unified collateral line (before splitX) */}
+            {/* Parity line: both branches start from it and are pulled back to it at maturity */}
+            <path
+              d={`M ${splitX} ${BASE_Y} H ${END_X}`}
+              stroke="rgba(236,237,234,0.16)"
+              strokeWidth="1"
+              strokeDasharray="2 6"
+              className="zs-fade"
+              style={at(1.5)}
+            />
+
+            {/* Areas: the locked side above parity, the floating side below it */}
+            <g className="zs-fade" style={at(2.1)}>
+              <g style={{ opacity: branchOpacity, transition: "opacity 0.35s ease" }}>
+                <path d={areaFixed} fill="url(#areaFixedGrad)" />
+                <path d={areaLong} fill="url(#areaLongGrad)" />
+              </g>
+            </g>
+
+            {/* 1. Unified collateral line (before splitX): soft halo, then the line itself */}
+            <path d={pathUnified} stroke="rgba(236,237,234,0.07)" strokeWidth="10" fill="none" strokeLinecap="round" className="zs-fade" style={at(0.6)} />
             <path
               d={pathUnified}
-              stroke="#ECEDEA"
-              strokeWidth={isFullZipped ? "2.5" : "2"}
+              pathLength={1}
+              stroke="url(#unifiedGrad)"
+              strokeWidth={isFullZipped ? "2.6" : "2.2"}
               fill="none"
               strokeLinecap="round"
+              className="zs-draw"
+              style={at(0.6)}
             />
             {/* Flow dots on unified line */}
-            <path
-              d={pathUnified}
-              stroke="#ECEDEA"
-              strokeWidth="3.5"
-              fill="none"
-              strokeLinecap="round"
-              className="flow slow"
-            />
+            <path d={pathUnified} stroke="#ECEDEA" strokeWidth="3.5" fill="none" strokeLinecap="round" className="zs-flow slow" style={at(2.4)} />
 
-            {/* Left label: lending vault */}
-            <g className="mono" fontSize="12" letterSpacing="0.12em">
-              <text x="40" y="306" fill="#ECEDEA">
-                {yieldSplitDemoMarket.symbol} LENDING VAULT
-              </text>
-              <text x="40" y="360" fill="#8E9390">
-                COLLATERAL · {yieldSplitDemoMarket.underlyingAmount.toFixed(2)} {yieldSplitDemoMarket.symbol}
-              </text>
+            {/* Vault module: where the asset sits before the split */}
+            <g transform={`translate(36 ${BASE_Y - 62})`}>
+              <g className="zs-slide" style={at(0.2)}>
+                <rect width="262" height="124" rx="14" fill="#07090D" stroke="rgba(236,237,234,0.16)" />
+                <path d="M 18 0.5 H 244" stroke="url(#vaultEdge)" strokeWidth="1" />
+                <foreignObject x="18" y="16" width="40" height="40">
+                  <AssetIcon
+                    symbol={market?.assetMetadata?.symbol ?? (symbol || "—")}
+                    name={assetName}
+                    iconUrl={market?.assetMetadata?.iconUrl}
+                    size="md"
+                  />
+                </foreignObject>
+                <text className="mono" x="72" y="29" fontSize="10" letterSpacing="0.14em" fill="#8E9390">
+                  {`LENDING VAULT${protocol ? ` · ${protocol.toUpperCase()}` : ""}`}
+                </text>
+                <text x="72" y="52" fontSize="19" fill="#ECEDEA" letterSpacing="-0.01em">
+                  {assetName}
+                </text>
+                <path d="M 18 72 H 244" stroke="rgba(236,237,234,0.1)" />
+                <g className="mono" fontSize="11" letterSpacing="0.1em">
+                  <text x="18" y="94" fill="#8E9390">
+                    UNDERLYING APY
+                  </text>
+                  <text x="244" y="94" textAnchor="end" fill="#A9C8EE">
+                    {market ? formatApy(market.underlyingApy) : dash}
+                  </text>
+                  <text x="18" y="112" fill="#8E9390">
+                    COLLATERAL
+                  </text>
+                  <text x="244" y="112" textAnchor="end" fill="#ECEDEA">
+                    {splitMarket.underlyingAmount.toFixed(2)} {symbol}
+                  </text>
+                </g>
+              </g>
             </g>
 
-            {/* 2. Fixed Yield Path (Ice blue) */}
-            {!isFullZipped && (
-              <>
-                <path
-                  d={pathFixed}
-                  stroke="#A9C8EE"
-                  strokeWidth="2"
-                  fill="none"
-                  strokeLinecap="round"
-                />
-                <path
-                  d={pathFixed}
-                  stroke="#A9C8EE"
-                  strokeWidth="3.5"
-                  fill="none"
-                  strokeLinecap="round"
-                  className="flow"
-                />
-                {/* Fixed yield labels */}
-                <g className="mono" fontSize="11" letterSpacing="0.12em">
-                  <text
-                    x={Math.max(splitX + 60, 560)}
-                    y="204"
-                    fill="#A9C8EE"
-                    opacity={progress > 0.85 ? 0.3 : 1}
-                  >
-                    FIXED YIELD · APY {yieldSplitDemoMarket.impliedApy.toFixed(2)}%
+            {/* 2. Fixed Yield branch (ice): steady. Always mounted so the entrance never replays on re-split. */}
+            <g style={{ opacity: branchOpacity, transition: "opacity 0.35s ease" }}>
+              <path d={pathFixed} stroke="rgba(169,200,238,0.07)" strokeWidth="11" fill="none" strokeLinecap="round" className="zs-fade" style={at(1.7)} />
+              <path d={pathFixed} stroke="rgba(169,200,238,0.16)" strokeWidth="5" fill="none" strokeLinecap="round" className="zs-fade" style={at(1.7)} />
+              <path d={pathFixed} pathLength={1} stroke="#A9C8EE" strokeWidth="2.2" fill="none" strokeLinecap="round" className="zs-draw" style={at(1.7)} />
+              <path d={pathFixed} stroke="#DDE8F8" strokeWidth="3.5" fill="none" strokeLinecap="round" className="zs-flow" style={at(2.6)} />
+              <g className="mono zs-fade" fontSize="11" letterSpacing="0.12em" style={at(2.4)}>
+                <g opacity={labelOpacity}>
+                  <text x={labelX} y="196" fill="#A9C8EE">
+                    FIXED YIELD · APY {formatApy(splitMarket.impliedApy)}
                   </text>
-                  <text x={END_X + 16} y={fixedEndPt.y - 4} fill="#A9C8EE">
-                    PAYS 1 : 1
-                  </text>
-                  <text x={END_X + 16} y={fixedEndPt.y + 16} fill="#A9C8EE">
-                    IN {yieldSplitDemoMarket.symbol}
+                  <text x={labelX} y="214" fill="#8E9390" fontSize="10">
+                    {ptReady ? `PT $${currentPtPrice.toFixed(3)} → 1.00 ${symbol}` : `PT → 1.00 ${symbol}`}
                   </text>
                 </g>
+              </g>
+              <g className="zs-pop" style={{ ...at(2.9), transformBox: "fill-box", transformOrigin: "center" }}>
+                <circle cx={END_X} cy={fixedEndPt.y} r="9" fill="rgba(169,200,238,0.18)" />
                 <circle cx={END_X} cy={fixedEndPt.y} r="5" fill="#A9C8EE" />
-              </>
-            )}
+              </g>
+              <g className="mono zs-fade" fontSize="11" letterSpacing="0.12em" style={at(3)}>
+                <rect x={END_X + 16} y={fixedEndPt.y - 22} width="124" height="40" rx="8" fill="rgba(169,200,238,0.07)" stroke="rgba(169,200,238,0.3)" />
+                <text x={END_X + 28} y={fixedEndPt.y - 5} fill="#A9C8EE">
+                  PAYS 1 : 1
+                </text>
+                <text x={END_X + 28} y={fixedEndPt.y + 11} fill="#A9C8EE" opacity="0.8">
+                  IN {symbol}
+                </text>
+              </g>
+            </g>
 
-            {/* 3. Long Yield Path (Amber waves) */}
-            {!isFullZipped && (
-              <>
-                <path
-                  d={pathLong}
-                  stroke="#F0A85C"
-                  strokeWidth="2"
-                  fill="none"
-                  strokeLinecap="round"
-                />
-                <path
-                  d={pathLong}
-                  stroke="#F0A85C"
-                  strokeWidth="3.5"
-                  fill="none"
-                  strokeLinecap="round"
-                  className="flow"
-                />
-                {/* Long yield labels */}
-                <g className="mono" fontSize="11" letterSpacing="0.12em">
-                  <text
-                    x={Math.max(splitX + 60, 560)}
-                    y="508"
-                    fill="#F0A85C"
-                    opacity={progress > 0.85 ? 0.3 : 1}
-                  >
+            {/* 3. Long Yield branch (amber): alive */}
+            <g style={{ opacity: branchOpacity, transition: "opacity 0.35s ease" }}>
+              <path d={pathLong} stroke="rgba(240,168,92,0.07)" strokeWidth="11" fill="none" strokeLinecap="round" className="zs-fade" style={at(1.7)} />
+              <path d={pathLong} stroke="rgba(240,168,92,0.16)" strokeWidth="5" fill="none" strokeLinecap="round" className="zs-fade" style={at(1.7)} />
+              <path d={pathLong} pathLength={1} stroke="#F0A85C" strokeWidth="2.2" fill="none" strokeLinecap="round" className="zs-draw zs-draw-slow" style={at(1.7)} />
+              <path d={pathLong} stroke="#FFE9D2" strokeWidth="3.5" fill="none" strokeLinecap="round" className="zs-flow" style={at(2.8)} />
+              <g className="mono zs-fade" fontSize="11" letterSpacing="0.12em" style={at(2.6)}>
+                <g opacity={labelOpacity}>
+                  <text x={labelX} y="500" fill="#F0A85C">
                     LONG YIELD · FLOATS WITH THE RATE
                   </text>
-                  <text x={END_X + 16} y={longEndPt.y - 2} fill="#F0A85C">
-                    YIELD PAID OUT
-                  </text>
-                  <text x={END_X + 16} y={longEndPt.y + 18} fill="#F0A85C">
-                    ENDS AT ZERO
+                  <text x={labelX} y="518" fill="#8E9390" fontSize="10">
+                    {ptReady ? `+${yieldPaidPercentage.toFixed(0)}% STREAMED · ~${leverage.toFixed(1)}x EXPOSURE` : `+${yieldPaidPercentage.toFixed(0)}% STREAMED`}
                   </text>
                 </g>
-                <circle
-                  cx={END_X}
-                  cy={longEndPt.y}
-                  r="5"
-                  fill="none"
-                  stroke="#F0A85C"
-                  strokeWidth="1.8"
-                />
-              </>
-            )}
+              </g>
+              <g className="zs-pop" style={{ ...at(3.1), transformBox: "fill-box", transformOrigin: "center" }}>
+                <circle cx={END_X} cy={longEndPt.y} r="9" fill="rgba(240,168,92,0.14)" />
+                <circle cx={END_X} cy={longEndPt.y} r="5" fill="#07090D" stroke="#F0A85C" strokeWidth="1.8" />
+              </g>
+              <g className="mono zs-fade" fontSize="11" letterSpacing="0.12em" style={at(3.2)}>
+                <rect x={END_X + 16} y={longEndPt.y - 20} width="150" height="40" rx="8" fill="rgba(240,168,92,0.07)" stroke="rgba(240,168,92,0.3)" />
+                <text x={END_X + 28} y={longEndPt.y - 3} fill="#F0A85C">
+                  YIELD PAID OUT
+                </text>
+                <text x={END_X + 28} y={longEndPt.y + 13} fill="#F0A85C" opacity="0.8">
+                  ENDS AT ZERO
+                </text>
+              </g>
+            </g>
 
             {/* Reunited at Maturity Indicator when fully zipped */}
             {isFullZipped && (
-              <g className="mono" fontSize="12" letterSpacing="0.14em">
+              <g className="mono zs-reunited" fontSize="12" letterSpacing="0.14em">
                 <circle cx={END_X} cy={BASE_Y} r="7" fill="#34D399" />
                 <circle cx={END_X} cy={BASE_Y} r="18" fill="none" stroke="#34D399" strokeWidth="1" strokeDasharray="3 3" />
-                <text x={END_X + 24} y={BASE_Y - 8} fill="#34D399" fontWeight="600">
+                {/* Left of the node: the right-hand side has no room for the full sentence. */}
+                <text x={END_X - 32} y={BASE_Y - 16} textAnchor="end" fill="#34D399" fontWeight="600">
                   REUNITED AT MATURITY
                 </text>
-                <text x={END_X + 24} y={BASE_Y + 14} fill="#ECEDEA">
-                  1 PT + 1 YT = {yieldSplitDemoMarket.underlyingAmount.toFixed(0)} {yieldSplitDemoMarket.symbol} REDEEMED
+                <text x={END_X - 32} y={BASE_Y + 28} textAnchor="end" fill="#ECEDEA">
+                  1 PT + 1 YT = {splitMarket.underlyingAmount.toFixed(0)} {symbol} REDEEMED
                 </text>
               </g>
             )}
+
+            {/* Footer legend: the invariant and the state, in one line */}
+            <g className="mono zs-fade" fontSize="11" letterSpacing="0.12em" style={at(3.2)}>
+              <text x="40" y="600" fill="#8E9390">
+                <tspan fill="#A9C8EE">1 PT</tspan> + <tspan fill="#F0A85C">1 YT</tspan> = {splitMarket.underlyingAmount.toFixed(0)} {symbol} VAULT
+              </text>
+              <text x="1400" y="600" textAnchor="end" fill="#6F7471">
+                {isFullZipped ? "MATURITY REACHED — 100% COLLATERAL REDEEMABLE" : "ACTIVE SPLIT — NO PROTOCOL DEBT OR MARGIN CALL"}
+              </text>
+            </g>
 
             {/* 4. DRAGGABLE ZIPPER HANDLE (At splitX) */}
             <g
@@ -439,120 +609,83 @@ export function YieldSplitSection() {
               onPointerDown={handlePointerDown}
               onPointerMove={handlePointerMove}
               onPointerUp={handlePointerUp}
-              className="cursor-ew-resize group select-none pointer-events-auto"
+              onKeyDown={handleKeyDown}
+              tabIndex={0}
+              role="slider"
+              aria-label="Split position along the timeline"
+              aria-orientation="horizontal"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(progress * 100)}
+              aria-valuetext={`${currentDateStr}, ${daysLeft} days remaining`}
+              className="zs-handle group pointer-events-auto cursor-ew-resize select-none"
             >
               {/* Invisible wide hit area for easy drag */}
-              <rect x="-30" y="100" width="60" height="460" fill="transparent" />
+              <rect x="-30" y="100" width="60" height={AXIS_Y - 100} fill="transparent" />
 
               {/* Vertical highlight line through handle */}
               <line
                 x1="0"
-                y1="120"
+                y1="124"
                 x2="0"
-                y2="550"
+                y2={AXIS_Y}
                 stroke="url(#splitLineGrad)"
                 strokeWidth={isDragging ? "2" : "1.2"}
                 strokeDasharray="2 4"
+                className="zs-fade"
+                style={at(1.3)}
               />
 
-              {/* Ambient handle glow */}
-              <circle
-                cx="0"
-                cy={BASE_Y}
-                r={isDragging ? "36" : "28"}
-                fill={isFullZipped ? "url(#handleGlowAmber)" : "url(#handleGlow)"}
-                className="transition-all duration-200"
-              />
+              {/* Date chip that rides the guide */}
+              <g className="mono zs-fade" fontSize="10.5" letterSpacing="0.1em" style={at(1.3)}>
+                <g transform={`translate(${chipX - splitX} 0)`}>
+                  <rect x="-102" y="96" width="204" height="22" rx="11" fill="#0A0C10" stroke="rgba(236,237,234,0.22)" />
+                  <text x="0" y="111" textAnchor="middle" fill="#ECEDEA">
+                    {currentDateStr.toUpperCase()} · {daysLeft}D LEFT
+                  </text>
+                </g>
+              </g>
 
-              {/* Outer reticle circle */}
-              <circle
-                cx="0"
-                cy={BASE_Y}
-                r={isDragging ? "20" : "16"}
-                fill="#0A0C10"
-                stroke={isDragging ? "#FFFFFF" : isFullZipped ? "#F0A85C" : "#A9C8EE"}
-                strokeWidth="1.6"
-                className="transition-all duration-150"
-              />
+              <g className="zs-pop" style={{ ...at(1.3), transformBox: "fill-box", transformOrigin: "center" }}>
+                {/* Pulse until the handle has been used once: the diagram is meant to be played with */}
+                {!hinted && !isFullZipped && (
+                  <circle cx="0" cy={BASE_Y} r="18" fill="none" stroke="rgba(169,200,238,0.6)" strokeWidth="1.2" className="zs-ping" />
+                )}
 
-              {/* Rotating zipper notches */}
-              <circle
-                cx="0"
-                cy={BASE_Y}
-                r="11"
-                fill="none"
-                stroke="rgba(255,255,255,0.4)"
-                strokeWidth="1"
-                strokeDasharray="3 3"
-              />
+                {/* Ambient handle glow */}
+                <circle
+                  cx="0"
+                  cy={BASE_Y}
+                  r={isDragging ? "40" : "32"}
+                  fill={isFullZipped ? "url(#handleGlowAmber)" : "url(#handleGlow)"}
+                  className="transition-all duration-200"
+                />
 
-              {/* Center core dot */}
-              <circle
-                cx="0"
-                cy={BASE_Y}
-                r="5"
-                fill={isFullZipped ? "#F0A85C" : "#ECEDEA"}
-              />
+                {/* Outer reticle circle */}
+                <circle
+                  cx="0"
+                  cy={BASE_Y}
+                  r={isDragging ? "21" : "17"}
+                  fill="#0A0C10"
+                  stroke={isDragging ? "#FFFFFF" : isFullZipped ? "#F0A85C" : "#A9C8EE"}
+                  strokeWidth="1.6"
+                  className="transition-all duration-150"
+                />
+
+                {/* Rotating zipper notches */}
+                <circle cx="0" cy={BASE_Y} r="11.5" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1" strokeDasharray="3 3" />
+
+                {/* Center core dot */}
+                <circle cx="0" cy={BASE_Y} r="5" fill={isFullZipped ? "#F0A85C" : "#ECEDEA"} />
+
+                {/* Drag affordance: it moves along the timeline */}
+                <g fill="rgba(236,237,234,0.55)" opacity={isDragging ? 0 : 1} className="transition-opacity duration-150">
+                  {splitX > START_X + 4 && <path d={`M -29 ${BASE_Y} l 6 -4.5 v 9 z`} />}
+                  {splitX < END_X - 4 && <path d={`M 29 ${BASE_Y} l -6 -4.5 v 9 z`} />}
+                </g>
+              </g>
             </g>
           </svg>
-        </div>
-      </div>
-
-      {/* ─── SUMMARY INVARIANT CARDS BELOW ─── */}
-      <div className="max-w-[1240px] mx-auto mt-6 px-4 sm:px-6 lg:px-10 grid grid-cols-1 md:grid-cols-3 border-t border-white/10">
-        <div data-reveal className="flex flex-col gap-3 py-8 sm:py-10 md:border-r border-b md:border-b-0 border-white/10 md:pr-10">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-ice shrink-0" />
-              <span className="text-[16px] text-ice font-medium">Fixed Yield (PT)</span>
-            </div>
-            <span className="mono text-[13px] text-ice">${currentPtPrice.toFixed(3)}</span>
-          </div>
-          <span className="text-[14px] sm:text-[15px] leading-[1.6] text-muted font-light">
-            Worth exactly {yieldSplitDemoMarket.underlyingAmount.toFixed(0)} {yieldSplitDemoMarket.symbol} at maturity, bought below 1 today. The gap is your locked
-            return upfront with zero liquidation.
-          </span>
-          <div className="mono text-[11px] tracking-[0.12em] text-muted-dark mt-1 flex justify-between">
-            <span>APY: {yieldSplitDemoMarket.impliedApy.toFixed(2)}% LOCKED</span>
-            <span>MATURES: {yieldSplitDemoMarket.underlyingAmount.toFixed(2)} {yieldSplitDemoMarket.symbol}</span>
-          </div>
-        </div>
-
-        <div data-reveal="1" className="flex flex-col gap-3 py-8 sm:py-10 md:border-r border-b md:border-b-0 border-white/10 md:px-10">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-amber shrink-0" />
-              <span className="text-[16px] text-amber font-medium">Long Yield (YT)</span>
-            </div>
-            <span className="mono text-[13px] text-amber">
-              +{yieldPaidPercentage.toFixed(0)}% paid
-            </span>
-          </div>
-          <span className="text-[14px] sm:text-[15px] leading-[1.6] text-muted font-light">
-            Collects streaming yield until maturity, then ends at zero. You win if
-            the variable rate stays above break-even.
-          </span>
-          <div className="mono text-[11px] tracking-[0.12em] text-muted-dark mt-1 flex justify-between">
-            <span>CLAIMED: ${yieldStreamed.toFixed(3)}</span>
-            <span>LEVERAGE: ~{leverage.toFixed(1)}x</span>
-          </div>
-        </div>
-
-        <div data-reveal="2" className="flex flex-col gap-3 py-8 sm:py-10 md:pl-10">
-          <span className="mono text-[12px] text-muted-dark tracking-[0.14em] uppercase">
-            Conservation Invariant
-          </span>
-          <span className="mono text-[22px] text-foreground leading-[1.3]">
-            <span className="text-ice">1 PT</span> +{" "}
-            <span className="text-amber">1 YT</span>
-            <br />
-            = {yieldSplitDemoMarket.underlyingAmount.toFixed(0)} {yieldSplitDemoMarket.symbol} Vault
-          </span>
-          <span className="mono text-[11px] tracking-[0.1em] text-muted-dark">
-            {isFullZipped
-              ? "STATUS: MATURITY REACHED — 100% COLLATERAL REDEEMABLE"
-              : "STATUS: ACTIVE SPLIT — NO PROTOCOL DEBT OR MARGIN CALL"}
-          </span>
         </div>
       </div>
     </section>

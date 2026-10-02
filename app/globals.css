@@ -350,6 +350,119 @@ input:focus-visible {
   }
 }
 
+/* ── The split engine: one frame + entrance ───────────────────────────────── */
+/* On roomy screens the section is exactly one viewport tall; elsewhere it just flows. */
+@media (min-width: 1024px) and (min-height: 700px) {
+  .zs-frame {
+    min-height: 100svh;
+  }
+}
+/* Entrance choreography. The section reports data-zs="true" (play) / "false" (reset); with no
+   attribute — before JS, or for reduced motion — everything simply shows. Delays come from --d. */
+.zs-draw {
+  stroke-dasharray: 1; /* paired with pathLength="1": one dash as long as the whole path */
+}
+[data-zs="false"] .zs-fade,
+[data-zs="false"] .zs-flow,
+[data-zs="false"] .zs-slide,
+[data-zs="false"] .zs-pop {
+  opacity: 0;
+}
+[data-zs="false"] .zs-draw {
+  stroke-dashoffset: 1;
+  opacity: 0;
+}
+[data-zs="true"] .zs-fade {
+  animation: zs-fade 0.8s ease-out var(--d, 0s) both;
+}
+[data-zs="true"] .zs-draw {
+  animation: zs-draw 1.05s cubic-bezier(0.65, 0, 0.2, 1) var(--d, 0s) both;
+}
+[data-zs="true"] .zs-draw-slow {
+  animation-duration: 1.35s;
+}
+[data-zs="true"] .zs-slide {
+  animation: zs-slide 0.8s cubic-bezier(0.16, 1, 0.3, 1) var(--d, 0s) both;
+}
+[data-zs="true"] .zs-pop {
+  animation: zs-pop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) var(--d, 0s) both;
+}
+/* Flow dots: fade in, then travel along the path forever. */
+.zs-flow {
+  stroke-dasharray: 2 22;
+  animation: zs-flow-dash 2.2s linear infinite;
+}
+.zs-flow.slow {
+  animation-duration: 3.4s;
+}
+[data-zs="true"] .zs-flow {
+  animation: zs-fade 0.9s ease-out var(--d, 0s) both, zs-flow-dash 2.2s linear infinite;
+}
+[data-zs="true"] .zs-flow.slow {
+  animation: zs-fade 0.9s ease-out var(--d, 0s) both, zs-flow-dash 3.4s linear infinite;
+}
+/* The handle's "play with me" pulse. */
+.zs-ping {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: zs-ping 2.2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+.zs-reunited {
+  animation: zs-fade 0.5s ease-out both;
+}
+.zs-handle:focus {
+  outline: none;
+}
+.zs-handle:focus-visible circle:nth-of-type(3) {
+  stroke: #ffffff;
+  stroke-width: 2.4;
+}
+@keyframes zs-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes zs-draw {
+  0% { stroke-dashoffset: 1; opacity: 0; }
+  5% { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 1; }
+}
+@keyframes zs-slide {
+  from { opacity: 0; transform: translateX(-28px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes zs-pop {
+  0% { opacity: 0; transform: scale(0.2); }
+  60% { opacity: 1; transform: scale(1.12); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes zs-ping {
+  0% { opacity: 0.55; transform: scale(0.8); }
+  100% { opacity: 0; transform: scale(2.4); }
+}
+@keyframes zs-flow-dash {
+  to { stroke-dashoffset: -48; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-zs] .zs-fade,
+  [data-zs] .zs-slide,
+  [data-zs] .zs-pop,
+  [data-zs] .zs-draw {
+    animation: none;
+    opacity: 1;
+    transform: none;
+    stroke-dashoffset: 0;
+  }
+  [data-zs] .zs-flow,
+  .zs-ping,
+  .zs-reunited {
+    animation: none;
+    opacity: 1;
+  }
+  .zs-ping {
+    opacity: 0;
+  }
+}
+
 /* ── Open a position walkthrough ─────────────────────────────────────────── */
 /* Pinned on roomy desktops: the runway is tall, the panel sticks, scroll picks the step.
    Anywhere else it is a plain stack. Keep the query in sync with PIN_QUERY in TradePreview.tsx. */
@@ -376,8 +489,17 @@ input:focus-visible {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: none; }
 }
+/* A quick re-fade when a scenario switch changes the numbers — so a click is always seen. */
+.trade-swap {
+  animation: trade-swap 0.32s ease-out both;
+}
+@keyframes trade-swap {
+  from { opacity: 0.3; }
+  to { opacity: 1; }
+}
 @media (prefers-reduced-motion: reduce) {
-  .trade-step-in {
+  .trade-step-in,
+  .trade-swap {
     animation: none;
   }
 }

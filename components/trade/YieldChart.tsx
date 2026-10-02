@@ -10,6 +10,7 @@ import {
   Tooltip,
   CartesianGrid,
 } from "recharts";
+import type { MarketDataMode } from "@/types/market";
 
 const MOCK_HISTORICAL_DATA = [
   { date: "May", underlying: 6.8, implied: 6.2 },
@@ -23,14 +24,18 @@ const MOCK_HISTORICAL_DATA = [
 export function YieldChart({
   underlyingApy,
   impliedApy,
+  dataMode,
 }: {
   underlyingApy: number;
   impliedApy: number;
+  dataMode: MarketDataMode;
 }) {
-  const chartData = [
-    ...MOCK_HISTORICAL_DATA.slice(0, 5),
-    { date: "Now", underlying: underlyingApy, implied: impliedApy },
-  ];
+  const chartData = dataMode === "live"
+    ? [{ date: "Now", underlying: underlyingApy, implied: impliedApy }]
+    : [
+        ...MOCK_HISTORICAL_DATA.slice(0, 5),
+        { date: "Now", underlying: underlyingApy, implied: impliedApy },
+      ];
 
   return (
     <figure
@@ -43,7 +48,9 @@ export function YieldChart({
             Yield History & Implied Rate
           </h4>
           <span className="text-[12px] text-muted-dark">
-            Trailing 6 months vs current implied price
+            {dataMode === "live"
+              ? "Current live rate vs implied price"
+              : "Trailing 6 months vs current implied price"}
           </span>
         </div>
         <div className="flex items-center gap-4 text-[13px]">
@@ -108,7 +115,9 @@ export function YieldChart({
         </ResponsiveContainer>
       </div>
       <figcaption className="sr-only">
-        Historical comparison of implied APY and underlying rate. Implied APY is {impliedApy}% and the current underlying rate is {underlyingApy}%.
+        {dataMode === "live"
+          ? `Current live comparison of implied APY and underlying rate. Implied APY is ${impliedApy}% and the current underlying rate is ${underlyingApy}%.`
+          : `Historical comparison of implied APY and underlying rate. Implied APY is ${impliedApy}% and the current underlying rate is ${underlyingApy}%.`}
       </figcaption>
     </figure>
   );

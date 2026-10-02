@@ -130,6 +130,7 @@ export function MarketDetailClient({
             <YieldChart
               underlyingApy={market.underlyingApy}
               impliedApy={market.impliedApy}
+              dataMode={market.dataMode}
             />
 
             <details className="group/advanced border border-white/14 bg-surface/70 p-5 sm:p-6">
