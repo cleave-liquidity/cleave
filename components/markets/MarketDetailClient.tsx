@@ -14,7 +14,16 @@ import { ROBINHOOD_CHAIN_ID } from "@/lib/web3/chains";
 import { YieldMarket } from "@/types/market";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 
-export function MarketDetailClient({ market }: { market: YieldMarket }) {
+export function MarketDetailClient({
+  market,
+  initialStrategy,
+  initialAmount,
+}: {
+  market: YieldMarket;
+  /** Preselected strategy, e.g. when arriving from a landing-page CTA. */
+  initialStrategy?: "fixed" | "long";
+  initialAmount?: string;
+}) {
   return (
     <div className="relative min-h-screen overflow-x-clip bg-background text-foreground">
       <ApplicationBackdrop />
@@ -154,7 +163,7 @@ export function MarketDetailClient({ market }: { market: YieldMarket }) {
           </div>
 
           <div className="w-full lg:sticky lg:top-28">
-            <TradePanel market={market} />
+            <TradePanel market={market} initialStrategy={initialStrategy} initialAmount={initialAmount} />
           </div>
         </div>
       </main>

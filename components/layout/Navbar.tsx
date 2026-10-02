@@ -10,6 +10,7 @@ export function Navbar({ isLanding = false }: { isLanding?: boolean }) {
 
   const isMarkets = pathname?.startsWith("/markets");
   const isPortfolio = pathname === "/portfolio";
+  const isContracts = pathname === "/contracts";
 
   return (
     <header className={`${isLanding ? "absolute top-0 left-0 right-0 z-30" : "sticky top-0 z-30 bg-background/90 backdrop-blur-md border-b border-white/10"}`}>
@@ -52,7 +53,7 @@ export function Navbar({ isLanding = false }: { isLanding?: boolean }) {
           </span>
         </Link>
 
-        <nav aria-label="Primary" className="hidden md:flex items-center gap-6 lg:gap-10 text-[15px]">
+        <nav aria-label="Primary" className="hidden md:flex items-center gap-4 lg:gap-9 text-[14px] lg:text-[15px]">
           <Link
             href="/markets"
             aria-current={isMarkets ? "page" : undefined}
@@ -82,6 +83,13 @@ export function Navbar({ isLanding = false }: { isLanding?: boolean }) {
             className="text-muted hover:text-foreground transition-colors hidden sm:inline-block focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ice"
           >
             Docs
+          </Link>
+          <Link
+            href="/contracts"
+            aria-current={isContracts ? "page" : undefined}
+            className={`transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ice ${isContracts ? "text-foreground font-medium" : "text-muted hover:text-foreground"}`}
+          >
+            Contracts
           </Link>
         </nav>
 

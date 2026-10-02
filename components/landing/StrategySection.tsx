@@ -282,7 +282,7 @@ export function StrategySection() {
               </span>
             </div>
             <Link
-              href="/trade?market=usdg-morpho-26mar27&side=fixed"
+              href={`/markets/usdg-morpho-26mar27?strategy=fixed&amount=${depositAmount}`}
               className="mt-2 min-h-[44px] bg-ice text-[#0A0C10] font-medium text-[13px] flex items-center justify-center hover:bg-white transition-all shadow-[0_0_20px_rgba(169,200,238,0.2)]"
             >
               Lock Fixed Rate (PT) &rarr;
@@ -409,7 +409,7 @@ export function StrategySection() {
               </span>
             </div>
             <Link
-              href="/trade?market=usdg-morpho-26mar27&side=long"
+              href={`/markets/usdg-morpho-26mar27?strategy=long&amount=${depositAmount}`}
               className="mt-2 min-h-[44px] bg-amber text-[#0A0C10] font-medium text-[13px] flex items-center justify-center hover:bg-white transition-all shadow-[0_0_20px_rgba(240,168,92,0.2)]"
             >
               Trade Long Yield (YT) &rarr;

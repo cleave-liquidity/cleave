@@ -16,7 +16,15 @@ import { TransactionState } from "@/types/transaction";
 import { YieldDomainError, getYieldErrorMessage } from "@/types/errors";
 import { AlertCircle, CheckCircle2, ChevronDown, Loader2 } from "lucide-react";
 
-export function TradePanel({ market }: { market: YieldMarket }) {
+export function TradePanel({
+  market,
+  initialStrategy = "fixed",
+  initialAmount,
+}: {
+  market: YieldMarket;
+  initialStrategy?: "fixed" | "long";
+  initialAmount?: string;
+}) {
   const router = useRouter();
   const { address, chainId, isConnected, status: networkStatus, switchToRobinhood } = useNetworkGuard();
   const { balance } = useTokenBalance(address, market.quoteAsset);
@@ -24,8 +32,11 @@ export function TradePanel({ market }: { market: YieldMarket }) {
   const openLongPosition = useOpenLongPosition();
   const { openConnectModal } = useConnectModal();
 
-  const [strategy, setStrategy] = useState<"fixed" | "long">("fixed");
-  const [inputAmountStr, setInputAmountStr] = useState<string>("1000");
+  const [strategy, setStrategy] = useState<"fixed" | "long">(initialStrategy);
+  // Long Yield opens with a smaller default ticket than Fixed (see the strategy toggle below).
+  const [inputAmountStr, setInputAmountStr] = useState<string>(
+    initialAmount ?? (initialStrategy === "long" ? "100" : "1000"),
+  );
   const [txState, setTxState] = useState<TransactionState>({ step: "idle" });
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [currentTime, setCurrentTime] = useState(() => Date.now());
