@@ -161,12 +161,36 @@ const BG_STARS = (() => {
   }));
 })();
 
-// Shooting stars: the head travels along `ang`, the tail trails behind it.
+// Shooting stars fall from the upper left toward the lower right: the head leads, the tail trails behind it.
 const METEORS = [
-  { u: 0.84, v: 0.12, ang: 148, delay: 0.8, dur: 8.5, len: 170, travel: 560, w: 2.0, halo: ICE },
-  { u: 0.34, v: 0.08, ang: 154, delay: 4.8, dur: 10.5, len: 190, travel: 620, w: 1.8, halo: ICE_L },
-  { u: 0.7, v: 0.34, ang: 146, delay: 8.2, dur: 12, len: 130, travel: 440, w: 1.4, halo: WHITE },
+  { u: 0.1, v: 0.07, ang: 33, delay: 1.2, dur: 9.5, len: 180, travel: 600, w: 1.9, halo: ICE_L },
+  { u: 0.4, v: 0.05, ang: 29, delay: 6.4, dur: 12, len: 200, travel: 660, w: 1.7, halo: WHITE },
+  { u: 0.7, v: 0.1, ang: 36, delay: 10.8, dur: 14, len: 140, travel: 460, w: 1.4, halo: ICE },
 ];
+
+// Distant star orbits: wide, shallow ellipses of tiny dots far behind the planet system. Dots on the
+// near (lower) arc read slightly larger and brighter, so the rings have depth without being loud.
+const ORBIT_DEFS = [
+  { cx: 0.46, cy: 0.27, rx: 0.78, ry: 0.13, rot: -9, n: 110, speed: 0.012, seed: 11 },
+  { cx: 0.56, cy: 0.8, rx: 0.92, ry: 0.12, rot: 7, n: 120, speed: -0.008, seed: 23 },
+  { cx: 0.5, cy: 0.5, rx: 1.12, ry: 0.3, rot: -27, n: 130, speed: 0.0045, seed: 37 },
+].map((o) => {
+  let seed = o.seed;
+  const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
+  const dots = Array.from({ length: o.n }, () => {
+    const bright = rnd() < 0.11;
+    const c = rnd();
+    return {
+      a: rnd() * TAU,
+      r: bright ? 1.3 + rnd() * 0.6 : 0.55 + rnd() * rnd() * 1.0,
+      al: bright ? 0.8 + rnd() * 0.2 : 0.38 + rnd() * 0.45,
+      rgb: c < 0.62 ? FG : c < 0.82 ? ICE_L : WARM,
+      bright,
+      tw: rnd() * TAU,
+    };
+  });
+  return { ...o, cos: Math.cos(o.rot * DEG), sin: Math.sin(o.rot * DEG), dots };
+});
 
 const STAR_RGB = STAR_NODES.map((n) => hexToRgb(n[3]));
 const STAR_SIN = STAR_NODES.map((n) => Math.sin(n[0] * DEG));
@@ -962,6 +986,36 @@ function paintBackdrop(ctx: CanvasRenderingContext2D, s: Sim, L: View, t: number
     let a = st.a;
     if (st.tw >= 0) a *= 0.55 + 0.45 * Math.sin(t * 1.4 + st.tw);
     dot(ctx, st.u * W + px * st.r, st.v * H + py * st.r, st.r, rgba(st.warm ? WARM : FG, a));
+  }
+
+  // Distant star orbits (behind everything, across the whole hero)
+  for (const o of ORBIT_DEFS) {
+    const ocx = o.cx * W + px * 0.6;
+    const ocy = o.cy * H + py * 0.6;
+    const rx = o.rx * W;
+    const ry = o.ry * W;
+    ctx.strokeStyle = rgba(ICE, 0.055);
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.ellipse(ocx, ocy, rx, ry, o.rot * DEG, 0, TAU);
+    ctx.stroke();
+    for (const d of o.dots) {
+      const a = d.a + o.speed * t;
+      const ca = Math.cos(a);
+      const sa = Math.sin(a);
+      const x = ocx + rx * ca * o.cos - ry * sa * o.sin;
+      const y = ocy + rx * ca * o.sin + ry * sa * o.cos;
+      if (x < -4 || x > W + 4 || y < -4 || y > H + 4) continue;
+      const k = 0.78 + 0.22 * sa; // near arc a touch bigger / brighter
+      // The copy column sits under a dark scrim on desktop; lift the dots there so the orbits read evenly.
+      const lift = L.desktop ? 1 + 2.2 * clamp(1 - x / (0.56 * W), 0, 1) : 1;
+      let al = Math.min(1, d.al * k * lift);
+      if (d.bright) {
+        al *= 0.65 + 0.35 * Math.sin(t * 1.3 + d.tw);
+        dot(ctx, x, y, d.r * 3.4, rgba(d.rgb, al * 0.14));
+      }
+      dot(ctx, x, y, d.r * k * (lift > 1 ? 1.15 : 1), rgba(d.rgb, al));
+    }
   }
 
   // Distant black hole

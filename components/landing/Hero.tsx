@@ -385,7 +385,7 @@ export function Hero() {
           {/* Legibility scrims: keep the planet's lines out from under the copy and the navbar */}
           <div
             aria-hidden="true"
-            className="absolute inset-0 z-10 pointer-events-none bg-background/25 lg:bg-[linear-gradient(90deg,rgba(3,3,4,0.96)_0%,rgba(3,3,4,0.85)_31%,rgba(3,3,4,0.38)_46%,transparent_60%)]"
+            className="absolute inset-0 z-10 pointer-events-none bg-background/25 lg:bg-[linear-gradient(90deg,rgba(3,3,4,0.72)_0%,rgba(3,3,4,0.66)_31%,rgba(3,3,4,0.3)_46%,transparent_60%)]"
           />
           <div
             aria-hidden="true"
