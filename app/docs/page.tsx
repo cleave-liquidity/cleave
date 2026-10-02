@@ -4,52 +4,18 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { ApplicationBackdrop } from "@/components/layout/ApplicationBackdrop";
 import { DataModeBadge } from "@/components/layout/DataModeBadge";
+import { DocsNavigator } from "@/components/docs/DocsNavigator";
 import { yieldAdapter } from "@/lib/adapters/mock-adapter";
-
-const sections = [
-  ["start", "00 / Start here"],
-  ["fixed", "01 / Fixed Yield"],
-  ["long", "02 / Long Yield"],
-  ["rates", "03 / Understanding rates"],
-  ["maturity", "04 / Maturity"],
-  ["risk", "05 / Risk"],
-  ["wallet", "06 / Wallet & network"],
-  ["preview", "07 / Preview vs live"],
-  ["glossary", "08 / Glossary"],
-] as const;
 
 export default function DocsPage() {
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background text-foreground">
+    <div className="relative min-h-screen overflow-x-clip bg-background text-foreground">
       <ApplicationBackdrop />
       <div className="relative z-10 flex min-h-screen flex-col">
         <Navbar isLanding={false} />
 
-        <main id="main-content" className="mx-auto flex w-full max-w-[1240px] flex-1 gap-10 px-4 py-10 sm:px-6 sm:py-16 lg:px-10">
-          <aside className="hidden w-[220px] shrink-0 lg:block">
-            <div className="sticky top-32">
-              <div className="mono mb-4 text-[11px] uppercase tracking-[0.18em] text-muted-dark">
-                CLEAVE / GUIDE
-              </div>
-              <nav aria-label="Guide sections" className="flex flex-col border-l border-white/12">
-                {sections.map(([id, label]) => (
-                  <a
-                    key={id}
-                    href={`#${id}`}
-                    className="border-l border-transparent px-4 py-2 text-[13px] text-muted transition-colors hover:border-ice hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ice"
-                  >
-                    {label}
-                  </a>
-                ))}
-              </nav>
-              <div className="mt-10 border-t border-white/10 pt-4 text-[12px] leading-5 text-muted-dark">
-                <p className="m-0">A calm guide to choosing, reading, and managing yield exposure.</p>
-                <Link href="/markets" className="mt-4 inline-flex text-ice hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ice">
-                  Explore markets →
-                </Link>
-              </div>
-            </div>
-          </aside>
+        <main id="main-content" className="mx-auto flex w-full max-w-[1240px] flex-1 flex-col gap-10 px-4 py-10 sm:px-6 sm:py-16 lg:flex-row lg:px-10">
+          <DocsNavigator />
 
           <article className="min-w-0 max-w-[760px] flex-1">
             <header className="mb-12 border-b border-white/12 pb-10">
@@ -75,15 +41,7 @@ export default function DocsPage() {
               </div>
             </header>
 
-            <div className="mb-8 flex gap-2 overflow-x-auto border-b border-white/10 pb-3 lg:hidden" aria-label="Guide sections">
-              {sections.map(([id, label]) => (
-                <a key={id} href={`#${id}`} className="mono shrink-0 text-[10px] uppercase tracking-[0.1em] text-muted-dark hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice">
-                  {label}
-                </a>
-              ))}
-            </div>
-
-            <div className="space-y-14 text-[16px] leading-7 text-muted">
+            <div className="space-y-16 text-[16px] leading-7 text-muted">
               <section id="start" className="scroll-mt-32">
                 <SectionLabel>00 / Start here</SectionLabel>
                 <h2>One market. Two ways to read it.</h2>
@@ -152,7 +110,7 @@ export default function DocsPage() {
                 </p>
               </section>
 
-              <section id="preview" className="scroll-mt-32">
+              <section id="preview-live" className="scroll-mt-32">
                 <SectionLabel>07 / Preview vs live</SectionLabel>
                 <h2>Know what the app is showing you.</h2>
                 <p>
@@ -161,8 +119,24 @@ export default function DocsPage() {
                 <p>When a live adapter is connected, the Preview Data indicator will become Live Data and the source, balances, quotes, and contract addresses must all come from verified production integrations.</p>
               </section>
 
+              <section id="transparency" className="scroll-mt-32">
+                <SectionLabel>08 / Transparency</SectionLabel>
+                <h2>Verified deployments belong in one place.</h2>
+                <p>
+                  CLEAVE uses an adapter-first architecture. The application can connect to yield-market sources without claiming that CLEAVE owns a live protocol deployment today.
+                </p>
+                <div className="mt-6 border-l-2 border-ice bg-ice/5 px-5 py-4">
+                  <p className="m-0 text-[14px] leading-6 text-muted-light">
+                    The Contract Registry lists verified CLEAVE deployments when live contract integrations are introduced. Preview market addresses are never treated as deployed contracts.
+                  </p>
+                  <Link href="/contracts" className="mt-4 inline-flex text-[14px] text-ice hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ice">
+                    View Contract Registry →
+                  </Link>
+                </div>
+              </section>
+
               <section id="glossary" className="scroll-mt-32">
-                <SectionLabel>08 / Glossary</SectionLabel>
+                <SectionLabel>09 / Glossary</SectionLabel>
                 <h2>Words you will see in the app.</h2>
                 <dl className="mt-6 grid gap-x-8 gap-y-5 sm:grid-cols-2">
                   <Term compact term="PT">Principal Token. The principal side of a yield position.</Term>

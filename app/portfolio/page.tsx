@@ -48,184 +48,208 @@ export default function PortfolioPage() {
       <div className="relative z-10 flex min-h-screen flex-col">
         <Navbar isLanding={false} />
 
-      <main id="main-content" className="flex-grow max-w-[1240px] w-full mx-auto px-4 sm:px-6 lg:px-10 py-10 sm:py-16">
-        {/* Header */}
-        <div className="flex flex-col gap-3 pb-8 border-b border-white/12">
-          <div className="flex items-center justify-between gap-4">
-            <div className="mono text-[12px] tracking-[0.18em] text-muted-dark uppercase">
-              Your Yield Positions
-            </div>
-            <DataModeBadge mode={yieldAdapter.mode} />
-          </div>
-          <h1 className="text-[36px] sm:text-[44px] font-normal tracking-[-0.03em] m-0 text-foreground">
-            Yield Portfolio
-          </h1>
-          <p className="text-[16px] text-muted max-w-[560px] m-0 font-light">
-            Manage fixed and long yield exposure. Claim accrued yield, redeem matured
-            positions, or exit early.
-          </p>
-        </div>
-
-        {/* Top-Level Metrics */}
-        <div className="mt-8 grid grid-cols-2 gap-x-5 gap-y-5 border-y border-white/14 py-5 sm:grid-cols-5 sm:gap-4 sm:py-6">
-          <div className="flex flex-col gap-1 col-span-2 sm:col-span-1">
-            <span className="mono text-[11px] text-muted-dark uppercase tracking-wider">
-              Total Value
-            </span>
-            <span className="mono text-[22px] sm:text-[24px] font-medium text-foreground">
-              {formatUsd(totalValue)}
-            </span>
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <span className="mono text-[11px] text-muted-dark uppercase tracking-wider">
-              Fixed Yield Value
-            </span>
-            <span className="mono text-[20px] sm:text-[22px] font-medium text-ice">
-              {formatUsd(fixedValue)}
-            </span>
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <span className="mono text-[11px] text-muted-dark uppercase tracking-wider">
-              Long Yield Value
-            </span>
-            <span className="mono text-[20px] sm:text-[22px] font-medium text-amber">
-              {formatUsd(longValue)}
-            </span>
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <span className="mono text-[11px] text-muted-dark uppercase tracking-wider">
-              Unrealized PnL
-            </span>
-            <span
-              className={`mono text-[20px] sm:text-[22px] font-medium ${
-                totalPnl >= 0 ? "text-positive" : "text-negative"
-              }`}
-            >
-              {totalPnl >= 0 ? `+${totalPnl.toFixed(2)}` : totalPnl.toFixed(2)} USDG
-            </span>
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <span className="mono text-[11px] text-muted-dark uppercase tracking-wider">
-              Claimable Yield
-            </span>
-            <span className="mono text-[20px] sm:text-[22px] font-medium text-amber">
-              {totalClaimable.toFixed(2)} USDG
-            </span>
-          </div>
-        </div>
-
-        {/* Filter Navigation */}
-        <div className="mt-10 flex items-center justify-between gap-4 border-b border-white/12 pb-4 flex-wrap">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setFilter("all")}
-              className={`px-4 py-2 text-[14px] rounded-lg transition-colors ${
-                filter === "all"
-                  ? "bg-surface-raised border border-white/20 text-foreground font-medium"
-                  : "text-muted hover:text-white"
-              }`}
-            >
-              All Positions ({positions.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilter("active")}
-              className={`px-4 py-2 text-[14px] rounded-lg transition-colors ${
-                filter === "active"
-                  ? "bg-surface-raised border border-white/20 text-foreground font-medium"
-                  : "text-muted hover:text-white"
-              }`}
-            >
-              Active (
-              {positions.filter((p) => p.status === "active").length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilter("matured")}
-              className={`px-4 py-2 text-[14px] rounded-lg transition-colors ${
-                filter === "matured"
-                  ? "bg-surface-raised border border-white/20 text-foreground font-medium"
-                  : "text-muted hover:text-white"
-              }`}
-            >
-              Matured (
-              {
-                positions.filter(
-                  (p) => p.status === "matured" || p.status === "redeemed"
-                ).length
-              }
-              )
-            </button>
-          </div>
-
-          <Link
-            href="/markets"
-            className="inline-flex items-center gap-1.5 text-[14px] text-ice hover:underline"
-          >
-            <span>Explore new markets</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-
-        {/* Positions List */}
-        <div className="mt-6 flex flex-col gap-4">
-          {!isConnected ? (
-            <div className="border border-white/12 rounded-[10px] bg-surface p-12 text-center flex flex-col items-center gap-4">
-              <Wallet className="w-10 h-10 text-muted-dark" />
-              <div className="flex flex-col gap-1">
-                <h3 className="text-[18px] font-normal text-foreground m-0">
-                  Connect your wallet to view positions
-                </h3>
-                <p className="text-[14px] text-muted m-0">
-                  Portfolio data is scoped to the connected wallet.
-                </p>
+        <main id="main-content" className="flex-grow max-w-[1240px] w-full mx-auto px-4 sm:px-6 lg:px-10 py-10 sm:py-16">
+          {/* Header */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-8 border-b border-white/12">
+            <div className="flex flex-col gap-2">
+              <div className="mono text-[12px] tracking-[0.18em] text-muted-dark uppercase">
+                Your Yield Positions · Robinhood Chain
               </div>
-              <ConnectButton />
+              <h1 className="text-[36px] sm:text-[44px] font-normal tracking-[-0.03em] m-0 text-foreground">
+                Yield Portfolio
+              </h1>
+              <p className="text-[16px] text-muted max-w-[560px] m-0 font-light">
+                Manage fixed and long yield exposure. Claim accrued yield, redeem matured
+                positions, or exit early on AMM.
+              </p>
             </div>
-          ) : isLoading ? (
-            <div className="py-20 text-center font-mono text-muted">
-              Loading your positions...
+
+            <div className="flex items-center gap-3">
+              <DataModeBadge mode={yieldAdapter.mode} />
             </div>
-          ) : error ? (
-            <div className="py-20 text-center text-negative">
-              {getYieldErrorMessage(error)}
+          </div>
+
+          {/* Top-Level Metrics — Zupiter-style info cards */}
+          <div className="mt-8 grid grid-cols-2 sm:grid-cols-5 gap-3">
+            <div className="col-span-2 sm:col-span-1 p-3.5 sm:p-4 rounded-xl border border-white/10 bg-surface/50 backdrop-blur-sm flex flex-col gap-1">
+              <span className="mono text-[10px] text-muted-dark uppercase tracking-wider">
+                Total Value
+              </span>
+              <span className="mono text-[20px] sm:text-[22px] font-medium text-foreground">
+                {formatUsd(totalValue)}
+              </span>
             </div>
-          ) : filteredPositions.length === 0 ? (
-            <div className="border border-white/12 rounded-[10px] bg-surface p-12 text-center flex flex-col items-center gap-4">
-              <Wallet className="w-10 h-10 text-muted-dark" />
-              <div className="flex flex-col gap-1">
-                <h3 className="text-[18px] font-normal text-foreground m-0">
-                  No positions found
-                </h3>
-                <p className="text-[14px] text-muted m-0">
-                  You don&apos;t have any {filter !== "all" ? filter : ""} positions
-                  yet.
-                </p>
-              </div>
-              <Link
-                href="/markets"
-                className="mt-2 inline-flex items-center gap-2 px-6 py-2.5 bg-foreground text-background font-medium rounded-lg text-[14px] hover:bg-white transition-colors"
+
+            <div className="p-3.5 sm:p-4 rounded-xl border border-white/10 bg-surface/50 backdrop-blur-sm flex flex-col gap-1">
+              <span className="mono text-[10px] text-muted-dark uppercase tracking-wider">
+                Fixed Yield (PT)
+              </span>
+              <span className="mono text-[20px] sm:text-[22px] font-medium text-ice">
+                {formatUsd(fixedValue)}
+              </span>
+            </div>
+
+            <div className="p-3.5 sm:p-4 rounded-xl border border-white/10 bg-surface/50 backdrop-blur-sm flex flex-col gap-1">
+              <span className="mono text-[10px] text-muted-dark uppercase tracking-wider">
+                Long Yield (YT)
+              </span>
+              <span className="mono text-[20px] sm:text-[22px] font-medium text-amber">
+                {formatUsd(longValue)}
+              </span>
+            </div>
+
+            <div className="p-3.5 sm:p-4 rounded-xl border border-white/10 bg-surface/50 backdrop-blur-sm flex flex-col gap-1">
+              <span className="mono text-[10px] text-muted-dark uppercase tracking-wider">
+                Unrealized PnL
+              </span>
+              <span
+                className={`mono text-[20px] sm:text-[22px] font-medium ${
+                  totalPnl >= 0 ? "text-positive" : "text-negative"
+                }`}
               >
-                <span>Browse Markets</span>
-                <ArrowRight className="w-4 h-4" />
-              </Link>
+                {totalPnl >= 0 ? `+${totalPnl.toFixed(2)}` : totalPnl.toFixed(2)} USDG
+              </span>
             </div>
-          ) : (
-            filteredPositions.map((pos) => (
-              <PositionCard
-                key={pos.id}
-                position={pos}
-                onActionComplete={refresh}
-              />
-            ))
-          )}
-        </div>
-      </main>
+
+            <div className="p-3.5 sm:p-4 rounded-xl border border-white/10 bg-surface/50 backdrop-blur-sm flex flex-col gap-1">
+              <span className="mono text-[10px] text-muted-dark uppercase tracking-wider">
+                Claimable Yield
+              </span>
+              <span className="mono text-[20px] sm:text-[22px] font-medium text-amber">
+                {totalClaimable.toFixed(2)} USDG
+              </span>
+            </div>
+          </div>
+
+          {/* Filter Navigation & Actions */}
+          <div className="mt-8 flex items-center justify-between gap-4 pb-2 flex-wrap">
+            {/* Segmented Filter Pills */}
+            <div className="flex items-center gap-1.5 p-1 bg-[#090A0D] border border-white/10 rounded-xl">
+              <button
+                type="button"
+                onClick={() => setFilter("all")}
+                aria-pressed={filter === "all"}
+                className={`px-3.5 py-1.5 rounded-lg text-[13px] transition-all cursor-pointer ${
+                  filter === "all"
+                    ? "bg-white text-[#0A0C10] font-medium shadow-[0_1px_8px_rgba(255,255,255,0.2)]"
+                    : "text-muted hover:text-white hover:bg-white/[0.04]"
+                }`}
+              >
+                All Positions ({positions.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilter("active")}
+                aria-pressed={filter === "active"}
+                className={`px-3.5 py-1.5 rounded-lg text-[13px] transition-all cursor-pointer ${
+                  filter === "active"
+                    ? "bg-white text-[#0A0C10] font-medium shadow-[0_1px_8px_rgba(255,255,255,0.2)]"
+                    : "text-muted hover:text-white hover:bg-white/[0.04]"
+                }`}
+              >
+                Active ({positions.filter((p) => p.status === "active").length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilter("matured")}
+                aria-pressed={filter === "matured"}
+                className={`px-3.5 py-1.5 rounded-lg text-[13px] transition-all cursor-pointer ${
+                  filter === "matured"
+                    ? "bg-white text-[#0A0C10] font-medium shadow-[0_1px_8px_rgba(255,255,255,0.2)]"
+                    : "text-muted hover:text-white hover:bg-white/[0.04]"
+                }`}
+              >
+                Matured (
+                {
+                  positions.filter(
+                    (p) => p.status === "matured" || p.status === "redeemed"
+                  ).length
+                }
+                )
+              </button>
+            </div>
+
+            <Link
+              href="/markets"
+              className="mono text-[12px] tracking-[0.08em] text-ice hover:text-white transition-colors inline-flex items-center gap-1.5"
+            >
+              <span>Explore markets</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+          {/* Positions Container */}
+          <div className="mt-6 flex flex-col gap-4">
+            {!isConnected ? (
+              <div className="border border-white/10 rounded-2xl bg-[#07080A]/90 backdrop-blur-md p-12 sm:p-16 text-center flex flex-col items-center gap-5 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+                <div className="w-14 h-14 rounded-2xl border border-white/12 bg-white/[0.04] flex items-center justify-center text-ice shadow-[0_0_24px_rgba(169,200,238,0.12)]">
+                  <Wallet className="w-7 h-7" />
+                </div>
+                <div className="flex flex-col gap-1 max-w-[420px]">
+                  <h3 className="text-[19px] font-medium text-foreground m-0">
+                    Connect your wallet to view positions
+                  </h3>
+                  <p className="text-[14px] text-muted m-0 font-light leading-relaxed">
+                    Portfolio data, yield claims, and redemption status are scoped to your connected wallet address.
+                  </p>
+                </div>
+                <div className="pt-2">
+                  <ConnectButton />
+                </div>
+              </div>
+            ) : isLoading ? (
+              <div className="py-24 text-center font-mono text-muted text-[13px]">
+                Loading your positions...
+              </div>
+            ) : error ? (
+              <div className="py-24 text-center text-negative font-mono text-[13px]">
+                {getYieldErrorMessage(error)}
+              </div>
+            ) : filteredPositions.length === 0 ? (
+              <div className="border border-white/10 rounded-2xl bg-[#07080A]/90 backdrop-blur-md p-12 sm:p-16 text-center flex flex-col items-center gap-5 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+                <div className="w-14 h-14 rounded-2xl border border-white/12 bg-white/[0.04] flex items-center justify-center text-muted-dark">
+                  <Wallet className="w-7 h-7" />
+                </div>
+                <div className="flex flex-col gap-1 max-w-[420px]">
+                  <h3 className="text-[19px] font-medium text-foreground m-0">
+                    No positions found
+                  </h3>
+                  <p className="text-[14px] text-muted m-0 font-light leading-relaxed">
+                    You don&apos;t have any {filter !== "all" ? filter : ""} positions
+                    yet. Choose a yield market to open a fixed or long position.
+                  </p>
+                </div>
+                <Link
+                  href="/markets"
+                  className="mt-2 inline-flex items-center gap-2 px-6 py-2.5 bg-foreground text-background font-medium rounded-xl text-[14px] hover:bg-white transition-all shadow-[0_2px_12px_rgba(255,255,255,0.15)]"
+                >
+                  <span>Browse Markets</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            ) : (
+              <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#07080A]/90 backdrop-blur-md shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+                <div className="mono hidden grid-cols-[2fr_1.1fr_1fr_1fr_1fr_1.25fr] gap-4 border-b border-white/[0.08] bg-white/[0.02] px-6 py-4 text-[10px] uppercase tracking-[0.14em] text-muted-dark md:grid">
+                  <span>Position</span>
+                  <span>Value</span>
+                  <span>Entry</span>
+                  <span>Current</span>
+                  <span>PnL</span>
+                  <span className="text-right">Maturity / Action</span>
+                </div>
+                <div className="divide-y divide-white/[0.05]">
+                  {filteredPositions.map((pos) => (
+                    <PositionCard
+                      key={pos.id}
+                      position={pos}
+                      onActionComplete={refresh}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </main>
 
         <Footer />
       </div>

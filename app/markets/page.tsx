@@ -11,12 +11,13 @@ import { ApplicationBackdrop } from "@/components/layout/ApplicationBackdrop";
 import { DataModeBadge } from "@/components/layout/DataModeBadge";
 import { yieldAdapter } from "@/lib/adapters/mock-adapter";
 import { useNetworkGuard } from "@/hooks/useNetworkGuard";
-import { getNetworkLabel } from "@/lib/web3/environment";
+import { getNetworkLabel, getNetworkShortLabel } from "@/lib/web3/environment";
 
 export default function MarketsPage() {
   const { markets, isLoading, error } = useMarkets();
   const { chainId, isConnected } = useNetworkGuard();
   const networkLabel = getNetworkLabel(chainId, isConnected);
+  const networkShortLabel = getNetworkShortLabel(chainId, isConnected);
 
   const totalLiquidity = markets.reduce(
     (sum, m) => sum + m.liquidityUsd,
@@ -45,36 +46,43 @@ export default function MarketsPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-x-6 gap-y-4 border-t sm:border-t-0 pt-4 sm:pt-0 border-white/10 md:grid-cols-4">
-            <div className="flex min-w-0 flex-col">
-              <span className="mono text-[11px] text-muted-dark uppercase tracking-wider">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="p-3.5 sm:p-4 rounded-xl border border-white/10 bg-surface/50 backdrop-blur-sm flex flex-col gap-1">
+              <span className="mono text-[10px] text-muted-dark uppercase tracking-wider">
                 Total Liquidity
               </span>
-              <span className="mono text-[22px] sm:text-[24px] font-medium text-foreground">
+              <span className="mono text-[20px] sm:text-[22px] font-medium text-foreground">
                 {isLoading ? "..." : formatUsd(totalLiquidity)}
               </span>
             </div>
-            <div className="flex min-w-0 flex-col">
-              <span className="mono text-[11px] text-muted-dark uppercase tracking-wider">
+            <div className="p-3.5 sm:p-4 rounded-xl border border-white/10 bg-surface/50 backdrop-blur-sm flex flex-col gap-1">
+              <span className="mono text-[10px] text-muted-dark uppercase tracking-wider">
                 Available Markets
               </span>
-              <span className="mono text-[22px] sm:text-[24px] font-medium text-ice">
+              <span className="mono text-[20px] sm:text-[22px] font-medium text-ice">
                 {isLoading ? "..." : markets.length}
               </span>
             </div>
-            <div className="flex min-w-0 flex-col">
-              <span className="mono text-[11px] text-muted-dark uppercase tracking-wider">
+            <div className="p-3.5 sm:p-4 rounded-xl border border-white/10 bg-surface/50 backdrop-blur-sm flex flex-col gap-1">
+              <span className="mono text-[10px] text-muted-dark uppercase tracking-wider">
                 Network
               </span>
-              <span className="truncate text-[13px] font-medium text-foreground" title={networkLabel}>
-                {networkLabel.replace("Default · ", "")}
+              <span className="text-[13px] font-medium text-foreground">
+                Robinhood Chain
               </span>
+              <span className="mono text-[10px] text-muted-dark">{networkShortLabel}</span>
             </div>
-            <div className="flex min-w-0 flex-col">
-              <span className="mono text-[11px] text-muted-dark uppercase tracking-wider">
-                Data
+            <div className="p-3.5 sm:p-4 rounded-xl border border-white/10 bg-surface/50 backdrop-blur-sm flex flex-col gap-1 min-w-0">
+              <span className="mono text-[10px] text-muted-dark uppercase tracking-wider">
+                Data Mode
               </span>
-              <DataModeBadge mode={yieldAdapter.mode} />
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_8px_#fbbf24] animate-pulse shrink-0" />
+                <span className="text-[13px] font-medium text-foreground">
+                  Preview Data
+                </span>
+              </div>
+              <span className="mono text-[10px] text-muted-dark">Mock Adapter</span>
             </div>
           </div>
         </div>
