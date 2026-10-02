@@ -898,18 +898,19 @@ export function HeroVisual({
         s.targetY += s.velocityY * dt * 25;
         s.targetX = Math.max(-45, Math.min(50, s.targetX));
 
-        // Apple-style spring ease towards target + hover tilt
-        const springFactor = 0.075;
+        // Smooth spring ease towards target + hover tilt (frame-rate independent)
+        const springFactor = 1 - Math.exp(-4.5 * dt);
         s.currentX += (s.targetX + s.hoverTiltX - s.currentX) * springFactor;
         s.currentY += (s.targetY + s.hoverTiltY - s.currentY) * springFactor;
       } else {
         // Direct responsive tracking with elastic ease during drag
-        s.currentX += (s.targetX - s.currentX) * 0.28;
-        s.currentY += (s.targetY - s.currentY) * 0.28;
+        const dragFactor = 1 - Math.exp(-18 * dt);
+        s.currentX += (s.targetX - s.currentX) * dragFactor;
+        s.currentY += (s.targetY - s.currentY) * dragFactor;
       }
 
-      // 60/120fps continuous mathematical spring for camera (zero glitch, zero CSS transition jumps)
-      const camSpring = 0.052;
+      // Continuous mathematical spring for camera (zero glitch, frame-rate independent)
+      const camSpring = 1 - Math.exp(-3.5 * dt);
       s.camScale += (s.targetScale - s.camScale) * camSpring;
       s.camPanX += (s.targetPanX - s.camPanX) * camSpring;
       s.camPanY += (s.targetPanY - s.camPanY) * camSpring;
@@ -1046,7 +1047,10 @@ export function HeroVisual({
 
     // Longitude Meridians (Passing smoothly through both poles with 3D projection)
     const merAngles = [0, 22.5, 45, 67.5, 90, 112.5, 135, 157.5];
-    const phiSamples = [-90, -75, -60, -45, -30, -15, 0, 15, 30, 45, 60, 75, 90];
+    const phiSamples: number[] = [];
+    for (let deg = -90; deg <= 90; deg += 5) {
+      phiSamples.push(deg);
+    }
 
     const mers = merAngles.map((deg) => {
       const lonRad = (deg * Math.PI) / 180 + rotY;
@@ -1097,7 +1101,7 @@ export function HeroVisual({
         x: Number(X.toFixed(2)),
         y: Number((-Yrot).toFixed(2)),
         r: n.r,
-        col: fixedActive ? "#A9C8EE" : longActive ? "#F0A85C" : n.col,
+        col: n.col,
         twinkle: n.twinkle,
         delay: n.delay,
         opacity: isFront ? Number(op.toFixed(2)) : 0,
@@ -1105,7 +1109,7 @@ export function HeroVisual({
     });
 
     return { latitudes: lats, meridians: mers, starNodes: nodes };
-  }, [renderState.rotX, renderState.rotY, fixedActive, longActive]);
+  }, [renderState.rotX, renderState.rotY]);
 
   // Compute 3D Vault Core (Wireframe Cube + Tesseract inside the transparent planet)
   const { cubeEdges, innerEdges, cubeCornerNodes } = useMemo(() => {
@@ -1127,10 +1131,10 @@ export function HeroVisual({
       return { x: Number(x1.toFixed(2)), y: Number(y1.toFixed(2)), z: Number(z2.toFixed(2)) };
     };
 
-    const S_OUTER = engineActive ? 80 : 68;
+    const S_OUTER = 70;
     const outerVertices = CUBE_VERTICES.map(([vx, vy, vz]) => projectVertex(vx, vy, vz, S_OUTER));
 
-    const S_INNER = engineActive ? 42 : 35;
+    const S_INNER = 36;
     const innerVertices = CUBE_VERTICES.map(([vx, vy, vz]) => projectVertex(vx, vy, vz, S_INNER));
 
     const outerEdgesProj = CUBE_EDGES.map(([i1, i2]) => {
@@ -1182,7 +1186,7 @@ export function HeroVisual({
       innerEdges: innerEdgesProj,
       cubeCornerNodes: outerVertices,
     };
-  }, [renderState.rotX, renderState.rotY, engineActive]);
+  }, [renderState.rotX, renderState.rotY]);
 
   // Compute Rich 3D Real-Time Sacred Geometry for Mini-Planets
   const miniPlanets3D = useMemo(() => {
@@ -1204,8 +1208,8 @@ export function HeroVisual({
       return { x: x1, y: y1, z: z2 };
     };
 
-    const dSize = fixedActive ? 14 : 11;
-    const dH = fixedActive ? 17 : 14;
+    const dSize = 12;
+    const dH = 15;
     const dvTop = projectDiamond(0, -dH, 0);
     const dvBottom = projectDiamond(0, dH, 0);
     const dvRight = projectDiamond(dSize, 0, 0);
@@ -1239,7 +1243,7 @@ export function HeroVisual({
 
     // 2. Long Yield: Living Organic Bio-Particle (Undulating Fluid Membrane + 3D Orbiting Spores)
     const bioPoints: string[] = [];
-    const bioR = longActive ? 15 : 12;
+    const bioR = 13;
     const numPoints = 16;
     for (let i = 0; i < numPoints; i++) {
       const angle = (i / numPoints) * Math.PI * 2;
@@ -1277,9 +1281,9 @@ export function HeroVisual({
 
     // 3. Split Engine: 3D Cleaving Prisms & Quantum Laser Beam
     const sRotY = t * 2.2;
-    const sH = engineActive ? 12 : 10;
-    const sR = engineActive ? 11 : 9;
-    const sGap = engineActive ? 3.8 : 1.6;
+    const sH = 11;
+    const sR = 10;
+    const sGap = 2.2;
     const cosSY = Math.cos(sRotY);
     const sinSY = Math.sin(sRotY);
 
@@ -1305,7 +1309,7 @@ export function HeroVisual({
     const gRot2 = (-gTime * 42) % 360;
     const gRot3 = (gTime * 28 + 45) % 360;
 
-    const vCubeR = vaultsActive ? 10 : 8;
+    const vCubeR = 9;
     const cAng = t * 1.6;
     const cosCA = Math.cos(cAng);
     const sinCA = Math.sin(cAng);
@@ -1355,7 +1359,7 @@ export function HeroVisual({
       gRot3,
       vaultEdges,
     };
-  }, [renderState.time, fixedActive, longActive, engineActive, vaultsActive]);
+  }, [renderState.time]);
 
   // Positioning: On desktop split layout, center celestial object at x: 890
   const celestialCx = isSplitLayout ? 890 : 720;
@@ -1530,15 +1534,19 @@ export function HeroVisual({
       <g
         transform={`translate(${celestialCx + parallaxX + renderState.camPanX} ${celestialCy + parallaxY + renderState.camPanY}) scale(${renderState.camScale})`}
       >
-        {/* Soft diffuse corona behind planet */}
+        {/* Soft diffuse corona behind planet - layered crossfade */}
         <circle
           r="420"
-          fill={fixedActive ? "url(#behindCyanGlow)" : "url(#behindOrangeGlow)"}
-          style={{ transition: "fill 0.6s ease-out" }}
+          fill="url(#behindCyanGlow)"
+          style={{ opacity: fixedActive ? 1 : 0, transition: "opacity 0.7s ease-out" }}
           pointerEvents="none"
         />
-
-
+        <circle
+          r="420"
+          fill="url(#behindOrangeGlow)"
+          style={{ opacity: longActive ? 1 : (fixedActive ? 0 : 0.7), transition: "opacity 0.7s ease-out" }}
+          pointerEvents="none"
+        />
 
         {/* ============================================================== */}
         {/* MONUMENTAL HD WIREFRAME SPHERICAL PLANET BODY (R = 345)        */}
@@ -1549,10 +1557,9 @@ export function HeroVisual({
           <circle
             r="345"
             fill="url(#masterPlanetBody)"
-            stroke={fixedActive ? "#A9C8EE" : longActive ? "#F0A85C" : "rgba(255,255,255,0.22)"}
-            strokeWidth={fixedActive || longActive ? "1.8" : "1.2"}
-            opacity={fixedActive || longActive ? 0.85 : 0.65}
-            className="transition-colors duration-500"
+            stroke="rgba(255,255,255,0.22)"
+            strokeWidth="1.2"
+            opacity={0.7}
           />
 
           {/* Crisp Wireframe Net: Latitudes, Meridians & Star Nodes */}
@@ -1566,7 +1573,7 @@ export function HeroVisual({
                 rx={lat.rx}
                 ry={lat.ry}
                 fill="none"
-                stroke={fixedActive ? "#DDE8F8" : longActive ? "#FFE2C4" : "#FFFFFF"}
+                stroke="#FFFFFF"
                 strokeWidth={lat.strokeWidth}
                 opacity={lat.opacity}
               />
@@ -1578,7 +1585,7 @@ export function HeroVisual({
                 key={`mer-${i}`}
                 d={mer.d}
                 fill="none"
-                stroke={fixedActive ? "#DDE8F8" : longActive ? "#FFE2C4" : "#FFFFFF"}
+                stroke="#FFFFFF"
                 strokeWidth={mer.strokeWidth}
                 opacity={mer.opacity}
                 strokeLinecap="round"
@@ -1636,9 +1643,9 @@ export function HeroVisual({
               <circle
                 r="115"
                 fill="none"
-                stroke={fixedActive ? "#A9C8EE" : longActive ? "#F0A85C" : "#FFFFFF"}
+                stroke="#FFFFFF"
                 strokeWidth="0.65"
-                opacity={engineActive ? 0.85 : 0.28}
+                style={{ opacity: engineActive ? 0.85 : 0.28, transition: "opacity 0.6s ease-out" }}
                 strokeDasharray="8 10"
               />
             </g>
@@ -1646,9 +1653,9 @@ export function HeroVisual({
               <circle
                 r="92"
                 fill="none"
-                stroke={fixedActive ? "#A9C8EE" : longActive ? "#F0A85C" : "#A9C8EE"}
+                stroke="#A9C8EE"
                 strokeWidth="0.6"
-                opacity={engineActive ? 0.9 : 0.3}
+                style={{ opacity: engineActive ? 0.9 : 0.3, transition: "opacity 0.6s ease-out" }}
                 strokeDasharray="5 8"
               />
             </g>
@@ -1661,9 +1668,9 @@ export function HeroVisual({
                 y1={e.y1}
                 x2={e.x2}
                 y2={e.y2}
-                stroke={engineActive ? "#A9C8EE" : fixedActive ? "#A9C8EE" : longActive ? "#F0A85C" : "#FFFFFF"}
+                stroke="#ECEDEA"
                 strokeWidth={e.strokeWidth}
-                opacity={engineActive ? Math.min(1, e.opacity * 1.5) : e.opacity}
+                opacity={e.opacity}
               />
             ))}
 
@@ -1675,9 +1682,9 @@ export function HeroVisual({
                 y1={e.y1}
                 x2={e.x2}
                 y2={e.y2}
-                stroke={engineActive ? "#F0A85C" : fixedActive ? "#DDE8F8" : longActive ? "#FFF2D6" : "#DDE8F8"}
+                stroke="#F0A85C"
                 strokeWidth={e.strokeWidth}
-                opacity={engineActive ? Math.min(1, e.opacity * 1.6) : e.opacity}
+                opacity={e.opacity}
               />
             ))}
 
@@ -1687,7 +1694,7 @@ export function HeroVisual({
                 key={`cube-node-${idx}`}
                 cx={v.x}
                 cy={v.y}
-                r={v.z > 0 ? (engineActive ? 3.0 : 2.4) : 1.4}
+                r={v.z > 0 ? 2.5 : 1.4}
                 fill={v.z > 0 ? "#FFFFFF" : "#8E929B"}
                 opacity={v.z > 0 ? 0.9 : 0.4}
                 filter={v.z > 0 ? "url(#starGlow)" : undefined}
@@ -1699,23 +1706,30 @@ export function HeroVisual({
             <circle r="5.5" fill="#FFFFFF" filter="url(#majorStarGlow)" />
             <circle
               r="16"
-              fill={fixedActive ? "#A9C8EE" : longActive ? "#F0A85C" : engineActive ? "#A9C8EE" : "#F0A85C"}
-              opacity={engineActive ? 0.5 : 0.25}
+              fill="#F0A85C"
+              style={{
+                opacity: engineActive ? 0.5 : 0.25,
+                transition: "opacity 0.6s ease-out",
+              }}
               filter="url(#starGlow)"
             />
 
-            {/* Laser Split Vector (Active in Stage 3) */}
-            {engineActive && (
-              <g>
-                <line x1="-12" y1="0" x2="-120" y2="0" stroke="#A9C8EE" strokeWidth="1.8" filter="url(#starGlow)" />
-                <polygon points="-120,-4 -130,0 -120,4" fill="#A9C8EE" />
-                <text x="-136" y="4" textAnchor="end" className="mono text-[9px] tracking-[0.18em]" fill="#A9C8EE">PT (PRINCIPAL)</text>
+            {/* Laser Split Vector (Smoothly fades in when Stage 3 is active) */}
+            <g
+              pointerEvents="none"
+              style={{
+                opacity: engineActive ? 1 : 0,
+                transition: "opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1)",
+              }}
+            >
+              <line x1="-12" y1="0" x2="-120" y2="0" stroke="#A9C8EE" strokeWidth="1.8" filter="url(#starGlow)" />
+              <polygon points="-120,-4 -130,0 -120,4" fill="#A9C8EE" />
+              <text x="-136" y="4" textAnchor="end" className="mono text-[9px] tracking-[0.18em]" fill="#A9C8EE">PT (PRINCIPAL)</text>
 
-                <line x1="12" y1="0" x2="120" y2="0" stroke="#F0A85C" strokeWidth="1.8" filter="url(#starGlow)" />
-                <polygon points="120,-4 130,0 120,4" fill="#F0A85C" />
-                <text x="136" y="4" textAnchor="start" className="mono text-[9px] tracking-[0.18em]" fill="#F0A85C">YT (YIELD)</text>
-              </g>
-            )}
+              <line x1="12" y1="0" x2="120" y2="0" stroke="#F0A85C" strokeWidth="1.8" filter="url(#starGlow)" />
+              <polygon points="120,-4 130,0 120,4" fill="#F0A85C" />
+              <text x="136" y="4" textAnchor="start" className="mono text-[9px] tracking-[0.18em]" fill="#F0A85C">YT (YIELD)</text>
+            </g>
 
             {/* Micro Technical Sub-label under Core */}
             <text
@@ -1724,23 +1738,30 @@ export function HeroVisual({
               textAnchor="middle"
               className="mono text-[8px] tracking-[0.24em] select-none"
               fill="#ECEDEA"
-              opacity={engineActive ? 0.9 : 0.45}
+              style={{
+                opacity: engineActive ? 0.9 : 0.45,
+                transition: "opacity 0.6s ease-out",
+              }}
             >
               USDG · SPLIT VAULT CORE
             </text>
           </g>
         </g>
 
-        {/* Tactical HUD Overlay for Stage 4 */}
-        {vaultsActive && (
-          <g pointerEvents="none" className="transition-opacity duration-700 ease-out">
-            <circle r="220" fill="none" stroke="#34D399" strokeWidth="0.6" opacity="0.35" strokeDasharray="8 12" />
-            <line x1="-360" y1="0" x2="-330" y2="0" stroke="#34D399" strokeWidth="1.2" opacity="0.6" />
-            <line x1="330" y1="0" x2="360" y2="0" stroke="#34D399" strokeWidth="1.2" opacity="0.6" />
-            <line x1="0" y1="-360" x2="0" y2="-330" stroke="#34D399" strokeWidth="1.2" opacity="0.6" />
-            <line x1="0" y1="330" x2="0" y2="360" stroke="#34D399" strokeWidth="1.2" opacity="0.6" />
-          </g>
-        )}
+        {/* Tactical HUD Overlay for Stage 4 (Smoothly fades in when Stage 4 is active) */}
+        <g
+          pointerEvents="none"
+          style={{
+            opacity: vaultsActive ? 1 : 0,
+            transition: "opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1)",
+          }}
+        >
+          <circle r="220" fill="none" stroke="#34D399" strokeWidth="0.6" opacity="0.35" strokeDasharray="8 12" />
+          <line x1="-360" y1="0" x2="-330" y2="0" stroke="#34D399" strokeWidth="1.2" opacity="0.6" />
+          <line x1="330" y1="0" x2="360" y2="0" stroke="#34D399" strokeWidth="1.2" opacity="0.6" />
+          <line x1="0" y1="-360" x2="0" y2="-330" stroke="#34D399" strokeWidth="1.2" opacity="0.6" />
+          <line x1="0" y1="330" x2="0" y2="360" stroke="#34D399" strokeWidth="1.2" opacity="0.6" />
+        </g>
 
         {/* Moving Orbital System (Seamless Continuous Outer Orbit) */}
         <g transform="rotate(-8) scale(1 0.22)" pointerEvents="none">
@@ -1756,10 +1777,14 @@ export function HeroVisual({
         </g>
 
         {/* Fixed Yield Orbit Track (Ice Blue, -15 deg) - Seamless Unbroken Track */}
-        <g transform="rotate(-15) scale(1 0.23)" pointerEvents="none">
+        <g
+          transform="rotate(-15) scale(1 0.23)"
+          pointerEvents="none"
+          style={{ opacity: fixedOp, transition: "opacity 0.7s ease-out" }}
+        >
           <circle r="428" fill="none" stroke="#A9C8EE" strokeWidth="0.6" opacity="0.35" />
-          <circle r="445" fill="none" stroke="#A9C8EE" strokeWidth="1.6" opacity={fixedOp} />
-          <circle className="ringflow" r="445" fill="none" stroke="#FFFFFF" strokeWidth="2.4" strokeDasharray="180 80 40 80" opacity={fixedOp} style={{ animationDuration: "55s" }} />
+          <circle r="445" fill="none" stroke="#A9C8EE" strokeWidth="1.6" opacity="0.8" />
+          <circle className="ringflow" r="445" fill="none" stroke="#FFFFFF" strokeWidth="2.4" strokeDasharray="180 80 40 80" opacity="0.9" style={{ animationDuration: "55s" }} />
           <circle r="462" fill="none" stroke="#A9C8EE" strokeWidth="0.8" opacity="0.4" />
           <circle className="ringflow" r="462" fill="none" stroke="#DDE8F8" strokeWidth="0.6" strokeDasharray="2 12" opacity="0.6" style={{ animationDuration: "75s" }} />
 
@@ -1776,10 +1801,14 @@ export function HeroVisual({
         </g>
 
         {/* Long Yield Orbit Track (Amber, -15 deg) - Seamless Unbroken Track */}
-        <g transform="rotate(-15) scale(1 0.23)" pointerEvents="none">
+        <g
+          transform="rotate(-15) scale(1 0.23)"
+          pointerEvents="none"
+          style={{ opacity: longOp, transition: "opacity 0.7s ease-out" }}
+        >
           <circle r="525" fill="none" stroke="#F0A85C" strokeWidth="0.6" opacity="0.35" />
-          <circle r="545" fill="none" stroke="#F0A85C" strokeWidth="1.8" opacity={longOp} />
-          <circle className="ringflow" r="545" fill="none" stroke="#FFF2D6" strokeWidth="2.5" strokeDasharray="240 100 50 100" opacity={longOp} style={{ animationDuration: "42s" }} />
+          <circle r="545" fill="none" stroke="#F0A85C" strokeWidth="1.8" opacity="0.8" />
+          <circle className="ringflow" r="545" fill="none" stroke="#FFF2D6" strokeWidth="2.5" strokeDasharray="240 100 50 100" opacity="0.9" style={{ animationDuration: "42s" }} />
           <circle r="568" fill="none" stroke="#F0A85C" strokeWidth="0.8" opacity="0.4" />
           <circle className="ringflow" r="568" fill="none" stroke="#F0A85C" strokeWidth="0.6" strokeDasharray="4 16" opacity="0.5" style={{ animationDuration: "60s" }} />
 
@@ -1848,17 +1877,28 @@ export function HeroVisual({
         <g
           className="cursor-pointer group pointer-events-auto"
           transform="translate(-100 240)"
-          opacity={activeStage === 0 || fixedActive ? 1 : 0.22}
-          style={{ transition: "opacity 0.5s ease-out" }}
+          style={{
+            opacity: activeStage === 0 || fixedActive ? 1 : 0.25,
+            transition: "opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1)",
+          }}
           onClick={(e) => {
             e.stopPropagation();
             onSelectStage?.(1);
           }}
         >
-          {/* Active Ping Radar Wave */}
-          {fixedActive && (
-            <circle r="44" fill="none" stroke="#A9C8EE" strokeWidth="1.2" opacity="0.6" className="animate-ping" style={{ animationDuration: "2.8s" }} />
-          )}
+          {/* Active Ping Radar Wave (Smoothly fades in/out) */}
+          <circle
+            r="44"
+            fill="none"
+            stroke="#A9C8EE"
+            strokeWidth="1.2"
+            className="animate-ping pointer-events-none"
+            style={{
+              animationDuration: "2.8s",
+              opacity: fixedActive ? 0.6 : 0,
+              transition: "opacity 0.6s ease-out",
+            }}
+          />
 
           {/* Planetary Ring (Back Arc) */}
           <g transform="rotate(-26) scale(1 0.32)" opacity="0.65">
@@ -1866,8 +1906,24 @@ export function HeroVisual({
           </g>
 
           {/* Atmospheric Corona & Aura */}
-          <circle r="34" fill="#A9C8EE" opacity={fixedActive ? "0.22" : "0.08"} className="transition-opacity duration-500" />
-          <circle r="26" fill="url(#miniPlanetFixed)" stroke="#A9C8EE" strokeWidth={fixedActive ? "1.6" : "0.85"} opacity={fixedActive ? 1 : 0.85} />
+          <circle
+            r="34"
+            fill="#A9C8EE"
+            style={{
+              opacity: fixedActive ? 0.22 : 0.08,
+              transition: "opacity 0.6s ease-out",
+            }}
+          />
+          <circle
+            r="26"
+            fill="url(#miniPlanetFixed)"
+            stroke="#A9C8EE"
+            strokeWidth="1.2"
+            style={{
+              opacity: fixedActive ? 1 : 0.85,
+              transition: "opacity 0.6s ease-out",
+            }}
+          />
 
           {/* 3D Top-Left Crescent Rim Specular Lighting Arc */}
           <path d="M -23 8 A 25 25 0 0 1 8 -23" fill="none" stroke="url(#topRimArcGrad)" strokeWidth="1.4" strokeLinecap="round" />
@@ -1898,8 +1954,11 @@ export function HeroVisual({
           {/* Planet Telemetry Badge */}
           <g
             transform="translate(32 -16)"
-            className="transition-all duration-300 group-hover:translate-x-9 select-none"
-            opacity={activeStage === 0 || fixedActive ? 1 : 0}
+            className="transition-transform duration-300 group-hover:translate-x-9 select-none pointer-events-none"
+            style={{
+              opacity: activeStage === 0 || fixedActive ? 1 : 0,
+              transition: "opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s ease-out",
+            }}
           >
             <rect
               x="0"
@@ -1921,17 +1980,28 @@ export function HeroVisual({
         <g
           className="cursor-pointer group pointer-events-auto"
           transform="translate(260 -130)"
-          opacity={activeStage === 0 || longActive ? 1 : 0.22}
-          style={{ transition: "opacity 0.5s ease-out" }}
+          style={{
+            opacity: activeStage === 0 || longActive ? 1 : 0.25,
+            transition: "opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1)",
+          }}
           onClick={(e) => {
             e.stopPropagation();
             onSelectStage?.(2);
           }}
         >
-          {/* Active Ping Radar Wave */}
-          {longActive && (
-            <circle r="44" fill="none" stroke="#F0A85C" strokeWidth="1.2" opacity="0.6" className="animate-ping" style={{ animationDuration: "2.8s" }} />
-          )}
+          {/* Active Ping Radar Wave (Smoothly fades in/out) */}
+          <circle
+            r="44"
+            fill="none"
+            stroke="#F0A85C"
+            strokeWidth="1.2"
+            className="animate-ping pointer-events-none"
+            style={{
+              animationDuration: "2.8s",
+              opacity: longActive ? 0.6 : 0,
+              transition: "opacity 0.6s ease-out",
+            }}
+          />
 
           {/* Planetary Ring (Back Arc) */}
           <g transform="rotate(32) scale(1 0.32)" opacity="0.65">
@@ -1939,8 +2009,24 @@ export function HeroVisual({
           </g>
 
           {/* Atmospheric Plasma Corona & 3D Shaded Sphere */}
-          <circle r="34" fill="#F0A85C" opacity={longActive ? "0.22" : "0.08"} className="transition-opacity duration-500" />
-          <circle r="26" fill="url(#miniPlanetLong)" stroke="#F0A85C" strokeWidth={longActive ? "1.6" : "0.85"} opacity={longActive ? 1 : 0.85} />
+          <circle
+            r="34"
+            fill="#F0A85C"
+            style={{
+              opacity: longActive ? 0.22 : 0.08,
+              transition: "opacity 0.6s ease-out",
+            }}
+          />
+          <circle
+            r="26"
+            fill="url(#miniPlanetLong)"
+            stroke="#F0A85C"
+            strokeWidth="1.2"
+            style={{
+              opacity: longActive ? 1 : 0.85,
+              transition: "opacity 0.6s ease-out",
+            }}
+          />
 
           {/* 3D Top-Left Crescent Rim Specular Lighting Arc */}
           <path d="M -23 8 A 25 25 0 0 1 8 -23" fill="none" stroke="url(#topRimArcGrad)" strokeWidth="1.4" strokeLinecap="round" />
@@ -1982,8 +2068,11 @@ export function HeroVisual({
           {/* Planet Telemetry Badge */}
           <g
             transform="translate(32 -16)"
-            className="transition-all duration-300 group-hover:translate-x-9 select-none"
-            opacity={activeStage === 0 || longActive ? 1 : 0}
+            className="transition-transform duration-300 group-hover:translate-x-9 select-none pointer-events-none"
+            style={{
+              opacity: activeStage === 0 || longActive ? 1 : 0,
+              transition: "opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s ease-out",
+            }}
           >
             <rect
               x="0"
@@ -2005,22 +2094,49 @@ export function HeroVisual({
         <g
           className="cursor-pointer group pointer-events-auto"
           transform="translate(0 -190)"
-          opacity={activeStage === 0 || engineActive ? 1 : 0.22}
-          style={{ transition: "opacity 0.5s ease-out" }}
+          style={{
+            opacity: activeStage === 0 || engineActive ? 1 : 0.25,
+            transition: "opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1)",
+          }}
           onClick={(e) => {
             e.stopPropagation();
             onSelectStage?.(3);
           }}
         >
-          {/* Active Ping Radar Wave */}
-          {engineActive && (
-            <circle r="44" fill="none" stroke="#FFFFFF" strokeWidth="1.2" opacity="0.6" className="animate-ping" style={{ animationDuration: "2.8s" }} />
-          )}
+          {/* Active Ping Radar Wave (Smoothly fades in/out) */}
+          <circle
+            r="44"
+            fill="none"
+            stroke="#FFFFFF"
+            strokeWidth="1.2"
+            className="animate-ping pointer-events-none"
+            style={{
+              animationDuration: "2.8s",
+              opacity: engineActive ? 0.6 : 0,
+              transition: "opacity 0.6s ease-out",
+            }}
+          />
 
           {/* Concentric Gimbal Target Reticle */}
           <circle r="36" fill="none" stroke="#ECEDEA" strokeWidth="0.7" strokeDasharray="4 8" opacity="0.4" />
-          <circle r="34" fill="#ECEDEA" opacity={engineActive ? "0.2" : "0.06"} className="transition-opacity duration-500" />
-          <circle r="26" fill="url(#miniPlanetSplit)" stroke="#ECEDEA" strokeWidth={engineActive ? "1.6" : "0.85"} opacity={engineActive ? 1 : 0.85} />
+          <circle
+            r="34"
+            fill="#ECEDEA"
+            style={{
+              opacity: engineActive ? 0.2 : 0.06,
+              transition: "opacity 0.6s ease-out",
+            }}
+          />
+          <circle
+            r="26"
+            fill="url(#miniPlanetSplit)"
+            stroke="#ECEDEA"
+            strokeWidth="1.2"
+            style={{
+              opacity: engineActive ? 1 : 0.85,
+              transition: "opacity 0.6s ease-out",
+            }}
+          />
 
           {/* 3D Top-Left Crescent Rim Specular Lighting Arc */}
           <path d="M -23 8 A 25 25 0 0 1 8 -23" fill="none" stroke="url(#topRimArcGrad)" strokeWidth="1.4" strokeLinecap="round" />
@@ -2099,8 +2215,11 @@ export function HeroVisual({
           {/* Planet Telemetry Badge */}
           <g
             transform="translate(32 -16)"
-            className="transition-all duration-300 group-hover:translate-x-9 select-none"
-            opacity={activeStage === 0 || engineActive ? 1 : 0}
+            className="transition-transform duration-300 group-hover:translate-x-9 select-none pointer-events-none"
+            style={{
+              opacity: activeStage === 0 || engineActive ? 1 : 0,
+              transition: "opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s ease-out",
+            }}
           >
             <rect
               x="0"
@@ -2122,21 +2241,48 @@ export function HeroVisual({
         <g
           className="cursor-pointer group pointer-events-auto"
           transform="translate(200 240)"
-          opacity={activeStage === 0 || vaultsActive ? 1 : 0.22}
-          style={{ transition: "opacity 0.5s ease-out" }}
+          style={{
+            opacity: activeStage === 0 || vaultsActive ? 1 : 0.25,
+            transition: "opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1)",
+          }}
           onClick={(e) => {
             e.stopPropagation();
             onSelectStage?.(4);
           }}
         >
-          {/* Active Ping Radar Wave */}
-          {vaultsActive && (
-            <circle r="44" fill="none" stroke="#34D399" strokeWidth="1.2" opacity="0.6" className="animate-ping" style={{ animationDuration: "2.8s" }} />
-          )}
+          {/* Active Ping Radar Wave (Smoothly fades in/out) */}
+          <circle
+            r="44"
+            fill="none"
+            stroke="#34D399"
+            strokeWidth="1.2"
+            className="animate-ping pointer-events-none"
+            style={{
+              animationDuration: "2.8s",
+              opacity: vaultsActive ? 0.6 : 0,
+              transition: "opacity 0.6s ease-out",
+            }}
+          />
 
           {/* Emerald Atmospheric Corona & 3D Shaded Sphere */}
-          <circle r="34" fill="#34D399" opacity={vaultsActive ? "0.22" : "0.08"} className="transition-opacity duration-500" />
-          <circle r="26" fill="url(#miniPlanetVault)" stroke="#34D399" strokeWidth={vaultsActive ? "1.6" : "0.85"} opacity={vaultsActive ? 1 : 0.85} />
+          <circle
+            r="34"
+            fill="#34D399"
+            style={{
+              opacity: vaultsActive ? 0.22 : 0.08,
+              transition: "opacity 0.6s ease-out",
+            }}
+          />
+          <circle
+            r="26"
+            fill="url(#miniPlanetVault)"
+            stroke="#34D399"
+            strokeWidth="1.2"
+            style={{
+              opacity: vaultsActive ? 1 : 0.85,
+              transition: "opacity 0.6s ease-out",
+            }}
+          />
 
           {/* 3D Top-Left Crescent Rim Specular Lighting Arc */}
           <path d="M -23 8 A 25 25 0 0 1 8 -23" fill="none" stroke="url(#topRimArcGrad)" strokeWidth="1.4" strokeLinecap="round" />
@@ -2177,8 +2323,11 @@ export function HeroVisual({
           {/* Planet Telemetry Badge */}
           <g
             transform="translate(32 -16)"
-            className="transition-all duration-300 group-hover:translate-x-9 select-none"
-            opacity={activeStage === 0 || vaultsActive ? 1 : 0}
+            className="transition-transform duration-300 group-hover:translate-x-9 select-none pointer-events-none"
+            style={{
+              opacity: activeStage === 0 || vaultsActive ? 1 : 0,
+              transition: "opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s ease-out",
+            }}
           >
             <rect
               x="0"
