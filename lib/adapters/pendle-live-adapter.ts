@@ -19,6 +19,7 @@ import {
 } from "@/lib/web3/chains";
 import { verifiedTokenMetadata } from "@/lib/metadata/tokens";
 import { displayAmountToBaseUnits } from "@/lib/utils/amounts";
+import { getContractByName } from "@/lib/contracts/deployments";
 import { normalizeYieldError, YieldDomainError } from "@/types/errors";
 import type { YieldMarket } from "@/types/market";
 import type { FixedYieldQuote, LongYieldQuote } from "@/types/quote";
@@ -82,6 +83,7 @@ type ConvertResponse = {
 
 type SdkTransactionResponse = {
   tx?: { data?: unknown; to?: unknown; from?: unknown; value?: unknown };
+  tokenApprovals?: Array<{ token?: unknown; amount?: unknown }>;
 };
 
 type ClaimTokenAmount = { token?: unknown; amount?: unknown };
@@ -133,6 +135,33 @@ function toAddress(value: unknown): Address | undefined {
 
 function toHex(value: unknown): Hex | undefined {
   return typeof value === "string" && isHex(value) ? value : undefined;
+}
+
+export type NormalizedPendleTransaction = {
+  to: Address;
+  data: Hex;
+  value: bigint;
+  from?: Address;
+};
+
+export function normalizePendleTransaction(
+  transaction: { data?: unknown; to?: unknown; from?: unknown; value?: unknown } | undefined,
+  label = "transaction",
+): NormalizedPendleTransaction {
+  const to = toAddress(transaction?.to);
+  const data = toHex(transaction?.data);
+  const from = transaction?.from === undefined ? undefined : toAddress(transaction.from);
+  const rawValue = transaction?.value === undefined ? "0" : asString(transaction.value);
+
+  if (!to || !data || (transaction?.from !== undefined && !from) || !rawValue || !/^(?:0x[0-9a-f]+|[0-9]+)$/i.test(rawValue)) {
+    throw new YieldDomainError("live-source-unavailable", `Pendle returned invalid ${label} calldata.`);
+  }
+
+  try {
+    return { to, data, value: BigInt(rawValue), from };
+  } catch {
+    throw new YieldDomainError("live-source-unavailable", `Pendle returned invalid ${label} value.`);
+  }
 }
 
 function assetAddress(value: unknown, chainId: number): Address | undefined {
@@ -414,8 +443,11 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
           { symbol: fallbackName, name: fallbackName },
         );
         return normalizePendleMarket(raw, chainId, underlying, pendleAssets);
-      } catch {
-        return null;
+      } catch (error) {
+        if (error instanceof YieldDomainError && error.code === "invalid-token-metadata") {
+          return null;
+        }
+        throw error;
       }
     }));
     const markets = normalized.filter((market): market is YieldMarket => Boolean(market));
@@ -601,23 +633,25 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
     chainId: 4663,
     runtime?: YieldAdapterRuntime,
   ): Promise<{ txHash: TransactionHash; blockNumber?: bigint; outputAmount?: bigint }> {
-    const { publicClient, walletClient } = this.assertWalletRuntime(chainId, runtime);
     const route = this.getRoute(response);
-    const txTo = toAddress(route.tx?.to);
-    const txData = toHex(route.tx?.data);
-    const txValue = asString(route.tx?.value);
-    if (!txTo || !txData || txValue === undefined) {
-      throw new YieldDomainError("live-source-unavailable", "Pendle returned invalid transaction calldata.");
+    const transaction = normalizePendleTransaction(route.tx, "transaction");
+    const verifiedRouter = getContractByName(chainId, "Pendle Router V2")?.address;
+    if (!verifiedRouter || lower(transaction.to) !== lower(verifiedRouter)) {
+      throw new YieldDomainError("live-source-unavailable", "Pendle returned an unverified router address.");
     }
+    if (transaction.from && lower(transaction.from) !== lower(owner)) {
+      throw new YieldDomainError("live-source-unavailable", "Pendle returned calldata for a different wallet.");
+    }
+    const { publicClient, walletClient } = this.assertWalletRuntime(chainId, runtime);
     for (const approval of response.requiredApprovals || []) {
       const token = toAddress(approval.token);
       const amount = parseRawAmount(approval.amount, "approval");
-      if (!token) throw new YieldDomainError("live-source-unavailable", "Pendle returned an invalid approval token.");
+      if (!token || amount <= BigInt(0)) throw new YieldDomainError("live-source-unavailable", "Pendle returned an invalid approval request.");
       const allowance = await publicClient.readContract({
         address: token,
         abi: erc20Abi,
         functionName: "allowance",
-        args: [owner, txTo],
+        args: [owner, transaction.to],
       });
       if (allowance < amount) {
         const approvalHash = await walletClient.writeContract({
@@ -625,20 +659,29 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
           address: token,
           abi: erc20Abi,
           functionName: "approve",
-          args: [txTo, amount],
+          args: [transaction.to, amount],
           chain: walletClient.chain,
         });
         const approvalReceipt = await publicClient.waitForTransactionReceipt({ hash: approvalHash });
         if (approvalReceipt.status !== "success") {
           throw new YieldDomainError("approval-rejected", "The token approval transaction was reverted.");
         }
+        const refreshedAllowance = await publicClient.readContract({
+          address: token,
+          abi: erc20Abi,
+          functionName: "allowance",
+          args: [owner, transaction.to],
+        });
+        if (refreshedAllowance < amount) {
+          throw new YieldDomainError("approval-rejected", "The confirmed approval did not update the required allowance.");
+        }
       }
     }
     const hash = await walletClient.sendTransaction({
       account: owner,
-      to: txTo,
-      data: txData,
-      value: BigInt(txValue),
+      to: transaction.to,
+      data: transaction.data,
+      value: transaction.value,
       chain: walletClient.chain,
     });
     const receipt = await publicClient.waitForTransactionReceipt({ hash });
@@ -659,18 +702,23 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
     chainId: 4663,
     runtime?: YieldAdapterRuntime,
   ): Promise<{ txHash: TransactionHash; blockNumber?: bigint }> {
-    const { publicClient, walletClient } = this.assertWalletRuntime(chainId, runtime);
-    const txTo = toAddress(response.tx?.to);
-    const txData = toHex(response.tx?.data);
-    const txValue = asString(response.tx?.value);
-    if (!txTo || !txData || txValue === undefined) {
-      throw new YieldDomainError("live-source-unavailable", "Pendle returned invalid claim transaction calldata.");
+    const transaction = normalizePendleTransaction(response.tx, "claim transaction");
+    const verifiedRouter = getContractByName(chainId, "Pendle Router V2")?.address;
+    if (!verifiedRouter || lower(transaction.to) !== lower(verifiedRouter)) {
+      throw new YieldDomainError("live-source-unavailable", "Pendle returned an unverified claim router address.");
     }
+    if (transaction.from && lower(transaction.from) !== lower(owner)) {
+      throw new YieldDomainError("live-source-unavailable", "Pendle returned claim calldata for a different wallet.");
+    }
+    if (response.tokenApprovals && response.tokenApprovals.length > 0) {
+      throw new YieldDomainError("unsupported-operation", "The live claim route unexpectedly requires token approval.");
+    }
+    const { publicClient, walletClient } = this.assertWalletRuntime(chainId, runtime);
     const hash = await walletClient.sendTransaction({
       account: owner,
-      to: txTo,
-      data: txData,
-      value: BigInt(txValue),
+      to: transaction.to,
+      data: transaction.data,
+      value: transaction.value,
       chain: walletClient.chain,
     });
     const receipt = await publicClient.waitForTransactionReceipt({ hash });
@@ -809,9 +857,20 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
     inputAmount: number,
     owner: Address,
     strategy: "fixed" | "long",
+    quote: FixedYieldQuote | LongYieldQuote,
+    chainId: number | undefined,
     runtime?: YieldAdapterRuntime,
   ): Promise<FixedYieldPosition | LongYieldPosition> {
+    const selectedChain = this.getChainId(chainId);
     const market = await this.getMarketOrThrow(marketId, runtime);
+    if (
+      quote.marketId !== market.id ||
+      quote.inputAmount !== inputAmount ||
+      !Number.isFinite(quote.quoteExpiry) ||
+      quote.quoteExpiry <= Date.now()
+    ) {
+      throw new YieldDomainError("quote-expired", "Refresh the live quote before confirming this transaction.");
+    }
     if (market.status === "matured") throw new YieldDomainError("market-expired", "This live market has reached maturity.");
     if (!market.underlyingTokenAddress || market.underlyingDecimals === undefined) {
       throw new YieldDomainError("live-source-unavailable", "This live market is missing verified token metadata.");
@@ -820,8 +879,8 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
     const outputToken = strategy === "fixed" ? market.ptAddress : market.ytAddress;
     const outputDecimals = strategy === "fixed" ? market.ptDecimals : market.ytDecimals;
     if (!outputToken || outputDecimals === undefined) throw new YieldDomainError("live-source-unavailable", "This live market is missing PT/YT metadata.");
-    const response = await this.convert(ROBINHOOD_CHAIN_ID, owner, market.underlyingTokenAddress, inputBaseUnits, [outputToken]);
-    const execution = await this.executeTransaction(response, owner, ROBINHOOD_CHAIN_ID, runtime);
+    const response = await this.convert(selectedChain, owner, market.underlyingTokenAddress, inputBaseUnits, [outputToken]);
+    const execution = await this.executeTransaction(response, owner, selectedChain, runtime);
     const outputRaw = execution.outputAmount || BigInt(0);
     const outputAmount = Number(formatUnits(outputRaw, outputDecimals));
     const txHash = execution.txHash;
@@ -871,12 +930,12 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
     };
   }
 
-  async openFixedPosition(marketId: string, inputAmount: number, userAddress: Address, _quote: FixedYieldQuote, _chainId?: number, runtime?: YieldAdapterRuntime): Promise<FixedYieldPosition> {
-    return this.open(marketId, inputAmount, userAddress, "fixed", runtime) as Promise<FixedYieldPosition>;
+  async openFixedPosition(marketId: string, inputAmount: number, userAddress: Address, quote: FixedYieldQuote, chainId?: number, runtime?: YieldAdapterRuntime): Promise<FixedYieldPosition> {
+    return this.open(marketId, inputAmount, userAddress, "fixed", quote, chainId, runtime) as Promise<FixedYieldPosition>;
   }
 
-  async openLongPosition(marketId: string, inputAmount: number, userAddress: Address, _quote: LongYieldQuote, _chainId?: number, runtime?: YieldAdapterRuntime): Promise<LongYieldPosition> {
-    return this.open(marketId, inputAmount, userAddress, "long", runtime) as Promise<LongYieldPosition>;
+  async openLongPosition(marketId: string, inputAmount: number, userAddress: Address, quote: LongYieldQuote, chainId?: number, runtime?: YieldAdapterRuntime): Promise<LongYieldPosition> {
+    return this.open(marketId, inputAmount, userAddress, "long", quote, chainId, runtime) as Promise<LongYieldPosition>;
   }
 
   async approveToken(request: TokenApprovalRequest, runtime?: YieldAdapterRuntime): Promise<PositionTransactionResult> {

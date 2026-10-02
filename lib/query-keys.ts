@@ -11,6 +11,10 @@ export const queryKeys = {
     ["balance", dataMode(), address?.toLowerCase() ?? "disconnected", chainId ?? "unknown"] as const,
   balance: (address: string | undefined, token: string, chainId?: number) =>
     ["balance", dataMode(), address?.toLowerCase() ?? "disconnected", token, chainId ?? "unknown"] as const,
+  allowancePrefix: (address?: string, chainId?: number) =>
+    ["allowance", dataMode(), address?.toLowerCase() ?? "disconnected", chainId ?? "unknown"] as const,
+  allowance: (address: string | undefined, token: string, spender: string, chainId?: number) =>
+    ["allowance", dataMode(), address?.toLowerCase() ?? "disconnected", token.toLowerCase(), spender.toLowerCase(), chainId ?? "unknown"] as const,
   fixedQuote: (marketId: string, inputAmount: number, chainId?: number) =>
     ["fixed-quote", dataMode(), marketId, inputAmount, chainId ?? "unknown"] as const,
   longQuote: (marketId: string, inputAmount: number, chainId?: number) =>

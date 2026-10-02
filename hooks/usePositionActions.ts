@@ -21,6 +21,8 @@ export function useClaimYield() {
     onSuccess: (_, variables) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.positions(variables.userAddress, chainId) });
       void queryClient.invalidateQueries({ queryKey: queryKeys.balancePrefix(variables.userAddress, chainId) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.allowancePrefix(variables.userAddress, chainId) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.markets(chainId) });
     },
   });
 }
@@ -36,6 +38,8 @@ export function useRedeemFixed() {
     onSuccess: (_, variables) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.positions(variables.userAddress, chainId) });
       void queryClient.invalidateQueries({ queryKey: queryKeys.balancePrefix(variables.userAddress, chainId) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.allowancePrefix(variables.userAddress, chainId) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.markets(chainId) });
     },
   });
 }
@@ -51,6 +55,8 @@ export function useSellPosition() {
     onSuccess: (_, variables) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.positions(variables.userAddress, chainId) });
       void queryClient.invalidateQueries({ queryKey: queryKeys.balancePrefix(variables.userAddress, chainId) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.allowancePrefix(variables.userAddress, chainId) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.markets(chainId) });
     },
   });
 }

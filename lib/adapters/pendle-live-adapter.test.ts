@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { normalizePendleMarket } from "./pendle-live-adapter";
+import { normalizePendleMarket, normalizePendleTransaction, pendleLiveYieldAdapter } from "./pendle-live-adapter";
 
 const underlying = {
   address: "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168" as `0x${string}`,
@@ -49,6 +49,8 @@ describe("Pendle live market normalization", () => {
     expect(market?.underlyingApy).toBeCloseTo(3.3, 8);
     expect(market?.impliedApy).toBeCloseTo(3.45, 8);
     expect(market?.description).toBe("USDG market");
+    expect(market?.assetMetadata?.iconUrl).toBe("https://example.invalid/usdg.svg");
+    expect(market?.protocolMetadata?.iconUrl).toBeUndefined();
   });
 
   it("rejects a market missing verified token addresses or live financial fields", () => {
@@ -59,5 +61,30 @@ describe("Pendle live market normalization", () => {
       pendleAssets,
     );
     expect(market).toBeNull();
+  });
+
+  it("normalizes zero-value Pendle routes and rejects malformed values", () => {
+    const transaction = normalizePendleTransaction({
+      to: "0x888888888889758F76e7103c6CbF23ABbF58F946",
+      from: "0x1111111111111111111111111111111111111111",
+      data: "0x1234",
+    });
+
+    expect(transaction.value).toBe(BigInt(0));
+    expect(() => normalizePendleTransaction({ to: "0x0000000000000000000000000000000000000001", data: "0x1234" })).not.toThrow();
+    expect(() => normalizePendleTransaction({ to: "0x0000000000000000000000000000000000000001", data: "0x1234", value: "-1" })).toThrow();
+  });
+
+  it("reports testnet as unavailable instead of falling back to mainnet live data", async () => {
+    const previous = process.env.NEXT_PUBLIC_ROBINHOOD_CHAIN_ENV;
+    process.env.NEXT_PUBLIC_ROBINHOOD_CHAIN_ENV = "testnet";
+    try {
+      await expect(pendleLiveYieldAdapter.getMarkets()).rejects.toMatchObject({
+        code: "live-source-unavailable",
+      });
+    } finally {
+      if (previous === undefined) delete process.env.NEXT_PUBLIC_ROBINHOOD_CHAIN_ENV;
+      else process.env.NEXT_PUBLIC_ROBINHOOD_CHAIN_ENV = previous;
+    }
   });
 });

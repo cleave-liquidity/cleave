@@ -28,6 +28,10 @@ export function useOpenLongPosition() {
       void queryClient.invalidateQueries({
         queryKey: queryKeys.balancePrefix(variables.userAddress, variables.chainId),
       });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.allowancePrefix(variables.userAddress, variables.chainId) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.markets(variables.chainId) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.market(variables.marketId, variables.chainId) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.longQuote(variables.marketId, variables.inputAmount, variables.chainId) });
     },
   });
 }

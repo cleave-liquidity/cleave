@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-keys";
 import { balanceAdapter } from "@/lib/adapters/balance-adapter";
 import { ViemBalanceAdapter } from "@/lib/adapters/balance-adapter";
+import { yieldAdapter } from "@/lib/adapters/mock-adapter";
 import { YieldDomainError } from "@/types/errors";
 import { isAddress } from "viem";
 import { useAccount, usePublicClient } from "wagmi";
@@ -20,7 +21,7 @@ export function useTokenBalance(
   const query = useQuery({
     queryKey: queryKeys.balance(address, tokenAddress ?? token, chainId),
     queryFn: async () => {
-      if (process.env.NEXT_PUBLIC_CLEAVE_DATA_MODE === "live") {
+      if (yieldAdapter.mode === "live") {
         if (!address || !tokenAddress || !isAddress(tokenAddress) || !tokenChainId || !publicClient) {
           throw new YieldDomainError("live-source-unavailable", "Live token balance configuration is unavailable.");
         }
@@ -40,8 +41,8 @@ export function useTokenBalance(
     },
     enabled: Boolean(address && token),
     staleTime: 15_000,
-    refetchInterval: process.env.NEXT_PUBLIC_CLEAVE_DATA_MODE === "live" ? 15_000 : false,
-    refetchOnWindowFocus: process.env.NEXT_PUBLIC_CLEAVE_DATA_MODE === "live",
+    refetchInterval: yieldAdapter.mode === "live" ? 15_000 : false,
+    refetchOnWindowFocus: yieldAdapter.mode === "live",
     retry: 2,
   });
 
