@@ -12,6 +12,9 @@ export type YieldErrorCode =
   | "transaction-rejected"
   | "transaction-reverted"
   | "rpc-unavailable"
+  | "live-integration-not-configured"
+  | "invalid-token-metadata"
+  | "transaction-not-found"
   | "quote-expired"
   | "market-paused"
   | "market-expired"
@@ -38,6 +41,9 @@ export const YIELD_ERROR_CODES = {
   TRANSACTION_REJECTED: "transaction-rejected",
   TRANSACTION_REVERTED: "transaction-reverted",
   RPC_UNAVAILABLE: "rpc-unavailable",
+  LIVE_INTEGRATION_NOT_CONFIGURED: "live-integration-not-configured",
+  INVALID_TOKEN_METADATA: "invalid-token-metadata",
+  TRANSACTION_NOT_FOUND: "transaction-not-found",
   QUOTE_EXPIRED: "quote-expired",
   MARKET_PAUSED: "market-paused",
   MARKET_MATURED: "market-expired",
@@ -67,8 +73,96 @@ export function isYieldDomainError(error: unknown): error is YieldDomainError {
   return error instanceof YieldDomainError;
 }
 
+type UnknownErrorRecord = {
+  name?: unknown;
+  message?: unknown;
+  shortMessage?: unknown;
+  code?: unknown;
+  cause?: unknown;
+};
+
+function errorRecords(error: unknown): UnknownErrorRecord[] {
+  const records: UnknownErrorRecord[] = [];
+  let current: unknown = error;
+  for (let depth = 0; depth < 4 && current && typeof current === "object"; depth += 1) {
+    const record = current as UnknownErrorRecord;
+    records.push(record);
+    current = record.cause;
+  }
+  return records;
+}
+
+export function normalizeYieldError(error: unknown): YieldDomainError {
+  if (isYieldDomainError(error)) return error;
+
+  const records = errorRecords(error);
+  const names = records
+    .map((record) => (typeof record.name === "string" ? record.name : ""))
+    .join(" ")
+    .toLowerCase();
+  const messages = records
+    .flatMap((record) => [record.message, record.shortMessage])
+    .filter((value): value is string => typeof value === "string")
+    .join(" ")
+    .toLowerCase();
+  const codes = records.map((record) => record.code);
+
+  if (names.includes("userrejectedrequest") || names.includes("transactionrejected") || codes.includes(4001)) {
+    return new YieldDomainError(
+      "transaction-rejected",
+      "The wallet rejected the transaction.",
+    );
+  }
+  if (names.includes("switchchain") || names.includes("unsupportedchain")) {
+    return new YieldDomainError(
+      "network-switch-failed",
+      "The wallet could not switch networks. Select Robinhood Chain manually and try again.",
+    );
+  }
+  if (codes.includes(4901) || messages.includes("wrong network") || messages.includes("chain mismatch")) {
+    return new YieldDomainError(
+      "wrong-network",
+      "Switch your wallet to the selected Robinhood Chain network.",
+    );
+  }
+  if (names.includes("insufficientfunds") || messages.includes("insufficient funds") || messages.includes("insufficient balance")) {
+    return new YieldDomainError(
+      "insufficient-eth-for-gas",
+      "Your wallet does not have enough ETH to pay the network fee.",
+    );
+  }
+  if (
+    names.includes("reverted") ||
+    names.includes("executionerror") ||
+    messages.includes("execution reverted") ||
+    messages.includes("contract reverted")
+  ) {
+    return new YieldDomainError(
+      "transaction-reverted",
+      "The transaction was reverted by the network or contract.",
+    );
+  }
+  if (
+    names.includes("httprequest") ||
+    names.includes("rpcrequest") ||
+    names.includes("timeouterror") ||
+    names.includes("providerdisconnected") ||
+    messages.includes("timeout") ||
+    messages.includes("rate limit") ||
+    messages.includes("network request")
+  ) {
+    return new YieldDomainError(
+      "rpc-unavailable",
+      "The network request could not be completed. Please try again.",
+    );
+  }
+
+  return new YieldDomainError(
+    "rpc-unavailable",
+    "The request could not be completed. Please try again.",
+  );
+}
+
 export function getYieldErrorMessage(error: unknown): string {
-  if (isYieldDomainError(error)) return error.message;
-  if (error instanceof Error && error.message) return error.message;
-  return "Something went wrong. Please try again.";
+  return normalizeYieldError(error).message;
 }

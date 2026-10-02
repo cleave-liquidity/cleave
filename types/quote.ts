@@ -1,4 +1,5 @@
 export interface FixedYieldQuote {
+  quoteId: string;
   marketId: string;
   inputAmount: number;
   ptReceived: number;
@@ -11,9 +12,12 @@ export interface FixedYieldQuote {
   daysToMaturity: number;
   quoteTimestamp: number;
   quoteExpiry: number;
+  blockNumber?: bigint;
+  source?: string;
 }
 
 export interface LongYieldQuote {
+  quoteId: string;
   marketId: string;
   inputAmount: number;
   ytReceived: number;
@@ -27,6 +31,8 @@ export interface LongYieldQuote {
   daysToMaturity: number;
   quoteTimestamp: number;
   quoteExpiry: number;
+  blockNumber?: bigint;
+  source?: string;
   estimatedReturns: {
     currentRate: { apy: number; returnAmount: number; percentChange: number };
     lowerRate: { apy: number; returnAmount: number; percentChange: number };

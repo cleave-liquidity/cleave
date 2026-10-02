@@ -1,5 +1,24 @@
 import { YieldErrorCode } from "./errors";
 
+export type TransactionHash = `0x${string}`;
+export type TransactionStatus = "submitted" | "pending" | "confirmed" | "reverted";
+
+export interface TransactionReceiptResult {
+  hash: TransactionHash;
+  chainId: number;
+  status: TransactionStatus;
+  blockNumber?: bigint;
+  timestamp?: number;
+}
+
+export interface TokenApprovalRequest {
+  tokenAddress: `0x${string}`;
+  owner: `0x${string}`;
+  spender: `0x${string}`;
+  amount: bigint;
+  chainId: number;
+}
+
 export type TransactionStep =
   | "idle"
   | "validating"
@@ -15,6 +34,8 @@ export type TransactionStep =
 export interface TransactionState {
   step: TransactionStep;
   txHash?: `0x${string}`;
+  chainId?: number;
+  receipt?: TransactionReceiptResult;
   errorCode?: YieldErrorCode;
   errorMessage?: string;
 }

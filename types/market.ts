@@ -1,6 +1,7 @@
 export type MarketStatus = "active" | "maturing" | "matured" | "paused";
 export type MarketDataMode = "mock" | "live";
 export type RobinhoodNetwork = "mainnet" | "testnet";
+export type RobinhoodChainId = 4663 | 46630;
 
 export interface MarketAssetMetadata {
   symbol: string;
@@ -35,8 +36,10 @@ export interface YieldMarket {
 
   status: MarketStatus;
   network: RobinhoodNetwork;
+  chainId: RobinhoodChainId;
   dataMode: MarketDataMode;
 
+  marketAddress?: `0x${string}`;
   ptAddress?: `0x${string}`;
   ytAddress?: `0x${string}`;
   vaultAddress?: `0x${string}`;
