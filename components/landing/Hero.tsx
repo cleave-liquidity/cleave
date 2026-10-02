@@ -51,7 +51,11 @@ const STAGES: StageInfo[] = [
     accent: "Zero Liquidation.",
     description:
       "Lock 6.42% fixed APY on your USDG until 26 Mar 2027. Your return is paid upfront at a discount with no margin calls, no maintenance, and zero liquidation risk.",
-    subTabs: ["01 Guaranteed APY", "02 Upfront Discount", "03 Zero Liquidation"],
+    subTabs: [
+      "01 Guaranteed APY",
+      "02 Upfront Discount",
+      "03 Zero Liquidation",
+    ],
     subDetails: [
       "Purchase Principal Tokens (PT) at an upfront discount and redeem 1 USDG per PT at maturity.",
       "Your effective return is locked from the moment of purchase, regardless of future lending rate drops.",
@@ -147,7 +151,6 @@ export function Hero() {
   const [activeStage, setActiveStage] = useState(0);
   const [activeSubTab, setActiveSubTab] = useState(0);
   const [pointer, setPointer] = useState({ x: 0, parallaxX: 0, parallaxY: 0 });
-  const [animatingStage, setAnimatingStage] = useState(false);
   // true = desktop (≥1024px), false = mobile/tablet
   const [isDesktop, setIsDesktop] = useState(false);
 
@@ -180,16 +183,15 @@ export function Hero() {
       if (runwayHeight <= 0) return;
 
       const progress = Math.max(0, Math.min(1, scrolled / runwayHeight));
-      const newStage = Math.min(STAGE_COUNT - 1, Math.floor(progress * STAGE_COUNT));
+      const newStage = Math.min(
+        STAGE_COUNT - 1,
+        Math.floor(progress * STAGE_COUNT),
+      );
 
       if (newStage !== lastStageRef.current) {
         lastStageRef.current = newStage;
-        setAnimatingStage(true);
-        setTimeout(() => {
-          setActiveStage(newStage);
-          setActiveSubTab(0);
-          setAnimatingStage(false);
-        }, 100);
+        setActiveStage(newStage);
+        setActiveSubTab(0);
       }
     };
 
@@ -201,14 +203,10 @@ export function Hero() {
   const handleSelectStage = useCallback(
     (index: number) => {
       if (!isDesktop) {
-        // On mobile: just animate directly
+        // On mobile: just update directly without blinking
         if (index === activeStage) return;
-        setAnimatingStage(true);
-        setTimeout(() => {
-          setActiveStage(index);
-          setActiveSubTab(0);
-          setAnimatingStage(false);
-        }, 100);
+        setActiveStage(index);
+        setActiveSubTab(0);
         return;
       }
 
@@ -220,7 +218,7 @@ export function Hero() {
       const targetY = sectionTop + frac * runwayHeight;
       window.scrollTo({ top: targetY, behavior: "smooth" });
     },
-    [activeStage, isDesktop]
+    [activeStage, isDesktop],
   );
 
   // ─── Touch swipe (mobile stage change) ────────────────────────────────────
@@ -243,16 +241,19 @@ export function Hero() {
   };
 
   // ─── Pointer parallax (desktop) ───────────────────────────────────────────
-  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-    const ny = ((e.clientY - rect.top) / rect.height) * 2 - 1;
-    setPointer({
-      x: nx,
-      parallaxX: Math.max(-3, Math.min(3, nx * 2.5)),
-      parallaxY: Math.max(-3, Math.min(3, ny * 2.5)),
-    });
-  }, []);
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      const ny = ((e.clientY - rect.top) / rect.height) * 2 - 1;
+      setPointer({
+        x: nx,
+        parallaxX: Math.max(-3, Math.min(3, nx * 2.5)),
+        parallaxY: Math.max(-3, Math.min(3, ny * 2.5)),
+      });
+    },
+    [],
+  );
 
   const handlePointerLeave = useCallback(() => {
     setPointer({ x: 0, parallaxX: 0, parallaxY: 0 });
@@ -262,12 +263,12 @@ export function Hero() {
     activeStage === 1
       ? "#A9C8EE"
       : activeStage === 2
-      ? "#F0A85C"
-      : activeStage === 3
-      ? "#DDE8F8"
-      : activeStage === 4
-      ? "#34D399"
-      : "#ECEDEA";
+        ? "#F0A85C"
+        : activeStage === 3
+          ? "#DDE8F8"
+          : activeStage === 4
+            ? "#34D399"
+            : "#ECEDEA";
 
   // ─── Shared viewport content ───────────────────────────────────────────────
   const viewportContent = (
@@ -278,32 +279,136 @@ export function Hero() {
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
-      {/* ── DECORATIVE BACKGROUND ORBITS ── */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+      {/* ── DECORATIVE BACKGROUND ORBITS (Sweeping Universe Scale) ── */}
+      <div
+        className="absolute inset-0 pointer-events-none overflow-hidden"
+        aria-hidden="true"
+      >
         <svg
           viewBox="0 0 1440 940"
           className="absolute inset-0 w-full h-full"
           preserveAspectRatio="xMidYMid slice"
         >
-          {/* Outer slow ring — tilted, very faint */}
-          <g transform="translate(900 480) rotate(-18) scale(1 0.28)" className="orbit-slow-cw orbit-pulse">
-            <ellipse rx="560" ry="560" fill="none" stroke="rgba(169,200,238,0.06)" strokeWidth="1" />
+          {/* Grand Cosmic Galactic Plane — sweeping across full width */}
+          <g
+            transform="translate(860 480) rotate(-22) scale(1 0.26)"
+            className="orbit-slow-cw orbit-pulse"
+          >
+            <ellipse
+              rx="1180"
+              ry="1180"
+              fill="none"
+              stroke="rgba(169,200,238,0.07)"
+              strokeWidth="1"
+              strokeDasharray="16 28 6 28"
+            />
+            <circle cx="1180" cy="0" r="2.5" fill="#A9C8EE" opacity="0.3" />
           </g>
-          {/* Second ring — opposite tilt, slightly smaller */}
-          <g transform="translate(860 500) rotate(12) scale(1 0.22)" className="orbit-slow-ccw">
-            <ellipse rx="440" ry="440" fill="none" stroke="rgba(236,237,234,0.04)" strokeWidth="0.8" strokeDasharray="4 12" />
+
+          {/* Deep Trans-Stellar Ellipse — opposite tilt, sweeping far wide */}
+          <g
+            transform="translate(820 510) rotate(16) scale(1 0.20)"
+            className="orbit-slow-ccw"
+          >
+            <ellipse
+              rx="1420"
+              ry="1420"
+              fill="none"
+              stroke="rgba(240,168,92,0.05)"
+              strokeWidth="0.85"
+              strokeDasharray="8 32 4 16"
+            />
+            <circle cx="-1420" cy="0" r="2" fill="#F0A85C" opacity="0.35" />
           </g>
-          {/* Inner ring — medium speed */}
-          <g transform="translate(920 460) rotate(-32) scale(1 0.18)" className="orbit-med-cw">
-            <ellipse rx="320" ry="320" fill="none" stroke="rgba(240,168,92,0.05)" strokeWidth="1.2" strokeDasharray="8 20" />
+
+          {/* Mid-Macro Orbit — Ice Blue */}
+          <g
+            transform="translate(900 470) rotate(-14) scale(1 0.28)"
+            className="orbit-slow-cw"
+          >
+            <ellipse
+              rx="780"
+              ry="780"
+              fill="none"
+              stroke="rgba(169,200,238,0.08)"
+              strokeWidth="0.9"
+              strokeDasharray="12 18"
+            />
           </g>
-          {/* Far background ring — almost horizontal, super slow */}
-          <g transform="translate(780 500) rotate(-8) scale(1 0.12)" className="orbit-slow-cw orbit-pulse" style={{ animationDuration: "110s", animationDelay: "4s" }}>
-            <ellipse rx="700" ry="700" fill="none" stroke="rgba(169,200,238,0.04)" strokeWidth="0.7" />
+
+          {/* Second Mid Ring — Amber harmonic */}
+          <g
+            transform="translate(870 490) rotate(26) scale(1 0.22)"
+            className="orbit-slow-ccw"
+          >
+            <ellipse
+              rx="620"
+              ry="620"
+              fill="none"
+              stroke="rgba(240,168,92,0.06)"
+              strokeWidth="1.1"
+              strokeDasharray="6 20"
+            />
           </g>
-          {/* Tight inner accent ring */}
-          <g transform="translate(930 470) rotate(22) scale(1 0.32)" className="orbit-slow-ccw" style={{ animationDuration: "90s" }}>
-            <ellipse rx="200" ry="200" fill="none" stroke="rgba(236,237,234,0.05)" strokeWidth="1.5" strokeDasharray="2 10" />
+
+          {/* Inner celestial orbit — white tech ring */}
+          <g
+            transform="translate(910 460) rotate(-35) scale(1 0.24)"
+            className="orbit-med-cw"
+          >
+            <ellipse
+              rx="460"
+              ry="460"
+              fill="none"
+              stroke="rgba(236,237,234,0.07)"
+              strokeWidth="1"
+              strokeDasharray="10 24"
+            />
+          </g>
+
+          {/* Ultra-wide background perimeter horizon — almost horizontal, vast */}
+          <g
+            transform="translate(760 520) rotate(-6) scale(1 0.12)"
+            className="orbit-slow-cw"
+            style={{ animationDuration: "140s" }}
+          >
+            <ellipse
+              rx="1680"
+              ry="1680"
+              fill="none"
+              stroke="rgba(169,200,238,0.04)"
+              strokeWidth="0.75"
+            />
+          </g>
+
+          {/* Celestial coordinate markers */}
+          <g
+            opacity="0.25"
+            className="mono text-[8px] tracking-[0.25em]"
+            fill="#8E929B"
+          >
+            <text x="80" y="260">
+              SECTOR · 045° RA
+            </text>
+            <text x="1260" y="780">
+              ORBITAL PLANE · β-09
+            </text>
+            <line
+              x1="60"
+              y1="264"
+              x2="72"
+              y2="264"
+              stroke="#8E929B"
+              strokeWidth="0.8"
+            />
+            <line
+              x1="1240"
+              y1="784"
+              x2="1252"
+              y2="784"
+              stroke="#8E929B"
+              strokeWidth="0.8"
+            />
           </g>
         </svg>
       </div>
@@ -338,11 +443,7 @@ export function Hero() {
           </div>
 
           {/* Animated Headline */}
-          <div
-            className={`transition-all duration-300 transform ${
-              animatingStage ? "opacity-0 -translate-y-2" : "opacity-100 translate-y-0"
-            }`}
-          >
+          <div className="transition-opacity duration-300">
             <h1 className="m-0 text-[28px] xs:text-[32px] sm:text-[44px] lg:text-[58px] leading-[1.06] font-normal tracking-[-0.035em] text-foreground drop-shadow-[0_2px_30px_rgba(3,3,4,0.95)]">
               <span>{stage.title}</span>
               <br />
@@ -443,12 +544,12 @@ export function Hero() {
                       {s.index === 0
                         ? "The Split"
                         : s.index === 1
-                        ? "Fixed Yield"
-                        : s.index === 2
-                        ? "Long Yield"
-                        : s.index === 3
-                        ? "Split Engine"
-                        : "Live Vaults"}
+                          ? "Fixed Yield"
+                          : s.index === 2
+                            ? "Long Yield"
+                            : s.index === 3
+                              ? "Split Engine"
+                              : "Live Vaults"}
                     </span>
                   </span>
                 </button>
@@ -482,6 +583,12 @@ export function Hero() {
             </div>
             <a
               href="#how"
+              onClick={(e) => {
+                e.preventDefault();
+                document
+                  .getElementById("how")
+                  ?.scrollIntoView({ behavior: "smooth" });
+              }}
               className="hidden sm:inline-flex mono text-[10px] tracking-[0.14em] text-muted hover:text-foreground transition-colors border-l border-white/15 pl-2.5 sm:pl-3"
             >
               All Sections ↓

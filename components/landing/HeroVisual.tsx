@@ -13,6 +13,8 @@ export interface HeroVisualProps {
 
 const R = 345;
 
+
+
 const RAW_STAR_NODES = [
   {
     "lat": 70.05,
@@ -804,7 +806,14 @@ export function HeroVisual({
   onSelectStage,
   isSplitLayout = true,
 }: HeroVisualProps) {
-  const [renderRot, setRenderRot] = useState({ x: 18, y: 0 });
+  const [renderState, setRenderState] = useState({
+    rotX: 18,
+    rotY: 0,
+    camScale: 0.88,
+    camPanX: 30,
+    camPanY: 0,
+    time: 0,
+  });
   const [isDragging, setIsDragging] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -826,7 +835,47 @@ export function HeroVisual({
     lastMoveX: 0,
     lastMoveY: 0,
     lastMoveTime: 0,
+    camScale: 0.88,
+    camPanX: 30,
+    camPanY: 0,
+    targetScale: 0.88,
+    targetPanX: 30,
+    targetPanY: 0,
+    time: 0,
   });
+
+  // Smoothly update camera targets per stage (No stutter, perfectly centered on right viewport)
+  useEffect(() => {
+    const s = stateRef.current;
+    switch (activeStage) {
+      case 1: // Fixed Yield 3D Diamond Planet (-100, 240)
+        s.targetScale = 1.62;
+        s.targetPanX = 230;
+        s.targetPanY = -390;
+        break;
+      case 2: // Long Yield 3D Bio-Particle Planet (260, -130)
+        s.targetScale = 1.62;
+        s.targetPanX = -350;
+        s.targetPanY = 210;
+        break;
+      case 3: // Split Engine 3D Prisms & Quantum Laser (0, -190)
+        s.targetScale = 1.75;
+        s.targetPanX = 60;
+        s.targetPanY = 320;
+        break;
+      case 4: // Live USDG Vault 3D Gyroscope (200, 240)
+        s.targetScale = 1.62;
+        s.targetPanX = -260;
+        s.targetPanY = -390;
+        break;
+      case 0: // Macro Universe Overview
+      default:
+        s.targetScale = 0.88;
+        s.targetPanX = 30;
+        s.targetPanY = 0;
+        break;
+    }
+  }, [activeStage]);
 
   // 60FPS Continuous Animation Loop with Apple-style Fluid Inertia & Spring Easing
   useEffect(() => {
@@ -859,9 +908,20 @@ export function HeroVisual({
         s.currentY += (s.targetY - s.currentY) * 0.28;
       }
 
-      setRenderRot({
-        x: s.currentX,
-        y: s.currentY,
+      // 60/120fps continuous mathematical spring for camera (zero glitch, zero CSS transition jumps)
+      const camSpring = 0.052;
+      s.camScale += (s.targetScale - s.camScale) * camSpring;
+      s.camPanX += (s.targetPanX - s.camPanX) * camSpring;
+      s.camPanY += (s.targetPanY - s.camPanY) * camSpring;
+      s.time = now * 0.001;
+
+      setRenderState({
+        rotX: s.currentX,
+        rotY: s.currentY,
+        camScale: s.camScale,
+        camPanX: s.camPanX,
+        camPanY: s.camPanY,
+        time: s.time,
       });
 
       animId = requestAnimationFrame(loop);
@@ -955,63 +1015,68 @@ export function HeroVisual({
   const fixedOp = fixedActive ? 1.0 : longActive ? 0.35 : 0.72 + fixedBias * 0.28;
   const longOp = longActive ? 1.0 : fixedActive ? 0.35 : 0.72 + longBias * 0.28;
 
-  // Camera zoom & pan focusing precisely on points of interest per stage
-  const cameraConfig = useMemo(() => {
-    switch (activeStage) {
-      case 1: // Fixed Yield: zooms and pans towards Fixed Yield Ice-Blue Orbit & Pin
-        return { scale: 1.28, panX: 110, panY: -90 };
-      case 2: // Long Yield: zooms and pans towards Long Yield Amber Orbit & Pin
-        return { scale: 1.28, panX: -130, panY: 70 };
-      case 3: // Split Engine: plunges deep into the central 3D Vault Cube / Tesseract
-        return { scale: 1.48, panX: 0, panY: 0 };
-      case 4: // Live Vaults: frames the USDG Vault pin and tactical HUD
-        return { scale: 1.16, panX: -70, panY: -70 };
-      case 0: // Grand Master Planet (Macro cosmic overview)
-      default:
-        return { scale: 1.0, panX: 0, panY: 0 };
-    }
-  }, [activeStage]);
-
   // Compute 3D geometry of Transparent Planet Lattice (Master Sphere)
   const { latitudes, meridians, starNodes } = useMemo(() => {
-    const tilt = (renderRot.x * Math.PI) / 180;
-    const rotY = (renderRot.y * Math.PI) / 180;
+    const tilt = (renderState.rotX * Math.PI) / 180;
+    const rotY = (renderState.rotY * Math.PI) / 180;
     const sinTilt = Math.sin(tilt);
     const cosTilt = Math.cos(tilt);
 
-    // Latitudes
-    const latAngles = [-68, -52, -36, -20, -6, 6, 20, 36, 52, 68];
+    // Latitudes (Parallel circles on the tilted sphere)
+    const latAngles = [-68, -52, -36, -20, -4, 12, 28, 44, 60, 72];
     const lats = latAngles.map((deg) => {
       const latRad = (deg * Math.PI) / 180;
-      const y = -R * Math.sin(latRad) * sinTilt;
-      const rx = R * Math.cos(latRad);
+      const cosLat = Math.cos(latRad);
+      const sinLat = Math.sin(latRad);
+
+      const cy = -R * sinLat * cosTilt;
+      const rx = R * cosLat;
       const ry = Math.max(0.1, rx * Math.abs(sinTilt));
-      const op = Math.max(0.18, Math.min(0.85, 0.42 + 0.38 * Math.cos(latRad)));
       const isEquator = Math.abs(deg) <= 6;
+      const op = Math.max(0.18, Math.min(0.85, 0.38 + 0.42 * cosLat));
       return {
-        cy: Number(y.toFixed(2)),
+        cy: Number(cy.toFixed(2)),
         cx: 0,
         rx: Number(rx.toFixed(2)),
         ry: Number(ry.toFixed(2)),
         opacity: isEquator ? Number((op * 1.35).toFixed(2)) : Number(op.toFixed(2)),
-        strokeWidth: isEquator ? 1.1 : 0.65,
+        strokeWidth: isEquator ? 1.2 : 0.65,
       };
     });
 
-    // Longitudes
-    const merAngles = [0, 20, 40, 60, 80, 100, 120, 140, 160];
+    // Longitude Meridians (Passing smoothly through both poles with 3D projection)
+    const merAngles = [0, 22.5, 45, 67.5, 90, 112.5, 135, 157.5];
+    const phiSamples = [-90, -75, -60, -45, -30, -15, 0, 15, 30, 45, 60, 75, 90];
+
     const mers = merAngles.map((deg) => {
       const lonRad = (deg * Math.PI) / 180 + rotY;
-      const normLon = Math.sin(lonRad);
-      const rx = Math.max(0.1, R * Math.abs(normLon));
-      const ry = R;
-      const isFront = Math.cos(lonRad) >= 0;
+      const cosLon = Math.cos(lonRad);
+      const sinLon = Math.sin(lonRad);
+
+      // Determine front vs back orientation using equatorial normal
+      const isFront = cosLon * cosTilt >= -0.15;
+
+      let d = "";
+      for (let i = 0; i < phiSamples.length; i++) {
+        const phi = (phiSamples[i] * Math.PI) / 180;
+        const cosPhi = Math.cos(phi);
+        const sinPhi = Math.sin(phi);
+
+        const X = R * cosPhi * sinLon;
+        const Y = R * sinPhi;
+        const Z = R * cosPhi * cosLon;
+
+        const Yrot = Y * cosTilt - Z * sinTilt;
+        const sx = Number(X.toFixed(1));
+        const sy = Number((-Yrot).toFixed(1));
+
+        d += i === 0 ? `M ${sx} ${sy}` : ` L ${sx} ${sy}`;
+      }
+
       return {
-        angle: Number((renderRot.x * 0.28).toFixed(1)),
-        rx: Number(rx.toFixed(2)),
-        ry: Number(ry.toFixed(2)),
-        opacity: isFront ? 0.48 : 0.2,
-        strokeWidth: isFront ? 0.85 : 0.5,
+        d,
+        opacity: isFront ? 0.42 : 0.16,
+        strokeWidth: isFront ? 0.85 : 0.45,
       };
     });
 
@@ -1040,12 +1105,12 @@ export function HeroVisual({
     });
 
     return { latitudes: lats, meridians: mers, starNodes: nodes };
-  }, [renderRot, fixedActive, longActive]);
+  }, [renderState.rotX, renderState.rotY, fixedActive, longActive]);
 
   // Compute 3D Vault Core (Wireframe Cube + Tesseract inside the transparent planet)
   const { cubeEdges, innerEdges, cubeCornerNodes } = useMemo(() => {
-    const rx = (renderRot.x * Math.PI) / 180;
-    const ry = (renderRot.y * Math.PI) / 180;
+    const rx = (renderState.rotX * Math.PI) / 180;
+    const ry = (renderState.rotY * Math.PI) / 180;
     const cosRx = Math.cos(rx);
     const sinRx = Math.sin(rx);
     const cosRy = Math.cos(ry);
@@ -1117,7 +1182,180 @@ export function HeroVisual({
       innerEdges: innerEdgesProj,
       cubeCornerNodes: outerVertices,
     };
-  }, [renderRot, engineActive]);
+  }, [renderState.rotX, renderState.rotY, engineActive]);
+
+  // Compute Rich 3D Real-Time Sacred Geometry for Mini-Planets
+  const miniPlanets3D = useMemo(() => {
+    const t = renderState.time;
+
+    // 1. Fixed Yield: 3D Rotating Crystal Octahedron (Diamond)
+    const dRotY = t * 1.8;
+    const dRotX = 0.38;
+    const cosDY = Math.cos(dRotY);
+    const sinDY = Math.sin(dRotY);
+    const cosDX = Math.cos(dRotX);
+    const sinDX = Math.sin(dRotX);
+
+    const projectDiamond = (x: number, y: number, z: number) => {
+      const x1 = x * cosDY + z * sinDY;
+      const z1 = -x * sinDY + z * cosDY;
+      const y1 = y * cosDX - z1 * sinDX;
+      const z2 = y * sinDX + z1 * cosDX;
+      return { x: x1, y: y1, z: z2 };
+    };
+
+    const dSize = fixedActive ? 14 : 11;
+    const dH = fixedActive ? 17 : 14;
+    const dvTop = projectDiamond(0, -dH, 0);
+    const dvBottom = projectDiamond(0, dH, 0);
+    const dvRight = projectDiamond(dSize, 0, 0);
+    const dvLeft = projectDiamond(-dSize, 0, 0);
+    const dvFront = projectDiamond(0, 0, dSize);
+    const dvBack = projectDiamond(0, 0, -dSize);
+
+    const dFacetsRaw = [
+      [dvTop, dvRight, dvFront],
+      [dvTop, dvFront, dvLeft],
+      [dvTop, dvLeft, dvBack],
+      [dvTop, dvBack, dvRight],
+      [dvBottom, dvFront, dvRight],
+      [dvBottom, dvLeft, dvFront],
+      [dvBottom, dvBack, dvLeft],
+      [dvBottom, dvRight, dvBack],
+    ];
+
+    const diamondFacets = dFacetsRaw.map((tri, idx) => {
+      const cp = (tri[1].x - tri[0].x) * (tri[2].y - tri[0].y) - (tri[1].y - tri[0].y) * (tri[2].x - tri[0].x);
+      const isFront = cp > 0;
+      const pts = `${tri[0].x.toFixed(1)},${tri[0].y.toFixed(1)} ${tri[1].x.toFixed(1)},${tri[1].y.toFixed(1)} ${tri[2].x.toFixed(1)},${tri[2].y.toFixed(1)}`;
+      return {
+        points: pts,
+        isFront,
+        fill: isFront ? (idx % 2 === 0 ? "rgba(220, 240, 255, 0.45)" : "rgba(169, 200, 238, 0.28)") : "rgba(80, 120, 180, 0.08)",
+        stroke: isFront ? (idx % 2 === 0 ? "#FFFFFF" : "#A9C8EE") : "rgba(169, 200, 238, 0.2)",
+        strokeWidth: isFront ? 0.95 : 0.45,
+      };
+    });
+
+    // 2. Long Yield: Living Organic Bio-Particle (Undulating Fluid Membrane + 3D Orbiting Spores)
+    const bioPoints: string[] = [];
+    const bioR = longActive ? 15 : 12;
+    const numPoints = 16;
+    for (let i = 0; i < numPoints; i++) {
+      const angle = (i / numPoints) * Math.PI * 2;
+      const rMod = bioR + 2.4 * Math.sin(angle * 3 + t * 4.2) + 1.6 * Math.cos(angle * 2 - t * 3.1);
+      const px = Math.cos(angle) * rMod;
+      const py = Math.sin(angle) * rMod;
+      bioPoints.push(`${px.toFixed(1)},${py.toFixed(1)}`);
+    }
+    const bioPath = `M ${bioPoints[0]} ` + bioPoints.slice(1).map((p) => `L ${p}`).join(" ") + " Z";
+
+    const spore1A = t * 3.2;
+    const spore1 = {
+      x: Math.cos(spore1A) * 20,
+      y: Math.sin(spore1A) * 8 - Math.cos(spore1A) * 3,
+      z: Math.sin(spore1A),
+      r: Math.sin(spore1A) > 0 ? 1.8 : 1.1,
+      op: Math.sin(spore1A) > 0 ? 0.95 : 0.4,
+    };
+    const spore2A = -t * 2.6 + 1.8;
+    const spore2 = {
+      x: Math.cos(spore2A) * 23,
+      y: Math.sin(spore2A) * 10 + Math.cos(spore2A) * 5,
+      z: Math.sin(spore2A),
+      r: Math.sin(spore2A) > 0 ? 2.0 : 1.2,
+      op: Math.sin(spore2A) > 0 ? 0.9 : 0.35,
+    };
+    const spore3A = t * 4.0 + 3.5;
+    const spore3 = {
+      x: Math.cos(spore3A) * 16,
+      y: Math.sin(spore3A) * 7 - Math.cos(spore3A) * 6,
+      z: Math.sin(spore3A),
+      r: Math.sin(spore3A) > 0 ? 1.6 : 1.0,
+      op: Math.sin(spore3A) > 0 ? 0.9 : 0.3,
+    };
+
+    // 3. Split Engine: 3D Cleaving Prisms & Quantum Laser Beam
+    const sRotY = t * 2.2;
+    const sH = engineActive ? 12 : 10;
+    const sR = engineActive ? 11 : 9;
+    const sGap = engineActive ? 3.8 : 1.6;
+    const cosSY = Math.cos(sRotY);
+    const sinSY = Math.sin(sRotY);
+
+    const projectPrism = (x: number, y: number, z: number) => {
+      const x1 = x * cosSY + z * sinSY;
+      const z1 = -x * sinSY + z * cosSY;
+      return { x: x1, y: y * 0.92 - z1 * 0.28, z: z1 };
+    };
+
+    const pt0 = projectPrism(sR * Math.cos(0), -sGap - sH, sR * Math.sin(0));
+    const pt1 = projectPrism(sR * Math.cos(2.094), -sGap - sH, sR * Math.sin(2.094));
+    const pt2 = projectPrism(sR * Math.cos(4.188), -sGap - sH, sR * Math.sin(4.188));
+    const ptApex = projectPrism(0, -sGap, 0);
+
+    const pb0 = projectPrism(sR * Math.cos(0), sGap + sH, sR * Math.sin(0));
+    const pb1 = projectPrism(sR * Math.cos(2.094), sGap + sH, sR * Math.sin(2.094));
+    const pb2 = projectPrism(sR * Math.cos(4.188), sGap + sH, sR * Math.sin(4.188));
+    const pbApex = projectPrism(0, sGap, 0);
+
+    // 4. USDG Vault: 3D Multi-Axis Gyroscope & Isometric Shield Cube
+    const gTime = t * 1.5;
+    const gRot1 = (gTime * 55) % 360;
+    const gRot2 = (-gTime * 42) % 360;
+    const gRot3 = (gTime * 28 + 45) % 360;
+
+    const vCubeR = vaultsActive ? 10 : 8;
+    const cAng = t * 1.6;
+    const cosCA = Math.cos(cAng);
+    const sinCA = Math.sin(cAng);
+    const projectVaultCube = (x: number, y: number, z: number) => {
+      const x1 = x * cosCA + z * sinCA;
+      const z1 = -x * sinCA + z * cosCA;
+      return { x: x1, y: y * 0.88 - z1 * 0.32, z: z1 };
+    };
+
+    const cv = [
+      projectVaultCube(-vCubeR, -vCubeR, -vCubeR),
+      projectVaultCube(vCubeR, -vCubeR, -vCubeR),
+      projectVaultCube(vCubeR, vCubeR, -vCubeR),
+      projectVaultCube(-vCubeR, vCubeR, -vCubeR),
+      projectVaultCube(-vCubeR, -vCubeR, vCubeR),
+      projectVaultCube(vCubeR, -vCubeR, vCubeR),
+      projectVaultCube(vCubeR, vCubeR, vCubeR),
+      projectVaultCube(-vCubeR, vCubeR, vCubeR),
+    ];
+
+    const vaultEdges = [
+      [0, 1], [1, 2], [2, 3], [3, 0],
+      [4, 5], [5, 6], [6, 7], [7, 4],
+      [0, 4], [1, 5], [2, 6], [3, 7],
+    ].map(([i1, i2]) => {
+      const v1 = cv[i1];
+      const v2 = cv[i2];
+      const isFront = (v1.z + v2.z) / 2 > 0;
+      return {
+        x1: v1.x,
+        y1: v1.y,
+        x2: v2.x,
+        y2: v2.y,
+        stroke: isFront ? "#34D399" : "rgba(52,211,153,0.35)",
+        strokeWidth: isFront ? 0.95 : 0.5,
+      };
+    });
+
+    return {
+      diamondFacets,
+      bioPath,
+      bioSpores: [spore1, spore2, spore3],
+      prismTop: { p0: pt0, p1: pt1, p2: pt2, apex: ptApex },
+      prismBottom: { p0: pb0, p1: pb1, p2: pb2, apex: pbApex },
+      gRot1,
+      gRot2,
+      gRot3,
+      vaultEdges,
+    };
+  }, [renderState.time, fixedActive, longActive, engineActive, vaultsActive]);
 
   // Positioning: On desktop split layout, center celestial object at x: 890
   const celestialCx = isSplitLayout ? 890 : 720;
@@ -1183,16 +1421,13 @@ export function HeroVisual({
         </filter>
 
         {/* Directional Lighting Mask: Bright crisp white at top-left, fading to dark at bottom-right */}
-        <linearGradient id="planetLightGrad" x1="18%" y1="0%" x2="42%" y2="100%">
-          <stop offset="0%" stopColor="#FFFFFF" stopOpacity="1" />
-          <stop offset="32%" stopColor="#FFFFFF" stopOpacity="0.88" />
-          <stop offset="62%" stopColor="#FFFFFF" stopOpacity="0.55" />
-          <stop offset="85%" stopColor="#FFFFFF" stopOpacity="0.25" />
-          <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.1" />
-        </linearGradient>
-        <mask id="planetMeshMask">
-          <rect x="-1000" y="-1000" width="2000" height="2000" fill="url(#planetLightGrad)" />
-        </mask>
+        {/* Master Planet Glass Body Gradient */}
+        <radialGradient id="masterPlanetBody" cx="35%" cy="30%" r="70%">
+          <stop offset="0%" stopColor="#1E3250" stopOpacity="0.4" />
+          <stop offset="35%" stopColor="#0E1B2E" stopOpacity="0.25" />
+          <stop offset="70%" stopColor="#050B14" stopOpacity="0.55" />
+          <stop offset="100%" stopColor="#020408" stopOpacity="0.8" />
+        </radialGradient>
 
         {/* Top-left razor-sharp crescent rim arc lighting */}
         <linearGradient id="topRimArcGrad" x1="0%" y1="100%" x2="100%" y2="0%">
@@ -1208,20 +1443,45 @@ export function HeroVisual({
           <circle cx="0" cy="0" r="345" />
         </clipPath>
 
-        {/* Depth Clip for Orbits */}
-        <clipPath id="oback">
-          <rect x="-1400" y="-1400" width="2800" height="1400" />
-        </clipPath>
-        <clipPath id="ofront">
-          <rect x="-1400" y="0" width="2800" height="1400" />
-        </clipPath>
-
         {/* Shooting Meteor Tail Gradients */}
         <linearGradient id="meteorTailA" x1="0%" y1="0%" x2="100%" y2="0%">
           <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0" />
           <stop offset="70%" stopColor="#DDE8F8" stopOpacity="0.6" />
           <stop offset="100%" stopColor="#FFFFFF" stopOpacity="1" />
         </linearGradient>
+
+        {/* 3D Mini-Planet Spherical Gradients (Specular highlight, rich mantle, deep shadow) */}
+        <radialGradient id="miniPlanetFixed" cx="30%" cy="28%" r="72%">
+          <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.95" />
+          <stop offset="20%" stopColor="#C8DCF8" stopOpacity="0.85" />
+          <stop offset="55%" stopColor="#2A4B7C" stopOpacity="0.92" />
+          <stop offset="88%" stopColor="#08101E" stopOpacity="0.98" />
+          <stop offset="100%" stopColor="#04070E" stopOpacity="1" />
+        </radialGradient>
+
+        <radialGradient id="miniPlanetLong" cx="30%" cy="28%" r="72%">
+          <stop offset="0%" stopColor="#FFF4E6" stopOpacity="0.95" />
+          <stop offset="20%" stopColor="#F5A65B" stopOpacity="0.85" />
+          <stop offset="55%" stopColor="#7E3710" stopOpacity="0.92" />
+          <stop offset="88%" stopColor="#1E0A03" stopOpacity="0.98" />
+          <stop offset="100%" stopColor="#0C0401" stopOpacity="1" />
+        </radialGradient>
+
+        <radialGradient id="miniPlanetSplit" cx="30%" cy="28%" r="72%">
+          <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.95" />
+          <stop offset="22%" stopColor="#D5E2F2" stopOpacity="0.8" />
+          <stop offset="60%" stopColor="#222B3A" stopOpacity="0.92" />
+          <stop offset="90%" stopColor="#080C14" stopOpacity="0.98" />
+          <stop offset="100%" stopColor="#030508" stopOpacity="1" />
+        </radialGradient>
+
+        <radialGradient id="miniPlanetVault" cx="30%" cy="28%" r="72%">
+          <stop offset="0%" stopColor="#E6FFFA" stopOpacity="0.95" />
+          <stop offset="20%" stopColor="#34D399" stopOpacity="0.85" />
+          <stop offset="55%" stopColor="#0D5337" stopOpacity="0.92" />
+          <stop offset="88%" stopColor="#031A10" stopOpacity="0.98" />
+          <stop offset="100%" stopColor="#010A06" stopOpacity="1" />
+        </radialGradient>
       </defs>
 
       {/* Full-Screen Gesture Capture Background */}
@@ -1268,10 +1528,7 @@ export function HeroVisual({
       {/* CINEMATIC CAMERA SYSTEM: Smooth Zoom & Pan Per Planet Stage     */}
       {/* ============================================================== */}
       <g
-        transform={`translate(${celestialCx + parallaxX + cameraConfig.panX} ${celestialCy + parallaxY + cameraConfig.panY}) scale(${cameraConfig.scale})`}
-        style={{
-          transition: "transform 0.85s cubic-bezier(0.16, 1, 0.3, 1)",
-        }}
+        transform={`translate(${celestialCx + parallaxX + renderState.camPanX} ${celestialCy + parallaxY + renderState.camPanY}) scale(${renderState.camScale})`}
       >
         {/* Soft diffuse corona behind planet */}
         <circle
@@ -1281,106 +1538,52 @@ export function HeroVisual({
           pointerEvents="none"
         />
 
-        {/* Moving Orbital System (Back of Planet) */}
-        <g transform="rotate(-8) scale(1 0.22)" clipPath="url(#oback)" pointerEvents="none">
-          <circle r="390" fill="none" stroke="#A9C8EE" strokeWidth="0.55" opacity="0.3" strokeDasharray="6 14" />
-          <g className="spin" style={{ animationDuration: "19s", animationDelay: "-3s" }}>
-            <g transform="translate(390 0)">
-              <g className="spin rev" style={{ animationDuration: "19s", animationDelay: "-3s" }}>
-                <circle r="3.2" fill="#FFFFFF" filter="url(#starGlow)" />
-                <circle r="8" fill="#A9C8EE" opacity="0.35" />
-              </g>
-            </g>
-          </g>
-        </g>
 
-        {/* Fixed Yield Orbit Track (Ice Blue, -15 deg) - Back */}
-        <g transform="rotate(-15) scale(1 0.23)" clipPath="url(#oback)" pointerEvents="none">
-          <circle r="428" fill="none" stroke="#A9C8EE" strokeWidth="0.6" opacity="0.35" />
-          <circle r="445" fill="none" stroke="#A9C8EE" strokeWidth="1.6" opacity={fixedOp} />
-          <circle className="ringflow" r="445" fill="none" stroke="#FFFFFF" strokeWidth="2.4" strokeDasharray="180 80 40 80" opacity={fixedOp} style={{ animationDuration: "55s" }} />
-          <circle r="462" fill="none" stroke="#A9C8EE" strokeWidth="0.8" opacity="0.4" />
-          <circle className="ringflow" r="462" fill="none" stroke="#DDE8F8" strokeWidth="0.6" strokeDasharray="2 12" opacity="0.6" style={{ animationDuration: "75s" }} />
-        </g>
-
-        {/* Celestial Orbit Track (+24 deg) - Back */}
-        <g transform="rotate(24) scale(1 0.24)" clipPath="url(#oback)" pointerEvents="none">
-          <circle r="490" fill="none" stroke="#ECEDEA" strokeWidth="0.65" opacity="0.25" strokeDasharray="10 16" />
-          <g className="spin" style={{ animationDuration: "22s", animationDelay: "-5s" }}>
-            <g transform="translate(490 0)">
-              <g className="spin rev" style={{ animationDuration: "22s", animationDelay: "-5s" }}>
-                <circle r="3.8" fill="#FFFFFF" filter="url(#starGlow)" />
-                <circle r="10" fill="#DDE8F8" opacity="0.35" />
-              </g>
-            </g>
-          </g>
-        </g>
-
-        {/* Long Yield Orbit Track (Amber, -15 deg) - Back */}
-        <g transform="rotate(-15) scale(1 0.23)" clipPath="url(#oback)" pointerEvents="none">
-          <circle r="525" fill="none" stroke="#F0A85C" strokeWidth="0.6" opacity="0.35" />
-          <circle r="545" fill="none" stroke="#F0A85C" strokeWidth="1.8" opacity={longOp} />
-          <circle className="ringflow" r="545" fill="none" stroke="#FFF2D6" strokeWidth="2.5" strokeDasharray="240 100 50 100" opacity={longOp} style={{ animationDuration: "42s" }} />
-          <circle r="568" fill="none" stroke="#F0A85C" strokeWidth="0.8" opacity="0.4" />
-          <circle className="ringflow" r="568" fill="none" stroke="#F0A85C" strokeWidth="0.6" strokeDasharray="4 16" opacity="0.5" style={{ animationDuration: "60s" }} />
-        </g>
-
-        {/* Sweeping Celestial Outer Ring (-26 deg) - Back */}
-        <g transform="rotate(-26) scale(1 0.25)" clipPath="url(#oback)" pointerEvents="none">
-          <circle r="650" fill="none" stroke="#ECEDEA" strokeWidth="0.75" opacity="0.25" />
-          <circle className="ringflow" r="650" fill="none" stroke="#FFFFFF" strokeWidth="1.6" strokeDasharray="300 160 40 100" opacity="0.85" style={{ animationDuration: "32s" }} />
-        </g>
 
         {/* ============================================================== */}
         {/* MONUMENTAL HD WIREFRAME SPHERICAL PLANET BODY (R = 345)        */}
         {/* (Crisp, High-Tech, Monumental Sphere - Always Recognizable)     */}
         {/* ============================================================== */}
         <g pointerEvents="none">
-          {/* Outer boundary circle with subtle stage glow */}
+          {/* Master Planet Glass Body Base (gives physical spherical volume & depth) */}
           <circle
             r="345"
-            fill="none"
-            stroke={fixedActive ? "#A9C8EE" : longActive ? "#F0A85C" : "rgba(255,255,255,0.12)"}
-            strokeWidth={fixedActive || longActive ? "1.4" : "0.8"}
-            opacity={fixedActive || longActive ? "0.6" : "0.3"}
-            style={{ transition: "stroke 0.6s ease-out, stroke-width 0.6s ease-out" }}
+            fill="url(#masterPlanetBody)"
+            stroke={fixedActive ? "#A9C8EE" : longActive ? "#F0A85C" : "rgba(255,255,255,0.22)"}
+            strokeWidth={fixedActive || longActive ? "1.8" : "1.2"}
+            opacity={fixedActive || longActive ? 0.85 : 0.65}
+            className="transition-colors duration-500"
           />
 
-          {/* Crisp Wireframe Net with Directional Lighting */}
+          {/* Crisp Wireframe Net: Latitudes, Meridians & Star Nodes */}
           <g clipPath="url(#pclipSphere)">
-            <g mask="url(#planetMeshMask)">
-              {/* Latitudes */}
-              {latitudes.map((lat, i) => (
-                <ellipse
-                  key={`lat-${i}`}
-                  cx={lat.cx}
-                  cy={lat.cy}
-                  rx={lat.rx}
-                  ry={lat.ry}
-                  fill="none"
-                  stroke={fixedActive ? "#DDE8F8" : longActive ? "#FFE2C4" : "#FFFFFF"}
-                  strokeWidth={lat.strokeWidth}
-                  opacity={lat.opacity}
-                  style={{ transition: "stroke 0.5s ease-out" }}
-                />
-              ))}
+            {/* Latitudes */}
+            {latitudes.map((lat, i) => (
+              <ellipse
+                key={`lat-${i}`}
+                cx={lat.cx}
+                cy={lat.cy}
+                rx={lat.rx}
+                ry={lat.ry}
+                fill="none"
+                stroke={fixedActive ? "#DDE8F8" : longActive ? "#FFE2C4" : "#FFFFFF"}
+                strokeWidth={lat.strokeWidth}
+                opacity={lat.opacity}
+              />
+            ))}
 
-              {/* Longitude Meridians */}
-              {meridians.map((mer, i) => (
-                <ellipse
-                  key={`mer-${i}`}
-                  cx={0}
-                  cy={0}
-                  rx={mer.rx}
-                  ry={mer.ry}
-                  transform={`rotate(${mer.angle})`}
-                  fill="none"
-                  stroke={fixedActive ? "#DDE8F8" : longActive ? "#FFE2C4" : "#FFFFFF"}
-                  strokeWidth={mer.strokeWidth}
-                  opacity={mer.opacity}
-                  style={{ transition: "stroke 0.5s ease-out" }}
-                />
-              ))}
+            {/* Longitude Meridians (3D Curving Great Circles Converging at Poles) */}
+            {meridians.map((mer, i) => (
+              <path
+                key={`mer-${i}`}
+                d={mer.d}
+                fill="none"
+                stroke={fixedActive ? "#DDE8F8" : longActive ? "#FFE2C4" : "#FFFFFF"}
+                strokeWidth={mer.strokeWidth}
+                opacity={mer.opacity}
+                strokeLinecap="round"
+              />
+            ))}
 
               {/* Star Constellation Nodes on Surface */}
               {starNodes.map((st, i) => (
@@ -1405,7 +1608,6 @@ export function HeroVisual({
                   </g>
                 )
               ))}
-            </g>
           </g>
 
           {/* Top-Left Razor-Sharp Crescent Rim Arc Lighting */}
@@ -1413,16 +1615,16 @@ export function HeroVisual({
             d="M -325 115 A 345 345 0 0 1 115 -325"
             fill="none"
             stroke="url(#topRimArcGrad)"
-            strokeWidth="1.6"
+            strokeWidth="2.4"
             strokeLinecap="round"
           />
 
-          {/* Outer boundary tick marks */}
-          <g opacity="0.35">
-            <line x1="-345" y1="0" x2="-335" y2="0" stroke="#FFFFFF" strokeWidth="0.8" />
-            <line x1="345" y1="0" x2="335" y2="0" stroke="#FFFFFF" strokeWidth="0.8" />
-            <line x1="0" y1="-345" x2="0" y2="-335" stroke="#FFFFFF" strokeWidth="0.8" />
-            <line x1="0" y1="345" x2="0" y2="335" stroke="#FFFFFF" strokeWidth="0.8" />
+          {/* Outer boundary cardinal tick marks */}
+          <g opacity="0.45">
+            <line x1="-345" y1="0" x2="-330" y2="0" stroke="#FFFFFF" strokeWidth="1" />
+            <line x1="345" y1="0" x2="330" y2="0" stroke="#FFFFFF" strokeWidth="1" />
+            <line x1="0" y1="-345" x2="0" y2="-330" stroke="#FFFFFF" strokeWidth="1" />
+            <line x1="0" y1="345" x2="0" y2="330" stroke="#FFFFFF" strokeWidth="1" />
           </g>
 
           {/* ============================================================== */}
@@ -1540,8 +1742,8 @@ export function HeroVisual({
           </g>
         )}
 
-        {/* Moving Orbital System (Foreground - in Front of Planet) */}
-        <g transform="rotate(-8) scale(1 0.22)" clipPath="url(#ofront)" pointerEvents="none">
+        {/* Moving Orbital System (Seamless Continuous Outer Orbit) */}
+        <g transform="rotate(-8) scale(1 0.22)" pointerEvents="none">
           <circle r="390" fill="none" stroke="#A9C8EE" strokeWidth="0.55" opacity="0.3" strokeDasharray="6 14" />
           <g className="spin" style={{ animationDuration: "19s", animationDelay: "-3s" }}>
             <g transform="translate(390 0)">
@@ -1553,8 +1755,8 @@ export function HeroVisual({
           </g>
         </g>
 
-        {/* Fixed Yield Orbit Track (Ice Blue, -15 deg) - Front */}
-        <g transform="rotate(-15) scale(1 0.23)" clipPath="url(#ofront)" pointerEvents="none">
+        {/* Fixed Yield Orbit Track (Ice Blue, -15 deg) - Seamless Unbroken Track */}
+        <g transform="rotate(-15) scale(1 0.23)" pointerEvents="none">
           <circle r="428" fill="none" stroke="#A9C8EE" strokeWidth="0.6" opacity="0.35" />
           <circle r="445" fill="none" stroke="#A9C8EE" strokeWidth="1.6" opacity={fixedOp} />
           <circle className="ringflow" r="445" fill="none" stroke="#FFFFFF" strokeWidth="2.4" strokeDasharray="180 80 40 80" opacity={fixedOp} style={{ animationDuration: "55s" }} />
@@ -1573,8 +1775,8 @@ export function HeroVisual({
           </g>
         </g>
 
-        {/* Long Yield Orbit Track (Amber, -15 deg) - Front */}
-        <g transform="rotate(-15) scale(1 0.23)" clipPath="url(#ofront)" pointerEvents="none">
+        {/* Long Yield Orbit Track (Amber, -15 deg) - Seamless Unbroken Track */}
+        <g transform="rotate(-15) scale(1 0.23)" pointerEvents="none">
           <circle r="525" fill="none" stroke="#F0A85C" strokeWidth="0.6" opacity="0.35" />
           <circle r="545" fill="none" stroke="#F0A85C" strokeWidth="1.8" opacity={longOp} />
           <circle className="ringflow" r="545" fill="none" stroke="#FFF2D6" strokeWidth="2.5" strokeDasharray="240 100 50 100" opacity={longOp} style={{ animationDuration: "42s" }} />
@@ -1593,86 +1795,405 @@ export function HeroVisual({
           </g>
         </g>
 
-        {/* Sweeping Outer Celestial Ring (-26 deg) - Front */}
-        <g transform="rotate(-26) scale(1 0.25)" clipPath="url(#ofront)" pointerEvents="none">
+        {/* Sweeping Outer Celestial Ring (-26 deg) - Seamless Unbroken Ring */}
+        <g transform="rotate(-26) scale(1 0.25)" pointerEvents="none">
           <circle r="650" fill="none" stroke="#ECEDEA" strokeWidth="0.75" opacity="0.25" />
           <circle className="ringflow" r="650" fill="none" stroke="#FFFFFF" strokeWidth="1.6" strokeDasharray="300 160 40 100" opacity="0.85" style={{ animationDuration: "32s" }} />
         </g>
 
         {/* ============================================================== */}
-        {/* INTERACTIVE PINS (Cleanly Positioned on the Right Side)        */}
+        {/* GRAND COSMIC UNIVERSE ORBITS (Sweeping Across Deep Space)      */}
+        {/* ============================================================== */}
+        <g pointerEvents="none" opacity="0.7">
+          {/* Deep Outer Galaxy Orbit Track (R=860, Ice Blue tilt -22 deg) */}
+          <g transform="rotate(-22) scale(1 0.26)">
+            <circle r="860" fill="none" stroke="#A9C8EE" strokeWidth="0.75" strokeDasharray="14 18 4 18" opacity="0.32" />
+            <circle className="ringflow" r="860" fill="none" stroke="#DDE8F8" strokeWidth="1.4" strokeDasharray="360 220 80 180" opacity="0.6" style={{ animationDuration: "78s" }} />
+            {/* Distant orbital beacon */}
+            <g className="spin" style={{ animationDuration: "64s", animationDelay: "-18s" }}>
+              <g transform="translate(860 0)">
+                <circle r="3" fill="#FFFFFF" filter="url(#starGlow)" />
+                <circle r="8" fill="#A9C8EE" opacity="0.4" />
+                <text x="14" y="3" fill="#A9C8EE" className="mono text-[8px] tracking-[0.2em]" opacity="0.5">ORBIT-IX · 0x860</text>
+              </g>
+            </g>
+          </g>
+
+          {/* Expansive Hyperbolic Orbit (R=1120, Amber tilt 16 deg) */}
+          <g transform="rotate(16) scale(1 0.21)">
+            <circle r="1120" fill="none" stroke="#F0A85C" strokeWidth="0.65" strokeDasharray="8 24" opacity="0.28" />
+            <circle className="ringflow" r="1120" fill="none" stroke="#FFF2D6" strokeWidth="1.2" strokeDasharray="420 300 60 200" opacity="0.5" style={{ animationDuration: "96s" }} />
+            {/* Distant solar beacon */}
+            <g className="spin" style={{ animationDuration: "88s", animationDelay: "-32s" }}>
+              <g transform="translate(1120 0)">
+                <circle r="3.2" fill="#FFFFFF" filter="url(#starGlow)" />
+                <circle r="10" fill="#F0A85C" opacity="0.35" />
+                <text x="16" y="3" fill="#F0A85C" className="mono text-[8px] tracking-[0.2em]" opacity="0.5">PERIHELION · 11.2 AU</text>
+              </g>
+            </g>
+          </g>
+
+          {/* Deep Space Cosmic Perimeter (R=1420, White/Ghost tilt -38 deg) */}
+          <g transform="rotate(-38) scale(1 0.18)">
+            <circle r="1420" fill="none" stroke="#ECEDEA" strokeWidth="0.5" strokeDasharray="3 16" opacity="0.22" />
+            <circle className="ringflow" r="1420" fill="none" stroke="#FFFFFF" strokeWidth="1.0" strokeDasharray="500 400 100 300" opacity="0.45" style={{ animationDuration: "140s" }} />
+          </g>
+        </g>
+
+        {/* ============================================================== */}
+        {/* INTERACTIVE MINI PLANET ENTITIES (True 3D Spheres & Geometries)*/}
         {/* ============================================================== */}
 
-        {/* Pin 1: Fixed Yield (+ FIXED 6.42%) */}
+        {/* Pin 1: Fixed Yield Diamond Planet (3D Crystalline Octahedron) */}
         <g
           className="cursor-pointer group pointer-events-auto"
           transform="translate(-100 240)"
+          opacity={activeStage === 0 || fixedActive ? 1 : 0.22}
+          style={{ transition: "opacity 0.5s ease-out" }}
           onClick={(e) => {
             e.stopPropagation();
             onSelectStage?.(1);
           }}
         >
+          {/* Active Ping Radar Wave */}
           {fixedActive && (
-            <circle r="26" fill="none" stroke="#A9C8EE" strokeWidth="1.2" opacity="0.5" className="animate-ping" style={{ animationDuration: "2.4s" }} />
+            <circle r="44" fill="none" stroke="#A9C8EE" strokeWidth="1.2" opacity="0.6" className="animate-ping" style={{ animationDuration: "2.8s" }} />
           )}
-          <circle r="16" fill="rgba(6,10,18,0.75)" stroke="#A9C8EE" strokeWidth={fixedActive ? "1.6" : "0.9"} opacity={fixedActive ? 1 : 0.6} />
-          <circle r="10" fill={fixedActive ? "#A9C8EE" : "#0F192C"} opacity="0.8" />
-          <text x="0" y="3.5" textAnchor="middle" fill={fixedActive ? "#030304" : "#A9C8EE"} className="mono text-[10px] font-bold select-none">+</text>
-          <text x="24" y="4" textAnchor="start" fill="#A9C8EE" className="mono text-[10px] tracking-[0.16em] select-none font-medium">FIXED · 6.42%</text>
+
+          {/* Planetary Ring (Back Arc) */}
+          <g transform="rotate(-26) scale(1 0.32)" opacity="0.65">
+            <path d="M -46 0 A 46 46 0 0 1 46 0" fill="none" stroke="#A9C8EE" strokeWidth="1.2" strokeDasharray="6 8" />
+          </g>
+
+          {/* Atmospheric Corona & Aura */}
+          <circle r="34" fill="#A9C8EE" opacity={fixedActive ? "0.22" : "0.08"} className="transition-opacity duration-500" />
+          <circle r="26" fill="url(#miniPlanetFixed)" stroke="#A9C8EE" strokeWidth={fixedActive ? "1.6" : "0.85"} opacity={fixedActive ? 1 : 0.85} />
+
+          {/* 3D Top-Left Crescent Rim Specular Lighting Arc */}
+          <path d="M -23 8 A 25 25 0 0 1 8 -23" fill="none" stroke="url(#topRimArcGrad)" strokeWidth="1.4" strokeLinecap="round" />
+
+          {/* Planetary Ring (Front Arc - passing across front of planet) */}
+          <g transform="rotate(-26) scale(1 0.32)" opacity="0.85">
+            <path d="M -46 0 A 46 46 0 0 0 46 0" fill="none" stroke="#FFFFFF" strokeWidth="1.4" />
+            <circle cx="44" cy="0" r="2.2" fill="#FFFFFF" filter="url(#starGlow)" />
+          </g>
+
+          {/* 3D Real-Time Rotating Crystal Octahedron Facets */}
+          <g className="transition-transform duration-500 group-hover:scale-115">
+            {miniPlanets3D.diamondFacets.map((facet, idx) => (
+              <polygon
+                key={`diamond-facet-${idx}`}
+                points={facet.points}
+                fill={facet.fill}
+                stroke={facet.stroke}
+                strokeWidth={facet.strokeWidth}
+                strokeLinejoin="round"
+              />
+            ))}
+            {/* Sparkling Core Prism Center */}
+            <circle cx="0" cy="0" r="1.8" fill="#FFFFFF" filter="url(#starGlow)" />
+            <circle cx="0" cy="0" r="4" fill="#A9C8EE" opacity="0.3" />
+          </g>
+
+          {/* Planet Telemetry Badge */}
+          <g
+            transform="translate(32 -16)"
+            className="transition-all duration-300 group-hover:translate-x-9 select-none"
+            opacity={activeStage === 0 || fixedActive ? 1 : 0}
+          >
+            <rect
+              x="0"
+              y="0"
+              width="132"
+              height="30"
+              rx="4"
+              fill="rgba(4,9,18,0.92)"
+              stroke={fixedActive ? "#A9C8EE" : "rgba(169,200,238,0.35)"}
+              strokeWidth={fixedActive ? "1.4" : "0.9"}
+            />
+            <circle cx="10" cy="11" r="2.5" fill="#A9C8EE" className={fixedActive ? "animate-pulse" : undefined} />
+            <text x="18" y="14" fill="#A9C8EE" className="mono text-[9.5px] font-semibold tracking-[0.14em]">FIXED · 6.42%</text>
+            <text x="18" y="24" fill="#8E929B" className="mono text-[7.5px] tracking-[0.1em]">SENIOR TRANCHE</text>
+          </g>
         </g>
 
-        {/* Pin 2: Long Yield (+ LONG FLOATING) */}
+        {/* Pin 2: Long Yield Bio-Particle Planet (Living Organic Plasma Vortex) */}
         <g
           className="cursor-pointer group pointer-events-auto"
           transform="translate(260 -130)"
+          opacity={activeStage === 0 || longActive ? 1 : 0.22}
+          style={{ transition: "opacity 0.5s ease-out" }}
           onClick={(e) => {
             e.stopPropagation();
             onSelectStage?.(2);
           }}
         >
+          {/* Active Ping Radar Wave */}
           {longActive && (
-            <circle r="26" fill="none" stroke="#F0A85C" strokeWidth="1.2" opacity="0.5" className="animate-ping" style={{ animationDuration: "2.4s" }} />
+            <circle r="44" fill="none" stroke="#F0A85C" strokeWidth="1.2" opacity="0.6" className="animate-ping" style={{ animationDuration: "2.8s" }} />
           )}
-          <circle r="16" fill="rgba(18,12,6,0.75)" stroke="#F0A85C" strokeWidth={longActive ? "1.6" : "0.9"} opacity={longActive ? 1 : 0.6} />
-          <circle r="10" fill={longActive ? "#F0A85C" : "#2C1B0F"} opacity="0.8" />
-          <text x="0" y="3.5" textAnchor="middle" fill={longActive ? "#030304" : "#F0A85C"} className="mono text-[10px] font-bold select-none">+</text>
-          <text x="24" y="4" textAnchor="start" fill="#F0A85C" className="mono text-[10px] tracking-[0.16em] select-none font-medium">LONG · FLOATING</text>
+
+          {/* Planetary Ring (Back Arc) */}
+          <g transform="rotate(32) scale(1 0.32)" opacity="0.65">
+            <path d="M -48 0 A 48 48 0 0 1 48 0" fill="none" stroke="#F0A85C" strokeWidth="1.2" strokeDasharray="6 8" />
+          </g>
+
+          {/* Atmospheric Plasma Corona & 3D Shaded Sphere */}
+          <circle r="34" fill="#F0A85C" opacity={longActive ? "0.22" : "0.08"} className="transition-opacity duration-500" />
+          <circle r="26" fill="url(#miniPlanetLong)" stroke="#F0A85C" strokeWidth={longActive ? "1.6" : "0.85"} opacity={longActive ? 1 : 0.85} />
+
+          {/* 3D Top-Left Crescent Rim Specular Lighting Arc */}
+          <path d="M -23 8 A 25 25 0 0 1 8 -23" fill="none" stroke="url(#topRimArcGrad)" strokeWidth="1.4" strokeLinecap="round" />
+
+          {/* Planetary Ring (Front Arc) */}
+          <g transform="rotate(32) scale(1 0.32)" opacity="0.85">
+            <path d="M -48 0 A 48 48 0 0 0 48 0" fill="none" stroke="#FFF2D6" strokeWidth="1.4" />
+            <circle cx="46" cy="0" r="2.2" fill="#FFFFFF" filter="url(#starGlow)" />
+          </g>
+
+          {/* 3D Real-Time Living Organic Bio-Particle Membrane */}
+          <g className="transition-transform duration-500 group-hover:scale-115">
+            {/* Undulating cytoplasm membrane */}
+            <path
+              d={miniPlanets3D.bioPath}
+              fill="rgba(240,168,92,0.32)"
+              stroke="#F0A85C"
+              strokeWidth="1.1"
+              strokeLinejoin="round"
+            />
+            {/* Core Nucleus with breathing pulse */}
+            <circle cx="0" cy="0" r="3.6" fill="rgba(255,242,214,0.92)" filter="url(#starGlow)" />
+            <circle cx="0" cy="0" r="1.6" fill="#FFFFFF" />
+
+            {/* 3D-Orbiting Electron / Spore Nodes with Depth Z */}
+            {miniPlanets3D.bioSpores.map((spore, idx) => (
+              <circle
+                key={`bio-spore-${idx}`}
+                cx={spore.x}
+                cy={spore.y}
+                r={spore.r}
+                fill={idx === 1 ? "#FFFFFF" : "#F0A85C"}
+                opacity={spore.op}
+                filter={spore.z > 0 ? "url(#starGlow)" : undefined}
+              />
+            ))}
+          </g>
+
+          {/* Planet Telemetry Badge */}
+          <g
+            transform="translate(32 -16)"
+            className="transition-all duration-300 group-hover:translate-x-9 select-none"
+            opacity={activeStage === 0 || longActive ? 1 : 0}
+          >
+            <rect
+              x="0"
+              y="0"
+              width="136"
+              height="30"
+              rx="4"
+              fill="rgba(16,8,3,0.92)"
+              stroke={longActive ? "#F0A85C" : "rgba(240,168,92,0.35)"}
+              strokeWidth={longActive ? "1.4" : "0.9"}
+            />
+            <circle cx="10" cy="11" r="2.5" fill="#F0A85C" className={longActive ? "animate-pulse" : undefined} />
+            <text x="18" y="14" fill="#F0A85C" className="mono text-[9.5px] font-semibold tracking-[0.14em]">LONG · FLOATING</text>
+            <text x="18" y="24" fill="#8E929B" className="mono text-[7.5px] tracking-[0.1em]">JUNIOR TRANCHE</text>
+          </g>
         </g>
 
-        {/* Pin 3: Vault Core (+ SPLIT ENGINE) */}
+        {/* Pin 3: Vault Core / Split Engine Cleaving Prism Planet */}
         <g
           className="cursor-pointer group pointer-events-auto"
           transform="translate(0 -190)"
+          opacity={activeStage === 0 || engineActive ? 1 : 0.22}
+          style={{ transition: "opacity 0.5s ease-out" }}
           onClick={(e) => {
             e.stopPropagation();
             onSelectStage?.(3);
           }}
         >
+          {/* Active Ping Radar Wave */}
           {engineActive && (
-            <circle r="24" fill="none" stroke="#FFFFFF" strokeWidth="1.2" opacity="0.5" className="animate-ping" style={{ animationDuration: "2.4s" }} />
+            <circle r="44" fill="none" stroke="#FFFFFF" strokeWidth="1.2" opacity="0.6" className="animate-ping" style={{ animationDuration: "2.8s" }} />
           )}
-          <circle r="15" fill="rgba(8,10,14,0.75)" stroke="#ECEDEA" strokeWidth={engineActive ? "1.6" : "0.8"} opacity={engineActive ? 1 : 0.5} />
-          <circle r="9" fill={engineActive ? "#FFFFFF" : "#1A2230"} opacity="0.8" />
-          <text x="0" y="3.5" textAnchor="middle" fill={engineActive ? "#030304" : "#FFFFFF"} className="mono text-[9px] font-bold select-none">+</text>
-          <text x="22" y="4" textAnchor="start" fill="#ECEDEA" className="mono text-[9px] tracking-[0.18em] select-none">SPLIT ENGINE</text>
+
+          {/* Concentric Gimbal Target Reticle */}
+          <circle r="36" fill="none" stroke="#ECEDEA" strokeWidth="0.7" strokeDasharray="4 8" opacity="0.4" />
+          <circle r="34" fill="#ECEDEA" opacity={engineActive ? "0.2" : "0.06"} className="transition-opacity duration-500" />
+          <circle r="26" fill="url(#miniPlanetSplit)" stroke="#ECEDEA" strokeWidth={engineActive ? "1.6" : "0.85"} opacity={engineActive ? 1 : 0.85} />
+
+          {/* 3D Top-Left Crescent Rim Specular Lighting Arc */}
+          <path d="M -23 8 A 25 25 0 0 1 8 -23" fill="none" stroke="url(#topRimArcGrad)" strokeWidth="1.4" strokeLinecap="round" />
+
+          {/* 3D Cleaving Dual Prisms & Quantum Laser Beam */}
+          <g className="transition-transform duration-500 group-hover:scale-115">
+            {/* Upper rotating prism */}
+            <polygon
+              points={`${miniPlanets3D.prismTop.p0.x},${miniPlanets3D.prismTop.p0.y} ${miniPlanets3D.prismTop.p1.x},${miniPlanets3D.prismTop.p1.y} ${miniPlanets3D.prismTop.p2.x},${miniPlanets3D.prismTop.p2.y}`}
+              fill="rgba(169,200,238,0.35)"
+              stroke="#A9C8EE"
+              strokeWidth="0.8"
+            />
+            <line
+              x1={miniPlanets3D.prismTop.p0.x}
+              y1={miniPlanets3D.prismTop.p0.y}
+              x2={miniPlanets3D.prismTop.apex.x}
+              y2={miniPlanets3D.prismTop.apex.y}
+              stroke="#A9C8EE"
+              strokeWidth="0.9"
+            />
+            <line
+              x1={miniPlanets3D.prismTop.p1.x}
+              y1={miniPlanets3D.prismTop.p1.y}
+              x2={miniPlanets3D.prismTop.apex.x}
+              y2={miniPlanets3D.prismTop.apex.y}
+              stroke="#A9C8EE"
+              strokeWidth="0.9"
+            />
+            <line
+              x1={miniPlanets3D.prismTop.p2.x}
+              y1={miniPlanets3D.prismTop.p2.y}
+              x2={miniPlanets3D.prismTop.apex.x}
+              y2={miniPlanets3D.prismTop.apex.y}
+              stroke="#A9C8EE"
+              strokeWidth="0.9"
+            />
+
+            {/* Lower rotating prism */}
+            <polygon
+              points={`${miniPlanets3D.prismBottom.p0.x},${miniPlanets3D.prismBottom.p0.y} ${miniPlanets3D.prismBottom.p1.x},${miniPlanets3D.prismBottom.p1.y} ${miniPlanets3D.prismBottom.p2.x},${miniPlanets3D.prismBottom.p2.y}`}
+              fill="rgba(240,168,92,0.35)"
+              stroke="#F0A85C"
+              strokeWidth="0.8"
+            />
+            <line
+              x1={miniPlanets3D.prismBottom.p0.x}
+              y1={miniPlanets3D.prismBottom.p0.y}
+              x2={miniPlanets3D.prismBottom.apex.x}
+              y2={miniPlanets3D.prismBottom.apex.y}
+              stroke="#F0A85C"
+              strokeWidth="0.9"
+            />
+            <line
+              x1={miniPlanets3D.prismBottom.p1.x}
+              y1={miniPlanets3D.prismBottom.p1.y}
+              x2={miniPlanets3D.prismBottom.apex.x}
+              y2={miniPlanets3D.prismBottom.apex.y}
+              stroke="#F0A85C"
+              strokeWidth="0.9"
+            />
+            <line
+              x1={miniPlanets3D.prismBottom.p2.x}
+              y1={miniPlanets3D.prismBottom.p2.y}
+              x2={miniPlanets3D.prismBottom.apex.x}
+              y2={miniPlanets3D.prismBottom.apex.y}
+              stroke="#F0A85C"
+              strokeWidth="0.9"
+            />
+
+            {/* Central vibrating quantum laser cleavage beam */}
+            <line x1="-15" y1="0" x2="15" y2="0" stroke="#FFFFFF" strokeWidth="1.8" filter="url(#majorStarGlow)" />
+            <circle cx="0" cy="0" r="2.2" fill="#FFFFFF" filter="url(#starGlow)" />
+          </g>
+
+          {/* Planet Telemetry Badge */}
+          <g
+            transform="translate(32 -16)"
+            className="transition-all duration-300 group-hover:translate-x-9 select-none"
+            opacity={activeStage === 0 || engineActive ? 1 : 0}
+          >
+            <rect
+              x="0"
+              y="0"
+              width="132"
+              height="30"
+              rx="4"
+              fill="rgba(8,10,16,0.92)"
+              stroke={engineActive ? "#ECEDEA" : "rgba(236,237,234,0.35)"}
+              strokeWidth={engineActive ? "1.4" : "0.9"}
+            />
+            <circle cx="10" cy="11" r="2.5" fill="#ECEDEA" className={engineActive ? "animate-pulse" : undefined} />
+            <text x="18" y="14" fill="#ECEDEA" className="mono text-[9.5px] font-semibold tracking-[0.14em]">SPLIT ENGINE</text>
+            <text x="18" y="24" fill="#8E929B" className="mono text-[7.5px] tracking-[0.1em]">TRANCHE CLEAVER</text>
+          </g>
         </g>
 
-        {/* Pin 4: Live Market (+ USDG VAULT) */}
+        {/* Pin 4: Live Market / USDG Vault Gyroscope Planet */}
         <g
           className="cursor-pointer group pointer-events-auto"
           transform="translate(200 240)"
+          opacity={activeStage === 0 || vaultsActive ? 1 : 0.22}
+          style={{ transition: "opacity 0.5s ease-out" }}
           onClick={(e) => {
             e.stopPropagation();
             onSelectStage?.(4);
           }}
         >
+          {/* Active Ping Radar Wave */}
           {vaultsActive && (
-            <circle r="24" fill="none" stroke="#34D399" strokeWidth="1.2" opacity="0.5" className="animate-ping" style={{ animationDuration: "2.4s" }} />
+            <circle r="44" fill="none" stroke="#34D399" strokeWidth="1.2" opacity="0.6" className="animate-ping" style={{ animationDuration: "2.8s" }} />
           )}
-          <circle r="15" fill="rgba(8,10,14,0.75)" stroke="#34D399" strokeWidth={vaultsActive ? "1.6" : "0.8"} opacity={vaultsActive ? 1 : 0.5} />
-          <circle r="9" fill={vaultsActive ? "#34D399" : "#1A2230"} opacity="0.8" />
-          <text x="0" y="3.5" textAnchor="middle" fill={vaultsActive ? "#030304" : "#34D399"} className="mono text-[9px] font-bold select-none">+</text>
-          <text x="22" y="4" textAnchor="start" fill="#ECEDEA" className="mono text-[9px] tracking-[0.18em] select-none">USDG VAULT</text>
+
+          {/* Emerald Atmospheric Corona & 3D Shaded Sphere */}
+          <circle r="34" fill="#34D399" opacity={vaultsActive ? "0.22" : "0.08"} className="transition-opacity duration-500" />
+          <circle r="26" fill="url(#miniPlanetVault)" stroke="#34D399" strokeWidth={vaultsActive ? "1.6" : "0.85"} opacity={vaultsActive ? 1 : 0.85} />
+
+          {/* 3D Top-Left Crescent Rim Specular Lighting Arc */}
+          <path d="M -23 8 A 25 25 0 0 1 8 -23" fill="none" stroke="url(#topRimArcGrad)" strokeWidth="1.4" strokeLinecap="round" />
+
+          {/* 3D Real-Time Multi-Axis Gyroscope & Rotating Hypercube */}
+          <g className="transition-transform duration-500 group-hover:scale-115">
+            {/* Gimbal Ring 1 (Yaw Axis) */}
+            <g transform={`rotate(${miniPlanets3D.gRot1}) scale(1 0.4)`}>
+              <ellipse rx="18" ry="18" fill="none" stroke="#34D399" strokeWidth="0.85" opacity="0.7" strokeDasharray="4 4" />
+            </g>
+            {/* Gimbal Ring 2 (Pitch Axis) */}
+            <g transform={`rotate(${miniPlanets3D.gRot2}) scale(0.42 1)`}>
+              <ellipse rx="17" ry="17" fill="none" stroke="#A7F3D0" strokeWidth="0.8" opacity="0.65" strokeDasharray="3 5" />
+            </g>
+            {/* Gimbal Ring 3 (Roll Axis) */}
+            <g transform={`rotate(${miniPlanets3D.gRot3}) scale(1 0.55)`}>
+              <ellipse rx="16" ry="16" fill="none" stroke="#FFFFFF" strokeWidth="0.75" opacity="0.5" strokeDasharray="2 4" />
+            </g>
+
+            {/* Rotating 3D Isometric Cube Shield */}
+            {miniPlanets3D.vaultEdges.map((e, idx) => (
+              <line
+                key={`vault-cube-e-${idx}`}
+                x1={e.x1}
+                y1={e.y1}
+                x2={e.x2}
+                y2={e.y2}
+                stroke={e.stroke}
+                strokeWidth={e.strokeWidth}
+              />
+            ))}
+
+            {/* Central USDG Currency Core Beacon */}
+            <circle cx="0" cy="0" r="2.4" fill="#FFFFFF" filter="url(#starGlow)" />
+            <circle cx="0" cy="0" r="5" fill="#34D399" opacity="0.35" />
+          </g>
+
+          {/* Planet Telemetry Badge */}
+          <g
+            transform="translate(32 -16)"
+            className="transition-all duration-300 group-hover:translate-x-9 select-none"
+            opacity={activeStage === 0 || vaultsActive ? 1 : 0}
+          >
+            <rect
+              x="0"
+              y="0"
+              width="132"
+              height="30"
+              rx="4"
+              fill="rgba(3,14,10,0.92)"
+              stroke={vaultsActive ? "#34D399" : "rgba(52,211,153,0.35)"}
+              strokeWidth={vaultsActive ? "1.4" : "0.9"}
+            />
+            <circle cx="10" cy="11" r="2.5" fill="#34D399" className={vaultsActive ? "animate-pulse" : undefined} />
+            <text x="18" y="14" fill="#34D399" className="mono text-[9.5px] font-semibold tracking-[0.14em]">USDG VAULT</text>
+            <text x="18" y="24" fill="#8E929B" className="mono text-[7.5px] tracking-[0.1em]">DELTA-NEUTRAL</text>
+          </g>
         </g>
       </g>
 
