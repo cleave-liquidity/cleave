@@ -139,399 +139,472 @@ const STAGES: StageInfo[] = [
 ];
 
 const STAGE_COUNT = STAGES.length; // 5
-// Scroll runway per stage in vh — shorter feels snappier
-const VH_PER_STAGE = 55;
-const RUNWAY_VH = STAGE_COUNT * VH_PER_STAGE; // 275vh total
+// Scroll runway is CSS-driven (`lg:min-h-[275vh]` below = 55vh × 5 stages) so the
+// DOM never changes shape between breakpoints (no remount, no layout jump).
+const DESKTOP_QUERY = "(min-width: 1024px)";
+const STAGE_SEGMENT = 1 / STAGE_COUNT;
+const HYSTERESIS = 0.028; // progress buffer that stops edge flicker
+const NAV_TIMEOUT_MS = 1600; // safety net if `scrollend` never fires
+
+const STAGE_SHORT = ["The Split", "Fixed Yield", "Long Yield", "Split Engine", "Live Vaults"];
+const STAGE_ACCENT = ["#ECEDEA", "#A9C8EE", "#F0A85C", "#DDE8F8", "#34D399"];
+
+const FOCUS_RING =
+  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice";
+
+/** Arrow/Home/End roving focus for a horizontal tablist. */
+function tabKeyDown(
+  e: React.KeyboardEvent,
+  count: number,
+  current: number,
+  select: (i: number) => void
+) {
+  let next = current;
+  if (e.key === "ArrowRight" || e.key === "ArrowDown") next = (current + 1) % count;
+  else if (e.key === "ArrowLeft" || e.key === "ArrowUp") next = (current - 1 + count) % count;
+  else if (e.key === "Home") next = 0;
+  else if (e.key === "End") next = count - 1;
+  else return;
+  e.preventDefault();
+  select(next);
+}
+
+const isDesktop = () => window.matchMedia(DESKTOP_QUERY).matches;
+
+const prefersReducedMotion = () =>
+  typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 export function Hero() {
   const [activeStage, setActiveStage] = useState(0);
   const [activeSubTab, setActiveSubTab] = useState(0);
-  const [pointer, setPointer] = useState({ x: 0, parallaxX: 0, parallaxY: 0 });
-  // true = desktop (≥1024px), false = mobile/tablet
-  const [isDesktop, setIsDesktop] = useState(false);
 
   const runwayRef = useRef<HTMLElement>(null);
-  const lastStageRef = useRef(0);
-  const touchStartX = useRef(0);
-  const touchStartY = useRef(0);
+  const stageRef = useRef(0); // source of truth for scroll logic (no stale closures)
+  const navTargetRef = useRef<{ y: number; stage: number } | null>(null);
+  const navTimerRef = useRef<number | null>(null);
+  const stageTabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const subTabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const touchStart = useRef({ x: 0, y: 0 });
 
   const stage = STAGES[activeStage];
+  const accentColor = STAGE_ACCENT[activeStage];
 
-  // ─── Detect desktop breakpoint ────────────────────────────────────────────
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 1024px)");
-    setIsDesktop(mq.matches);
-    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
+  const commitStage = useCallback((next: number) => {
+    if (next === stageRef.current) return;
+    stageRef.current = next;
+    setActiveStage(next);
+    setActiveSubTab(0);
   }, []);
 
-  // ─── Scroll-driven stage detection (desktop only with hysteresis) ─────────
+  // ─── Scroll → stage (desktop runway) ──────────────────────────────────────
+  // Passive native `scroll` listener, coalesced to one read per frame. It only
+  // *reads* scroll position, so it is safe with smooth-scroll engines such as
+  // Lenis (which drive the real window scroll).
   useEffect(() => {
-    if (!isDesktop) return;
+    let raf = 0;
 
-    const onScroll = () => {
-      const runway = runwayRef.current;
-      if (!runway) return;
-      const sectionTop = runway.getBoundingClientRect().top + window.scrollY;
-      const scrolled = window.scrollY - sectionTop;
-      const runwayHeight = runway.offsetHeight - window.innerHeight;
-      if (runwayHeight <= 0) return;
-
-      const progress = Math.max(0, Math.min(1, scrolled / runwayHeight));
-      const current = lastStageRef.current;
-      const stageSegment = 1 / STAGE_COUNT; // 0.20 per stage
-      const hysteresis = 0.028; // Buffer to prevent edge flickering
-
-      let newStage = current;
-      if (progress > (current + 1) * stageSegment + hysteresis && current < STAGE_COUNT - 1) {
-        newStage = Math.min(STAGE_COUNT - 1, Math.floor(progress * STAGE_COUNT));
-      } else if (progress < current * stageSegment - hysteresis && current > 0) {
-        newStage = Math.max(0, Math.floor(progress * STAGE_COUNT));
-      }
-
-      if (newStage !== lastStageRef.current) {
-        lastStageRef.current = newStage;
-        setActiveStage(newStage);
-        setActiveSubTab(0);
+    const clearNav = () => {
+      navTargetRef.current = null;
+      if (navTimerRef.current !== null) {
+        window.clearTimeout(navTimerRef.current);
+        navTimerRef.current = null;
       }
     };
 
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [isDesktop]);
+    const sync = () => {
+      raf = 0;
+      const runway = runwayRef.current;
+      if (!runway || !isDesktop()) return;
 
-  // ─── Pin / button click → scroll to stage center position (desktop) ───────
+      const nav = navTargetRef.current;
+      if (nav) {
+        // Travelling to a clicked stage: ignore the stages we fly past.
+        if (Math.abs(window.scrollY - nav.y) > 3) return;
+        clearNav();
+      }
+
+      const top = runway.getBoundingClientRect().top + window.scrollY;
+      const travel = runway.offsetHeight - window.innerHeight;
+      if (travel <= 0) return;
+
+      const progress = Math.max(0, Math.min(1, (window.scrollY - top) / travel));
+      const current = stageRef.current;
+
+      let next = current;
+      if (progress > (current + 1) * STAGE_SEGMENT + HYSTERESIS && current < STAGE_COUNT - 1) {
+        next = Math.min(STAGE_COUNT - 1, Math.floor(progress * STAGE_COUNT));
+      } else if (progress < current * STAGE_SEGMENT - HYSTERESIS && current > 0) {
+        next = Math.max(0, Math.floor(progress * STAGE_COUNT));
+      }
+      commitStage(next);
+    };
+
+    const schedule = () => {
+      if (!raf) raf = requestAnimationFrame(sync);
+    };
+    // User takes over mid-travel → stop ignoring their scroll.
+    const interrupt = () => {
+      if (navTargetRef.current) {
+        clearNav();
+        schedule();
+      }
+    };
+
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule, { passive: true });
+    window.addEventListener("wheel", interrupt, { passive: true });
+    window.addEventListener("touchstart", interrupt, { passive: true });
+    window.addEventListener("keydown", interrupt);
+    window.addEventListener("scrollend", schedule);
+    schedule(); // e.g. reload mid-runway: scroll restoration may not fire an event
+
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+      clearNav();
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+      window.removeEventListener("wheel", interrupt);
+      window.removeEventListener("touchstart", interrupt);
+      window.removeEventListener("keydown", interrupt);
+      window.removeEventListener("scrollend", schedule);
+    };
+  }, [commitStage]);
+
+  // ─── Stage selection (timeline, pins, swipe, keyboard) ────────────────────
   const handleSelectStage = useCallback(
     (index: number) => {
-      if (!isDesktop) {
-        // On mobile: just update directly without blinking
-        if (index === activeStage) return;
-        setActiveStage(index);
-        setActiveSubTab(0);
+      const target = Math.max(0, Math.min(STAGE_COUNT - 1, index));
+      const runway = runwayRef.current;
+
+      if (!runway || !isDesktop()) {
+        commitStage(target);
         return;
       }
 
-      const runway = runwayRef.current;
-      if (!runway) return;
-      const sectionTop = runway.getBoundingClientRect().top + window.scrollY;
-      const runwayHeight = runway.offsetHeight - window.innerHeight;
-      // Scroll to stage center (not boundary) to eliminate threshold jitter
-      const frac = (index + 0.5) / STAGE_COUNT;
-      const targetY = sectionTop + frac * runwayHeight;
-      window.scrollTo({ top: targetY, behavior: "smooth" });
+      const top = runway.getBoundingClientRect().top + window.scrollY;
+      const travel = runway.offsetHeight - window.innerHeight;
+      // Land on the stage centre, far from any threshold.
+      const y = Math.round(top + ((target + 0.5) / STAGE_COUNT) * travel);
+
+      // Update UI + camera immediately and fly there without re-triggering
+      // every intermediate stage.
+      navTargetRef.current = { y, stage: target };
+      if (navTimerRef.current !== null) window.clearTimeout(navTimerRef.current);
+      navTimerRef.current = window.setTimeout(() => {
+        navTargetRef.current = null;
+        navTimerRef.current = null;
+      }, NAV_TIMEOUT_MS);
+      commitStage(target);
+      window.scrollTo({ top: y, behavior: prefersReducedMotion() ? "auto" : "smooth" });
     },
-    [activeStage, isDesktop]
+    [commitStage]
   );
+
+  const selectStageFromKeyboard = (i: number) => {
+    handleSelectStage(i);
+    stageTabRefs.current[i]?.focus();
+  };
 
   // ─── Touch swipe (mobile stage change) ────────────────────────────────────
   const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
+    touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
   };
-
   const handleTouchEnd = (e: React.TouchEvent) => {
-    const dx = e.changedTouches[0].clientX - touchStartX.current;
-    const dy = Math.abs(e.changedTouches[0].clientY - touchStartY.current);
-    // Only treat as horizontal swipe if more horizontal than vertical
-    if (Math.abs(dx) > 40 && Math.abs(dx) > dy) {
-      if (dx < 0 && activeStage < STAGE_COUNT - 1) {
-        handleSelectStage(activeStage + 1);
-      } else if (dx > 0 && activeStage > 0) {
-        handleSelectStage(activeStage - 1);
-      }
+    const dx = e.changedTouches[0].clientX - touchStart.current.x;
+    const dy = Math.abs(e.changedTouches[0].clientY - touchStart.current.y);
+    if (Math.abs(dx) > 48 && Math.abs(dx) > dy * 1.4) {
+      handleSelectStage(stageRef.current + (dx < 0 ? 1 : -1));
     }
   };
 
-  // ─── Pointer parallax (desktop) ───────────────────────────────────────────
-  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-    const ny = ((e.clientY - rect.top) / rect.height) * 2 - 1;
-    setPointer({
-      x: nx,
-      parallaxX: Math.max(-3, Math.min(3, nx * 2.5)),
-      parallaxY: Math.max(-3, Math.min(3, ny * 2.5)),
-    });
-  }, []);
-
-  const handlePointerLeave = useCallback(() => {
-    setPointer({ x: 0, parallaxX: 0, parallaxY: 0 });
-  }, []);
-
-  const accentColor =
-    activeStage === 1
-      ? "#A9C8EE"
-      : activeStage === 2
-      ? "#F0A85C"
-      : activeStage === 3
-      ? "#DDE8F8"
-      : activeStage === 4
-      ? "#34D399"
-      : "#ECEDEA";
-
-  // ─── Shared viewport content ───────────────────────────────────────────────
-  const viewportContent = (
-    <div
-      className="h-[100dvh] overflow-hidden flex flex-col justify-between select-none"
-      onPointerMove={handlePointerMove}
-      onPointerLeave={handlePointerLeave}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-    >
-      {/* ── DECORATIVE BACKGROUND ORBITS (Sweeping Universe Scale) ── */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
-        <svg
-          viewBox="0 0 1440 940"
-          className="absolute inset-0 w-full h-full"
-          preserveAspectRatio="xMidYMid slice"
-        >
-          {/* Grand Cosmic Galactic Plane — sweeping across full width */}
-          <g transform="translate(860 480) rotate(-22) scale(1 0.26)" className="orbit-slow-cw orbit-pulse">
-            <ellipse rx="1180" ry="1180" fill="none" stroke="rgba(169,200,238,0.07)" strokeWidth="1" strokeDasharray="16 28 6 28" />
-            <circle cx="1180" cy="0" r="2.5" fill="#A9C8EE" opacity="0.3" />
-          </g>
-
-          {/* Deep Trans-Stellar Ellipse — opposite tilt, sweeping far wide */}
-          <g transform="translate(820 510) rotate(16) scale(1 0.20)" className="orbit-slow-ccw">
-            <ellipse rx="1420" ry="1420" fill="none" stroke="rgba(240,168,92,0.05)" strokeWidth="0.85" strokeDasharray="8 32 4 16" />
-            <circle cx="-1420" cy="0" r="2" fill="#F0A85C" opacity="0.35" />
-          </g>
-
-          {/* Mid-Macro Orbit — Ice Blue */}
-          <g transform="translate(900 470) rotate(-14) scale(1 0.28)" className="orbit-slow-cw">
-            <ellipse rx="780" ry="780" fill="none" stroke="rgba(169,200,238,0.08)" strokeWidth="0.9" strokeDasharray="12 18" />
-          </g>
-
-          {/* Second Mid Ring — Amber harmonic */}
-          <g transform="translate(870 490) rotate(26) scale(1 0.22)" className="orbit-slow-ccw">
-            <ellipse rx="620" ry="620" fill="none" stroke="rgba(240,168,92,0.06)" strokeWidth="1.1" strokeDasharray="6 20" />
-          </g>
-
-          {/* Inner celestial orbit — white tech ring */}
-          <g transform="translate(910 460) rotate(-35) scale(1 0.24)" className="orbit-med-cw">
-            <ellipse rx="460" ry="460" fill="none" stroke="rgba(236,237,234,0.07)" strokeWidth="1" strokeDasharray="10 24" />
-          </g>
-
-          {/* Ultra-wide background perimeter horizon — almost horizontal, vast */}
-          <g transform="translate(760 520) rotate(-6) scale(1 0.12)" className="orbit-slow-cw" style={{ animationDuration: "140s" }}>
-            <ellipse rx="1680" ry="1680" fill="none" stroke="rgba(169,200,238,0.04)" strokeWidth="0.75" />
-          </g>
-
-          {/* Celestial coordinate markers */}
-          <g opacity="0.25" className="mono text-[8px] tracking-[0.25em]" fill="#8E929B">
-            <text x="80" y="260">SECTOR · 045° RA</text>
-            <text x="1260" y="780">ORBITAL PLANE · β-09</text>
-            <line x1="60" y1="264" x2="72" y2="264" stroke="#8E929B" strokeWidth="0.8" />
-            <line x1="1240" y1="784" x2="1252" y2="784" stroke="#8E929B" strokeWidth="0.8" />
-          </g>
-        </svg>
-      </div>
-
-      {/* Planet visual */}
-      <div className="absolute inset-0 pointer-events-auto opacity-35 sm:opacity-50 lg:opacity-100 transition-opacity duration-500">
-        <HeroVisual
-          pointerX={pointer.x}
-          parallaxX={pointer.parallaxX}
-          parallaxY={pointer.parallaxY}
-          activeStage={activeStage}
-          onSelectStage={handleSelectStage}
-          isSplitLayout={true}
-        />
-      </div>
-
-      {/* Navbar */}
-      <div className="relative z-30 pointer-events-auto">
-        <Navbar isLanding={true} />
-      </div>
-
-      {/* Main Content */}
-      <div className="relative z-20 flex-1 max-w-[1440px] w-full mx-auto px-5 sm:px-8 lg:px-16 flex items-center pointer-events-none pt-20 pb-8 sm:py-0">
-        <div className="w-full lg:max-w-[480px] xl:max-w-[520px]">
-          {/* Stage Badge */}
-          <div className="mono flex items-center gap-2 text-[10px] sm:text-[11px] tracking-[0.22em] uppercase text-muted mb-2.5 sm:mb-3.5">
-            <span
-              className="w-1.5 h-1.5 rounded-full transition-colors duration-300 shrink-0"
-              style={{ backgroundColor: accentColor }}
-            />
-            <span className="truncate">{stage.tag}</span>
-          </div>
-
-          {/* Animated Headline */}
-          <div className="transition-opacity duration-300">
-            <h1 className="m-0 text-[28px] xs:text-[32px] sm:text-[44px] lg:text-[58px] leading-[1.06] font-normal tracking-[-0.035em] text-foreground drop-shadow-[0_2px_30px_rgba(3,3,4,0.95)]">
-              <span>{stage.title}</span>
-              <br />
-              <span style={{ color: accentColor }}>{stage.accent}</span>
-            </h1>
-
-            <p className="mt-3 sm:mt-4 text-[13px] sm:text-[15px] leading-[1.6] text-muted-light font-light max-w-[460px] drop-shadow-[0_1px_16px_rgba(3,3,4,0.95)] line-clamp-3 sm:line-clamp-none">
-              {stage.description}
-            </p>
-
-            {/* Sub-Tabs */}
-            <div className="flex gap-1.5 sm:gap-2.5 mt-4 sm:mt-5 pointer-events-auto flex-wrap">
-              {stage.subTabs.map((tab, idx) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveSubTab(idx)}
-                  className={`mono text-[10px] sm:text-[11px] tracking-[0.08em] px-2.5 sm:px-3 py-1 sm:py-1.5 border transition-all duration-200 ${
-                    activeSubTab === idx
-                      ? "border-foreground bg-foreground/15 text-foreground font-medium"
-                      : "border-white/10 text-muted hover:border-white/25 hover:text-foreground"
-                  }`}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
-
-            <div className="mt-2.5 min-h-[36px] sm:min-h-[40px] text-[12px] sm:text-[13px] text-muted leading-relaxed max-w-[460px] drop-shadow-[0_1px_8px_rgba(3,3,4,0.9)]">
-              {stage.subDetails[activeSubTab]}
-            </div>
-
-            {/* Stats */}
-            <div className="grid grid-cols-3 gap-2 sm:gap-2.5 mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-white/10 max-w-[460px]">
-              {stage.stats.map((st) => (
-                <div key={st.label} className="flex flex-col">
-                  <span className="mono text-[8px] sm:text-[9px] tracking-[0.16em] text-muted uppercase truncate">
-                    {st.label}
-                  </span>
-                  <span
-                    className="mono text-[12px] sm:text-[15px] font-medium mt-0.5 truncate"
-                    style={{ color: st.color || "#ECEDEA" }}
-                  >
-                    {st.value}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            {/* CTAs */}
-            <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap mt-5 sm:mt-6 pointer-events-auto">
-              <Link
-                href={stage.primaryCtaHref}
-                className="inline-flex items-center gap-2 min-h-[42px] sm:min-h-[46px] px-5 sm:px-6 bg-foreground text-background font-medium text-[13px] sm:text-[14px] hover:bg-white transition-all shadow-[0_0_30px_rgba(255,255,255,0.15)]"
-              >
-                {stage.primaryCtaText} <span aria-hidden="true">→</span>
-              </Link>
-              <a
-                href={stage.secondaryCtaHref}
-                className="inline-flex items-center min-h-[42px] sm:min-h-[46px] px-4 sm:px-5 border border-white/20 text-[13px] sm:text-[14px] bg-background/60 hover:border-white/40 transition-colors"
-              >
-                {stage.secondaryCtaText}
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom Stage Timeline Bar */}
-      <div className="relative z-30 border-t border-white/10 bg-background/85 backdrop-blur-md px-4 sm:px-8 lg:px-16 py-3 pointer-events-auto">
-        <div className="max-w-[1440px] mx-auto flex items-center justify-between gap-2 sm:gap-4">
-          <div className="hidden lg:flex items-center gap-2 text-muted mono text-[11px] tracking-[0.16em] uppercase shrink-0">
-            <span className="text-foreground font-semibold">+</span>
-            <span>Scroll to travel</span>
-          </div>
-
-          {/* Stage dots / tabs */}
-          <div className="flex items-center gap-1 sm:gap-1.5 flex-nowrap overflow-x-auto no-scrollbar py-0.5">
-            {STAGES.map((s, idx) => {
-              const isActive = activeStage === idx;
-              return (
-                <button
-                  key={s.index}
-                  onClick={() => handleSelectStage(idx)}
-                  className={`mono text-[10px] sm:text-[11px] tracking-[0.12em] px-2 sm:px-3 py-1 sm:py-1.5 rounded transition-all duration-200 shrink-0 flex items-center gap-1 sm:gap-1.5 ${
-                    isActive
-                      ? "text-foreground bg-white/10 font-medium"
-                      : "text-muted hover:text-foreground hover:bg-white/5"
-                  }`}
-                >
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                      isActive ? "bg-amber-primary" : "bg-white/20"
-                    }`}
-                  />
-                  <span>
-                    0{s.index}{" "}
-                    <span className="hidden md:inline">
-                      {s.index === 0
-                        ? "The Split"
-                        : s.index === 1
-                        ? "Fixed Yield"
-                        : s.index === 2
-                        ? "Long Yield"
-                        : s.index === 3
-                        ? "Split Engine"
-                        : "Live Vaults"}
-                    </span>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => handleSelectStage(Math.max(0, activeStage - 1))}
-                disabled={activeStage === 0}
-                aria-label="Previous Stage"
-                className="mono text-[11px] px-2 py-1 border border-white/15 text-muted hover:text-foreground hover:border-white/30 disabled:opacity-30 disabled:pointer-events-none transition-colors"
-              >
-                ←
-              </button>
-              <span className="mono text-[10px] text-muted tracking-widest px-1">
-                0{activeStage + 1} / 05
-              </span>
-              <button
-                onClick={() =>
-                  handleSelectStage(Math.min(STAGE_COUNT - 1, activeStage + 1))
-                }
-                disabled={activeStage === STAGE_COUNT - 1}
-                aria-label="Next Stage"
-                className="mono text-[11px] px-2 py-1 border border-white/15 text-muted hover:text-foreground hover:border-white/30 disabled:opacity-30 disabled:pointer-events-none transition-colors"
-              >
-                →
-              </button>
-            </div>
-            <a
-              href="#how"
-              onClick={(e) => {
-                e.preventDefault();
-                document.getElementById("how")?.scrollIntoView({ behavior: "smooth" });
-              }}
-              className="hidden sm:inline-flex mono text-[10px] tracking-[0.14em] text-muted hover:text-foreground transition-colors border-l border-white/15 pl-2.5 sm:pl-3"
-            >
-              All Sections ↓
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
   // ═══════════════════════════════════════════════════════════════════════════
-  // DESKTOP  → sticky scroll runway (275vh)
-  // MOBILE   → plain single viewport, no runway, swipe to change stage
+  // One stable tree for every breakpoint:
+  //   lg+  → section gets the 275vh runway, inner wrapper is sticky (pinned)
+  //   <lg  → plain single viewport, swipe / timeline to change stage
   // ═══════════════════════════════════════════════════════════════════════════
-  if (!isDesktop) {
-    return (
-      <section id="top" className="relative bg-background">
-        {viewportContent}
-      </section>
-    );
-  }
-
   return (
     <section
       id="top"
       ref={runwayRef}
-      className="relative bg-background"
-      style={{ minHeight: `${RUNWAY_VH}vh` }}
+      aria-label="Cleave overview"
+      className="relative bg-background lg:min-h-[275vh]"
     >
-      <div className="sticky top-0">{viewportContent}</div>
+      <div className="lg:sticky lg:top-0">
+        <div
+          className="relative h-[100dvh] overflow-hidden flex flex-col justify-between select-none"
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+        >
+          {/* ── DECORATIVE BACKGROUND ORBITS ── */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+            <svg
+              viewBox="0 0 1440 940"
+              className="hero-svg absolute inset-0 w-full h-full"
+              preserveAspectRatio="xMidYMid slice"
+            >
+              {/* Outer <g> owns the static placement; inner <g> owns the CSS rotation
+                  (a CSS transform would otherwise replace the placement transform). */}
+              <g transform="translate(860 480) rotate(-22) scale(1 0.26)">
+                <g className="orbit-slow-cw orbit-pulse">
+                  <ellipse rx="1180" ry="1180" fill="none" stroke="rgba(169,200,238,0.07)" strokeWidth="1" strokeDasharray="16 28 6 28" />
+                  <circle cx="1180" cy="0" r="2.5" fill="#A9C8EE" opacity="0.3" />
+                </g>
+              </g>
+              <g transform="translate(820 510) rotate(16) scale(1 0.20)">
+                <g className="orbit-slow-ccw">
+                  <ellipse rx="1420" ry="1420" fill="none" stroke="rgba(240,168,92,0.05)" strokeWidth="0.85" strokeDasharray="8 32 4 16" />
+                  <circle cx="-1420" cy="0" r="2" fill="#F0A85C" opacity="0.35" />
+                </g>
+              </g>
+              <g transform="translate(900 470) rotate(-14) scale(1 0.28)">
+                <g className="orbit-slow-cw">
+                  <ellipse rx="780" ry="780" fill="none" stroke="rgba(169,200,238,0.08)" strokeWidth="0.9" strokeDasharray="12 18" />
+                </g>
+              </g>
+              <g transform="translate(870 490) rotate(26) scale(1 0.22)">
+                <g className="orbit-slow-ccw">
+                  <ellipse rx="620" ry="620" fill="none" stroke="rgba(240,168,92,0.06)" strokeWidth="1.1" strokeDasharray="6 20" />
+                </g>
+              </g>
+              <g transform="translate(910 460) rotate(-35) scale(1 0.24)">
+                <g className="orbit-med-cw">
+                  <ellipse rx="460" ry="460" fill="none" stroke="rgba(236,237,234,0.07)" strokeWidth="1" strokeDasharray="10 24" />
+                </g>
+              </g>
+              <g transform="translate(760 520) rotate(-6) scale(1 0.12)">
+                <g className="orbit-slow-cw" style={{ animationDuration: "140s" }}>
+                  <ellipse rx="1680" ry="1680" fill="none" stroke="rgba(169,200,238,0.04)" strokeWidth="0.75" />
+                </g>
+              </g>
+
+              <g opacity="0.25" className="mono text-[8px] tracking-[0.25em]" fill="#8E929B">
+                <text x="80" y="260">SECTOR · 045° RA</text>
+                <text x="1260" y="780">ORBITAL PLANE · β-09</text>
+                <line x1="60" y1="264" x2="72" y2="264" stroke="#8E929B" strokeWidth="0.8" />
+                <line x1="1240" y1="784" x2="1252" y2="784" stroke="#8E929B" strokeWidth="0.8" />
+              </g>
+            </svg>
+          </div>
+
+          {/* Planet visual (decorative — the timeline below is the accessible control) */}
+          <div className="absolute inset-0 pointer-events-auto opacity-35 sm:opacity-50 lg:opacity-100 transition-opacity duration-500">
+            <HeroVisual activeStage={activeStage} onSelectStage={handleSelectStage} isSplitLayout={true} />
+          </div>
+
+          {/* Legibility scrims: keep wireframe lines out from under the copy and the navbar */}
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 z-10 pointer-events-none bg-background/25 lg:bg-[linear-gradient(90deg,rgba(3,3,4,0.96)_0%,rgba(3,3,4,0.82)_30%,rgba(3,3,4,0.3)_45%,transparent_58%)]"
+          />
+          <div
+            aria-hidden="true"
+            className="absolute inset-x-0 top-0 z-10 h-32 pointer-events-none bg-gradient-to-b from-background/85 to-transparent"
+          />
+
+          {/* Navbar */}
+          <div className="relative z-30 pointer-events-auto">
+            <Navbar isLanding={true} />
+          </div>
+
+          {/* Main Content */}
+          <div className="relative z-20 flex-1 max-w-[1440px] w-full mx-auto px-5 sm:px-8 lg:px-16 flex items-center lg:items-start lg:pt-[clamp(6rem,14vh,10rem)] pointer-events-none pt-20 pb-8 sm:py-0">
+            <div className="w-full lg:max-w-[480px] xl:max-w-[520px]">
+              <p className="sr-only" aria-live="polite" aria-atomic="true">
+                Stage {activeStage + 1} of {STAGE_COUNT}: {stage.title} {stage.accent}
+              </p>
+
+              <div
+                key={activeStage}
+                id="hero-panel"
+                role="tabpanel"
+                aria-labelledby={`hero-tab-${activeStage}`}
+                className="hero-stage-in"
+              >
+                <div className="mono flex items-center gap-2 text-[10px] sm:text-[11px] tracking-[0.22em] uppercase text-muted mb-2.5 sm:mb-3.5">
+                  <span
+                    className="w-1.5 h-1.5 rounded-full shrink-0"
+                    style={{ backgroundColor: accentColor }}
+                    aria-hidden="true"
+                  />
+                  <span className="truncate">{stage.tag}</span>
+                </div>
+
+                <h1 className="m-0 text-[28px] xs:text-[32px] sm:text-[44px] lg:text-[58px] leading-[1.06] font-normal tracking-[-0.035em] text-foreground drop-shadow-[0_2px_30px_rgba(3,3,4,0.95)]">
+                  <span>{stage.title}</span>
+                  <br />
+                  <span style={{ color: accentColor }}>{stage.accent}</span>
+                </h1>
+
+                <p className="mt-3 sm:mt-4 text-[13px] sm:text-[15px] leading-[1.6] text-muted-light font-light max-w-[460px] drop-shadow-[0_1px_16px_rgba(3,3,4,0.95)] line-clamp-3 sm:line-clamp-none">
+                  {stage.description}
+                </p>
+
+                {/* Sub-tabs */}
+                <div
+                  role="tablist"
+                  aria-label={`${stage.title} details`}
+                  className="flex gap-1.5 sm:gap-2.5 mt-4 sm:mt-5 pointer-events-auto flex-wrap"
+                >
+                  {stage.subTabs.map((tab, idx) => (
+                    <button
+                      key={tab}
+                      ref={(el) => {
+                        subTabRefs.current[idx] = el;
+                      }}
+                      role="tab"
+                      id={`hero-subtab-${idx}`}
+                      aria-selected={activeSubTab === idx}
+                      aria-controls="hero-subpanel"
+                      tabIndex={activeSubTab === idx ? 0 : -1}
+                      onClick={() => setActiveSubTab(idx)}
+                      onKeyDown={(e) =>
+                        tabKeyDown(e, stage.subTabs.length, activeSubTab, (i) => {
+                          setActiveSubTab(i);
+                          subTabRefs.current[i]?.focus();
+                        })
+                      }
+                      className={`mono text-[10px] sm:text-[11px] tracking-[0.08em] px-2.5 sm:px-3 py-1 sm:py-1.5 border transition-colors duration-200 ${FOCUS_RING} ${
+                        activeSubTab === idx
+                          ? "border-foreground bg-foreground/15 text-foreground font-medium"
+                          : "border-white/10 text-muted hover:border-white/25 hover:text-foreground"
+                      }`}
+                    >
+                      {tab}
+                    </button>
+                  ))}
+                </div>
+
+                <div
+                  id="hero-subpanel"
+                  role="tabpanel"
+                  aria-labelledby={`hero-subtab-${activeSubTab}`}
+                  className="mt-2.5 min-h-[36px] sm:min-h-[44px] text-[12px] sm:text-[13px] text-muted leading-relaxed max-w-[460px] drop-shadow-[0_1px_8px_rgba(3,3,4,0.9)]"
+                >
+                  {stage.subDetails[activeSubTab]}
+                </div>
+
+                {/* Stats */}
+                <dl className="grid grid-cols-3 gap-2 sm:gap-2.5 mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-white/10 max-w-[460px] m-0">
+                  {stage.stats.map((st) => (
+                    <div key={st.label} className="flex flex-col">
+                      <dt className="mono text-[8px] sm:text-[9px] tracking-[0.16em] text-muted uppercase truncate">
+                        {st.label}
+                      </dt>
+                      <dd
+                        className="mono text-[12px] sm:text-[15px] font-medium mt-0.5 truncate m-0"
+                        style={{ color: st.color || "#ECEDEA" }}
+                      >
+                        {st.value}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+
+                {/* CTAs */}
+                <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap mt-5 sm:mt-6 pointer-events-auto">
+                  <Link
+                    href={stage.primaryCtaHref}
+                    className={`inline-flex items-center gap-2 min-h-[42px] sm:min-h-[46px] px-5 sm:px-6 bg-foreground text-background font-medium text-[13px] sm:text-[14px] hover:bg-white transition-colors shadow-[0_0_30px_rgba(255,255,255,0.15)] ${FOCUS_RING}`}
+                  >
+                    {stage.primaryCtaText} <span aria-hidden="true">→</span>
+                  </Link>
+                  <a
+                    href={stage.secondaryCtaHref}
+                    className={`inline-flex items-center min-h-[42px] sm:min-h-[46px] px-4 sm:px-5 border border-white/20 text-[13px] sm:text-[14px] bg-background/60 hover:border-white/40 transition-colors ${FOCUS_RING}`}
+                  >
+                    {stage.secondaryCtaText}
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Stage Timeline Bar */}
+          <div className="relative z-30 border-t border-white/10 bg-background/85 backdrop-blur-md px-4 sm:px-8 lg:px-16 py-3 pointer-events-auto">
+            <div className="max-w-[1440px] mx-auto flex items-center justify-between gap-2 sm:gap-4">
+              <div className="hidden lg:flex items-center gap-2 text-muted mono text-[11px] tracking-[0.16em] uppercase shrink-0" aria-hidden="true">
+                <span className="text-foreground font-semibold">+</span>
+                <span>Scroll to travel</span>
+              </div>
+
+              <div
+                role="tablist"
+                aria-label="Hero stages"
+                className="flex items-center gap-1 sm:gap-1.5 flex-nowrap overflow-x-auto no-scrollbar py-0.5"
+              >
+                {STAGES.map((s, idx) => {
+                  const isActive = activeStage === idx;
+                  return (
+                    <button
+                      key={s.index}
+                      ref={(el) => {
+                        stageTabRefs.current[idx] = el;
+                      }}
+                      role="tab"
+                      id={`hero-tab-${idx}`}
+                      aria-selected={isActive}
+                      aria-controls="hero-panel"
+                      aria-label={`${idx + 1}. ${STAGE_SHORT[idx]}`}
+                      tabIndex={isActive ? 0 : -1}
+                      onClick={() => handleSelectStage(idx)}
+                      onKeyDown={(e) => tabKeyDown(e, STAGE_COUNT, activeStage, selectStageFromKeyboard)}
+                      className={`mono text-[10px] sm:text-[11px] tracking-[0.12em] px-2 sm:px-3 py-1 sm:py-1.5 rounded transition-colors duration-200 shrink-0 flex items-center gap-1 sm:gap-1.5 ${FOCUS_RING} ${
+                        isActive
+                          ? "text-foreground bg-white/10 font-medium"
+                          : "text-muted hover:text-foreground hover:bg-white/5"
+                      }`}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={`w-1.5 h-1.5 rounded-full shrink-0 ${isActive ? "bg-amber-primary" : "bg-white/20"}`}
+                      />
+                      <span aria-hidden="true">
+                        0{s.index} <span className="hidden md:inline">{STAGE_SHORT[idx]}</span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => handleSelectStage(activeStage - 1)}
+                    disabled={activeStage === 0}
+                    aria-label="Previous stage"
+                    className={`mono text-[11px] px-2 py-1 border border-white/15 text-muted hover:text-foreground hover:border-white/30 disabled:opacity-30 disabled:pointer-events-none transition-colors ${FOCUS_RING}`}
+                  >
+                    <span aria-hidden="true">←</span>
+                  </button>
+                  <span className="mono text-[10px] text-muted tracking-widest px-1" aria-hidden="true">
+                    0{activeStage + 1} / 0{STAGE_COUNT}
+                  </span>
+                  <button
+                    onClick={() => handleSelectStage(activeStage + 1)}
+                    disabled={activeStage === STAGE_COUNT - 1}
+                    aria-label="Next stage"
+                    className={`mono text-[11px] px-2 py-1 border border-white/15 text-muted hover:text-foreground hover:border-white/30 disabled:opacity-30 disabled:pointer-events-none transition-colors ${FOCUS_RING}`}
+                  >
+                    <span aria-hidden="true">→</span>
+                  </button>
+                </div>
+                <a
+                  href="#how"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    document
+                      .getElementById("how")
+                      ?.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth" });
+                  }}
+                  className={`hidden sm:inline-flex mono text-[10px] tracking-[0.14em] text-muted hover:text-foreground transition-colors border-l border-white/15 pl-2.5 sm:pl-3 ${FOCUS_RING}`}
+                >
+                  All Sections <span aria-hidden="true">↓</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
   );
 }

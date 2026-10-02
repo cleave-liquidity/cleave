@@ -155,15 +155,15 @@ a:hover {
 
 .orbit-slow-cw {
   animation: orbit-cw 80s linear infinite;
-  transform-origin: center;
+  transform-origin: 0 0;
 }
 .orbit-slow-ccw {
   animation: orbit-ccw 120s linear infinite;
-  transform-origin: center;
+  transform-origin: 0 0;
 }
 .orbit-med-cw {
   animation: orbit-cw 50s linear infinite;
-  transform-origin: center;
+  transform-origin: 0 0;
 }
 .orbit-pulse {
   animation: orbit-pulse 8s ease-in-out infinite;
@@ -354,3 +354,66 @@ input:focus-visible {
   outline-offset: 3px;
 }
 
+
+
+/* ── Hero visual ─────────────────────────────────────────────────────────── */
+/* Pause every CSS animation while the hero is off-screen / tab hidden. */
+.hero-svg[data-paused="true"] * {
+  animation-play-state: paused !important;
+}
+
+/* Opacity cross-fades for persistent (never unmounted) stage elements. */
+.pin-fade {
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.pin-fade-slow {
+  transition: opacity 0.6s ease-out;
+}
+
+.pin-ping {
+  animation: pin-ping 2.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+.pin-pulse {
+  animation: pin-pulse 2s ease-in-out infinite;
+}
+@keyframes pin-ping {
+  0% { transform: scale(0.8); opacity: 1; }
+  75%, 100% { transform: scale(2); opacity: 0; }
+}
+@keyframes pin-pulse {
+  50% { opacity: 0.4; }
+}
+
+.pin-body {
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.pin-badge {
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s ease-out;
+}
+@media (hover: hover) {
+  .pin:hover .pin-body { transform: scale(1.15); }
+  .pin:hover .pin-badge { transform: translateX(8px); }
+}
+
+/* Hero copy swap on stage change */
+.hero-stage-in {
+  animation: hero-stage-in 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes hero-stage-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pin-ping,
+  .pin-pulse,
+  .hero-stage-in {
+    animation: none;
+  }
+  .pin-fade,
+  .pin-fade-slow,
+  .pin-body,
+  .pin-badge {
+    transition: none;
+  }
+}
