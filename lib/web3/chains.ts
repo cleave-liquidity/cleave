@@ -3,6 +3,7 @@ import type { RobinhoodNetwork } from "@/types/market";
 
 export const ROBINHOOD_CHAIN_ID = 4663;
 export const ROBINHOOD_TESTNET_CHAIN_ID = 46630;
+export const ROBINHOOD_NATIVE_DECIMALS = 18;
 export const ROBINHOOD_CHAIN_IDS = [
   ROBINHOOD_CHAIN_ID,
   ROBINHOOD_TESTNET_CHAIN_ID,

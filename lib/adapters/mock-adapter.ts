@@ -27,7 +27,10 @@ import {
   MOCK_NETWORK_FEE_ETH,
 } from "@/lib/adapters/balance-adapter";
 import { isSupportedRobinhoodChain } from "@/lib/web3/chains";
+import { ContractYieldMarketAdapter } from "./contract-yield-market-adapter";
+import { getConfiguredDataMode } from "./config";
 import { PositionTransactionResult, YieldMarketAdapter } from "./types";
+import { TokenApprovalRequest, TransactionHash, TransactionReceiptResult } from "@/types/transaction";
 
 const STORAGE_PREFIX = "cleave:mock-positions:v1:";
 const QUOTE_TTL_MS = 30_000;
@@ -36,6 +39,8 @@ const DEMO_OWNER =
   "0x000000000000000000000000000000000000dEaD" as `0x${string}`;
 
 const MOCK_TX_HASHES = {
+  approve:
+    "0x0000000000000000000000000000000000000000000000000000000000000001" as `0x${string}`,
   openFixed:
     "0x1111111111111111111111111111111111111111111111111111111111111111" as `0x${string}`,
   openLong:
@@ -117,10 +122,8 @@ export const MOCK_MARKETS: YieldMarket[] = [
     liquidityUsd: 4_200_000,
     status: "active",
     network: "testnet",
+    chainId: 46630,
     dataMode: "mock",
-    ptAddress: "0x4A6bA031F1C18D3b5b154a01f5F75e5bA2E9F101",
-    ytAddress: "0x89e2C3b7C20E1552a4eE4195155f3089454170B2",
-    vaultAddress: "0x1234567890abcdef1234567890abcdef12345678",
   },
   {
     id: "susde-ethena-24jun27",
@@ -142,10 +145,8 @@ export const MOCK_MARKETS: YieldMarket[] = [
     liquidityUsd: 2_700_000,
     status: "active",
     network: "testnet",
+    chainId: 46630,
     dataMode: "mock",
-    ptAddress: "0x91F4e11C313C5237C5046e3d2319451996919011",
-    ytAddress: "0x19932148dce54e56592B6fD304D13A4996929944",
-    vaultAddress: "0x2345678901abcdef2345678901abcdef23456789",
   },
   {
     id: "snet-netnet-17dec26",
@@ -166,10 +167,8 @@ export const MOCK_MARKETS: YieldMarket[] = [
     liquidityUsd: 900_000,
     status: "maturing",
     network: "testnet",
+    chainId: 46630,
     dataMode: "mock",
-    ptAddress: "0x6331a980F8D26Fe95f87b89710313f89012a9122",
-    ytAddress: "0x51B0D8b813735749A3212879058b87192A02842B",
-    vaultAddress: "0x3456789012abcdef3456789012abcdef34567890",
   },
   {
     id: "wsteth-lido-30sep27",
@@ -191,10 +190,8 @@ export const MOCK_MARKETS: YieldMarket[] = [
     liquidityUsd: 6_100_000,
     status: "active",
     network: "testnet",
+    chainId: 46630,
     dataMode: "mock",
-    ptAddress: "0x77c4424A9F2e652aF3e390b14421b92040E0F921",
-    ytAddress: "0x2A19011e4C46B124219451996919011bE5bA2E9F",
-    vaultAddress: "0x4567890123abcdef4567890123abcdef45678901",
   },
 ];
 
@@ -296,6 +293,10 @@ export class MockYieldMarketAdapter implements YieldMarketAdapter {
         "Enter an amount greater than zero.",
       );
     }
+  }
+
+  private assertOptionalNetwork(chainId?: number): void {
+    if (chainId !== undefined) this.requireNetwork(chainId);
   }
 
   private assertTradable(market: YieldMarket, inputAmount: number): void {
@@ -434,6 +435,30 @@ export class MockYieldMarketAdapter implements YieldMarketAdapter {
     return positions.map(clonePosition);
   }
 
+  async approveToken(request: TokenApprovalRequest): Promise<PositionTransactionResult> {
+    this.requireNetwork(request.chainId);
+    if (request.amount <= BigInt(0)) {
+      throw new YieldDomainError("invalid-amount", "Approval amount must be greater than zero.");
+    }
+    return {
+      txHash: MOCK_TX_HASHES.approve,
+      chainId: request.chainId,
+      status: "confirmed",
+      timestamp: Date.now(),
+    };
+  }
+
+  async getTransactionStatus(
+    txHash: TransactionHash,
+    chainId: number,
+  ): Promise<TransactionReceiptResult> {
+    this.requireNetwork(chainId);
+    if (!txHash) {
+      throw new YieldDomainError("transaction-not-found", "The transaction hash is missing.");
+    }
+    return { hash: txHash, chainId, status: "confirmed", timestamp: Date.now() };
+  }
+
   async getFixedQuote(
     marketId: string,
     inputAmount: number,
@@ -566,8 +591,10 @@ export class MockYieldMarketAdapter implements YieldMarketAdapter {
   async claimYield(
     positionId: string,
     userAddress: `0x${string}`,
+    chainId?: number,
   ): Promise<PositionTransactionResult> {
     const owner = this.requireOwner(userAddress);
+    this.assertOptionalNetwork(chainId);
     const { position, ownerKey } = this.findOwnedPosition(positionId, owner);
     if (position.strategy !== "long") {
       throw new YieldDomainError(
@@ -604,14 +631,16 @@ export class MockYieldMarketAdapter implements YieldMarketAdapter {
     );
     positions[index] = updated;
     this.persistPositions(ownerKey, positions);
-    return { claimedAmount: claimable, txHash: MOCK_TX_HASHES.claim };
+    return { claimedAmount: claimable, txHash: MOCK_TX_HASHES.claim, chainId, status: "confirmed", timestamp: Date.now() };
   }
 
   async redeemFixed(
     positionId: string,
     userAddress: `0x${string}`,
+    chainId?: number,
   ): Promise<PositionTransactionResult> {
     const owner = this.requireOwner(userAddress);
+    this.assertOptionalNetwork(chainId);
     const { position, ownerKey } = this.findOwnedPosition(positionId, owner);
     if (position.strategy !== "fixed") {
       throw new YieldDomainError(
@@ -637,14 +666,16 @@ export class MockYieldMarketAdapter implements YieldMarketAdapter {
     );
     positions[index] = { ...position, status: "redeemed", currentValue: 0 };
     this.persistPositions(ownerKey, positions);
-    return { redeemedAmount: position.ptAmount, txHash: MOCK_TX_HASHES.redeem };
+    return { redeemedAmount: position.ptAmount, txHash: MOCK_TX_HASHES.redeem, chainId, status: "confirmed", timestamp: Date.now() };
   }
 
   async sellPosition(
     positionId: string,
     userAddress: `0x${string}`,
+    chainId?: number,
   ): Promise<PositionTransactionResult> {
     const owner = this.requireOwner(userAddress);
+    this.assertOptionalNetwork(chainId);
     const { position, ownerKey } = this.findOwnedPosition(positionId, owner);
     if (!canSellPosition(position)) {
       throw new YieldDomainError(
@@ -676,9 +707,13 @@ export class MockYieldMarketAdapter implements YieldMarketAdapter {
     );
     positions[index] = closed;
     this.persistPositions(ownerKey, positions);
-    return { returnedAmount, txHash: MOCK_TX_HASHES.sell };
+    return { returnedAmount, txHash: MOCK_TX_HASHES.sell, chainId, status: "confirmed", timestamp: Date.now() };
   }
 }
 
 export { DEMO_OWNER };
-export const yieldAdapter = new MockYieldMarketAdapter();
+export const mockYieldAdapter = new MockYieldMarketAdapter();
+export const yieldAdapter: YieldMarketAdapter =
+  getConfiguredDataMode() === "live"
+    ? new ContractYieldMarketAdapter()
+    : mockYieldAdapter;

@@ -2,6 +2,7 @@ import { YieldDomainError } from "@/types/errors";
 import { YieldMarket } from "@/types/market";
 import { FixedYieldQuote, LongYieldQuote } from "@/types/quote";
 import { FixedYieldPosition, LongYieldPosition, YieldPosition } from "@/types/position";
+import { TokenApprovalRequest, TransactionHash, TransactionReceiptResult } from "@/types/transaction";
 import { PositionTransactionResult, YieldMarketAdapter } from "./types";
 
 /**
@@ -11,31 +12,33 @@ import { PositionTransactionResult, YieldMarketAdapter } from "./types";
  */
 export class ContractYieldMarketAdapter implements YieldMarketAdapter {
   readonly mode = "live" as const;
-  private unavailable(): never {
-    throw new YieldDomainError(
-      "rpc-unavailable",
+  private unavailable<T>(): Promise<T> {
+    return Promise.reject(
+      new YieldDomainError(
+        "live-integration-not-configured",
       "Live contract integration is not configured for this environment."
+      ),
     );
   }
 
   getMarkets(): Promise<YieldMarket[]> {
-    return Promise.reject(this.unavailable());
+    return this.unavailable();
   }
 
   getMarket(_id: string): Promise<YieldMarket | null> {
-    return Promise.reject(this.unavailable());
+    return this.unavailable();
   }
 
-  getPositions(_userAddress?: `0x${string}`): Promise<YieldPosition[]> {
-    return Promise.reject(this.unavailable());
+  getPositions(_userAddress?: `0x${string}`, _chainId?: number): Promise<YieldPosition[]> {
+    return this.unavailable();
   }
 
   getFixedQuote(_marketId: string, _inputAmount: number): Promise<FixedYieldQuote> {
-    return Promise.reject(this.unavailable());
+    return this.unavailable();
   }
 
   getLongQuote(_marketId: string, _inputAmount: number): Promise<LongYieldQuote> {
-    return Promise.reject(this.unavailable());
+    return this.unavailable();
   }
 
   openFixedPosition(
@@ -45,7 +48,7 @@ export class ContractYieldMarketAdapter implements YieldMarketAdapter {
     _quote: FixedYieldQuote,
     _chainId?: number
   ): Promise<FixedYieldPosition> {
-    return Promise.reject(this.unavailable());
+    return this.unavailable();
   }
 
   openLongPosition(
@@ -55,22 +58,30 @@ export class ContractYieldMarketAdapter implements YieldMarketAdapter {
     _quote: LongYieldQuote,
     _chainId?: number
   ): Promise<LongYieldPosition> {
-    return Promise.reject(this.unavailable());
+    return this.unavailable();
   }
 
   getClaimableYield(_position: LongYieldPosition, _now?: number): Promise<number> {
-    return Promise.reject(this.unavailable());
+    return this.unavailable();
   }
 
-  claimYield(_positionId: string, _userAddress: `0x${string}`): Promise<PositionTransactionResult> {
-    return Promise.reject(this.unavailable());
+  approveToken(_request: TokenApprovalRequest): Promise<PositionTransactionResult> {
+    return this.unavailable();
   }
 
-  redeemFixed(_positionId: string, _userAddress: `0x${string}`): Promise<PositionTransactionResult> {
-    return Promise.reject(this.unavailable());
+  getTransactionStatus(_txHash: TransactionHash, _chainId: number): Promise<TransactionReceiptResult> {
+    return this.unavailable();
   }
 
-  sellPosition(_positionId: string, _userAddress: `0x${string}`): Promise<PositionTransactionResult> {
-    return Promise.reject(this.unavailable());
+  claimYield(_positionId: string, _userAddress: `0x${string}`, _chainId?: number): Promise<PositionTransactionResult> {
+    return this.unavailable();
+  }
+
+  redeemFixed(_positionId: string, _userAddress: `0x${string}`, _chainId?: number): Promise<PositionTransactionResult> {
+    return this.unavailable();
+  }
+
+  sellPosition(_positionId: string, _userAddress: `0x${string}`, _chainId?: number): Promise<PositionTransactionResult> {
+    return this.unavailable();
   }
 }

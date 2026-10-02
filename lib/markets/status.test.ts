@@ -21,6 +21,7 @@ function market(overrides: Partial<YieldMarket> = {}): YieldMarket {
     liquidityUsd: 1_000_000,
     status: "active",
     network: "testnet",
+    chainId: 46630,
     dataMode: "mock",
     ...overrides,
   };

@@ -1,5 +1,6 @@
 import { YieldMarket } from "@/types/market";
 import { FixedYieldQuote, LongYieldQuote } from "@/types/quote";
+import { assertSafeDisplayAmount } from "@/lib/utils/amounts";
 
 /**
  * These calculations intentionally model a simple discounted-principal market.
@@ -43,6 +44,7 @@ export function calculateFixedQuote(
   market: YieldMarket,
   inputAmount: number
 ): FixedYieldQuote {
+  assertSafeDisplayAmount(inputAmount);
   const fraction = yearFraction(market.daysRemaining);
   const impactRate = priceImpactRate(inputAmount, market.liquidityUsd);
   const effectiveImpliedApy = market.impliedApy * (1 - impactRate);
@@ -54,6 +56,7 @@ export function calculateFixedQuote(
   const quoteTimestamp = Date.now();
 
   return {
+    quoteId: `mock-fixed-${market.id}-${quoteTimestamp}`,
     marketId: market.id,
     inputAmount,
     ptReceived: round(ptReceived, 6),
@@ -73,6 +76,7 @@ export function calculateLongQuote(
   market: YieldMarket,
   inputAmount: number
 ): LongYieldQuote {
+  assertSafeDisplayAmount(inputAmount);
   const fraction = yearFraction(market.daysRemaining);
   const impactRate = priceImpactRate(inputAmount, market.liquidityUsd);
   const ptPrice = 1 / (1 + (market.impliedApy / 100) * fraction);
@@ -91,6 +95,7 @@ export function calculateLongQuote(
   const quoteTimestamp = Date.now();
 
   return {
+    quoteId: `mock-long-${market.id}-${quoteTimestamp}`,
     marketId: market.id,
     inputAmount,
     ytReceived: round(ytReceived, 6),
