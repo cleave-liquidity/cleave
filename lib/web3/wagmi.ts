@@ -11,5 +11,5 @@ export const config = getDefaultConfig({
   appName: "CLEAVE",
   projectId: WALLET_CONNECT_PROJECT_ID,
   chains: [robinhoodChain, robinhoodChainTestnet],
-  ssr: false,
+  ssr: true,
 });
