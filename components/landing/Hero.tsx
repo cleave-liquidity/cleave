@@ -185,6 +185,8 @@ export function Hero() {
   const stageTabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const subTabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const touchStart = useRef({ x: 0, y: 0 });
+  // Continuous stage position (0…4) for the camera; null on mobile.
+  const stagePosRef = useRef<number | null>(null);
 
   const stage = STAGES[activeStage];
   const accentColor = STAGE_ACCENT[activeStage];
@@ -214,7 +216,18 @@ export function Hero() {
     const sync = () => {
       raf = 0;
       const runway = runwayRef.current;
-      if (!runway || !isDesktop()) return;
+      if (!runway || !isDesktop()) {
+        stagePosRef.current = null;
+        return;
+      }
+
+      const top = runway.getBoundingClientRect().top + window.scrollY;
+      const travel = runway.offsetHeight - window.innerHeight;
+      if (travel <= 0) return;
+
+      const progress = Math.max(0, Math.min(1, (window.scrollY - top) / travel));
+      // Stage i is centred at (i + 0.5) / N — the camera rests there and glides in between.
+      stagePosRef.current = Math.max(0, Math.min(STAGE_COUNT - 1, progress * STAGE_COUNT - 0.5));
 
       const nav = navTargetRef.current;
       if (nav) {
@@ -223,11 +236,6 @@ export function Hero() {
         clearNav();
       }
 
-      const top = runway.getBoundingClientRect().top + window.scrollY;
-      const travel = runway.offsetHeight - window.innerHeight;
-      if (travel <= 0) return;
-
-      const progress = Math.max(0, Math.min(1, (window.scrollY - top) / travel));
       const current = stageRef.current;
 
       let next = current;
@@ -388,7 +396,12 @@ export function Hero() {
 
           {/* Planet visual (decorative — the timeline below is the accessible control) */}
           <div className="absolute inset-0 pointer-events-auto opacity-35 sm:opacity-50 lg:opacity-100 transition-opacity duration-500">
-            <HeroVisual activeStage={activeStage} onSelectStage={handleSelectStage} isSplitLayout={true} />
+            <HeroVisual
+              activeStage={activeStage}
+              onSelectStage={handleSelectStage}
+              isSplitLayout={true}
+              stagePosRef={stagePosRef}
+            />
           </div>
 
           {/* Legibility scrims: keep wireframe lines out from under the copy and the navbar */}

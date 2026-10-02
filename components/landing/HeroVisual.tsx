@@ -7,6 +7,11 @@ export interface HeroVisualProps {
   activeStage?: number;
   onSelectStage?: (stage: number) => void;
   isSplitLayout?: boolean;
+  /**
+   * Continuous stage position (0…STAGES-1) driven by scroll on desktop, so the
+   * camera glides with the page. `null` → follow `activeStage` (mobile).
+   */
+  stagePosRef?: React.RefObject<number | null>;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -49,17 +54,61 @@ for (let deg = -90; deg <= 90; deg += 5) MERIDIAN_SAMPLES.push(deg * DEG);
 const S_OUTER = 70;
 const S_INNER = 36;
 
-// Cinematic camera targets per stage.
+// Cinematic camera keyframes. Each stage brings its planet to a focal point on
+// the right-hand side (clear of the copy column) with a *gentle* zoom — the
+// scene should read as a living background, not a camera that swings across
+// the page.
+const PIN_POS: ReadonlyArray<readonly [number, number]> = [
+  [0, 0],
+  [-100, 240], // 1 fixed yield (diamond)
+  [260, -130], // 2 long yield (bio-particle)
+  [0, -190], // 3 split engine (prisms)
+  [200, 240], // 4 USDG vault (gyroscope)
+];
+const SPHERE_CX = 890;
+const SPHERE_CY = 470;
+const focusOn = (stage: number, scale: number, fx: number, fy: number) => ({
+  scale,
+  x: fx - SPHERE_CX - scale * PIN_POS[stage][0],
+  y: fy - SPHERE_CY - scale * PIN_POS[stage][1],
+});
 const CAMERA_STAGES = [
   { scale: 0.88, x: 30, y: 0 }, // 0 overview
-  { scale: 1.62, x: 230, y: -390 }, // 1 fixed yield (diamond)
-  { scale: 1.62, x: -350, y: 210 }, // 2 long yield (bio-particle)
-  { scale: 1.75, x: 60, y: 320 }, // 3 split engine (prisms)
-  { scale: 1.62, x: -260, y: -390 }, // 4 USDG vault (gyroscope)
-] as const;
+  focusOn(1, 1.3, 1100, 470),
+  focusOn(2, 1.15, 1170, 450),
+  focusOn(3, 1.3, 1060, 500),
+  focusOn(4, 1.3, 1150, 470),
+];
+
+const smootherstep = (t: number) => {
+  const x = clamp(t, 0, 1);
+  return x * x * x * (x * (x * 6 - 15) + 10);
+};
+
+/** Camera pose for a fractional stage position; eases to rest on every keyframe. */
+function sampleCamera(pos: number) {
+  const p = clamp(pos, 0, CAMERA_STAGES.length - 1);
+  const i = Math.min(CAMERA_STAGES.length - 2, Math.floor(p));
+  const k = smootherstep(p - i);
+  const a = CAMERA_STAGES[i];
+  const b = CAMERA_STAGES[i + 1];
+  return { scale: lerp(a.scale, b.scale, k), x: lerp(a.x, b.x, k), y: lerp(a.y, b.y, k) };
+}
+
+/** Critically damped spring (C¹-continuous: no velocity jump when the target moves). */
+function smoothDamp(cur: number, target: number, vel: number, smoothTime: number, dt: number): [number, number] {
+  const omega = 2 / smoothTime;
+  const x = omega * dt;
+  const e = 1 / (1 + x + 0.48 * x * x + 0.235 * x * x * x);
+  const change = cur - target;
+  const temp = (vel + omega * change) * dt;
+  return [target + (change + temp) * e, (vel - omega * temp) * e];
+}
 
 const CAM0: { scale: number; x: number; y: number } = CAMERA_STAGES[0];
 
+const CAMERA_SMOOTH_TIME = 0.5; // seconds to settle (critically damped)
+const TRAVEL_DIP_MAX = 0.42; // max darkening of the world while travelling
 const DRAG_THRESHOLD_PX = 5;
 const ROT_X_MIN = -45;
 const ROT_X_MAX = 50;
@@ -71,6 +120,7 @@ interface SceneDom {
   cam: El<SVGGElement>;
   fixedRing: El<SVGGElement>;
   longRing: El<SVGGElement>;
+  dip: El<SVGRectElement>;
   lats: El<SVGEllipseElement>[];
   merFront: El<SVGPathElement>;
   merBack: El<SVGPathElement>;
@@ -97,6 +147,7 @@ const createDom = (): SceneDom => ({
   cam: null,
   fixedRing: null,
   longRing: null,
+  dip: null,
   lats: [],
   merFront: null,
   merBack: null,
@@ -135,6 +186,7 @@ function createSim() {
     // camera
     camScale: CAM0.scale, camPanX: CAM0.x, camPanY: CAM0.y,
     targetScale: CAM0.scale, targetPanX: CAM0.x, targetPanY: CAM0.y,
+    camVS: 0, camVX: 0, camVY: 0, dip: 0,
     // orbit emphasis (eased)
     fixedOp: 0.72, longOp: 0.72,
     stage: 0,
@@ -514,7 +566,7 @@ function Satellite({
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function HeroVisual({ activeStage = 0, onSelectStage, isSplitLayout = true }: HeroVisualProps) {
+export function HeroVisual({ activeStage = 0, onSelectStage, isSplitLayout = true, stagePosRef }: HeroVisualProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const onSelectRef = useRef(onSelectStage);
   useEffect(() => {
@@ -526,19 +578,9 @@ export function HeroVisual({ activeStage = 0, onSelectStage, isSplitLayout = tru
   const sRef = useRef(createSim());
 
 
-  // Stage → camera target.
+  // Stage change: remember it and make sure the loop is awake (reduced motion sleeps when idle).
   useEffect(() => {
-    const s = sRef.current;
-    const c = CAMERA_STAGES[activeStage] ?? CAMERA_STAGES[0];
-    s.stage = activeStage;
-    s.targetScale = c.scale;
-    s.targetPanX = c.x;
-    s.targetPanY = c.y;
-    if (s.reduced) {
-      s.camScale = c.scale;
-      s.camPanX = c.x;
-      s.camPanY = c.y;
-    }
+    sRef.current.stage = activeStage;
     kickRef.current();
   }, [activeStage]);
 
@@ -559,6 +601,10 @@ export function HeroVisual({ activeStage = 0, onSelectStage, isSplitLayout = tru
     const canRun = () => inView && !document.hidden;
 
     const paint = (now: number) => {
+      // Never let a stray NaN freeze the lattice: reset the simulation instead.
+      if (!Number.isFinite(s.currentX + s.currentY + s.camScale + s.camPanX + s.camPanY + s.tiltX + s.tiltY)) {
+        Object.assign(s, createSim(), { stage: s.stage });
+      }
       const t = s.reduced ? 0 : now * 0.001;
       const parX = clamp(s.ptrX * 2.5, -3, 3);
       const parY = clamp(s.ptrY * 2.5, -3, 3);
@@ -567,6 +613,7 @@ export function HeroVisual({ activeStage = 0, onSelectStage, isSplitLayout = tru
       setA(dom.cam, "transform", `translate(${cx.toFixed(2)} ${cy.toFixed(2)}) scale(${s.camScale.toFixed(4)})`);
       setA(dom.fixedRing, "opacity", s.fixedOp);
       setA(dom.longRing, "opacity", s.longOp);
+      setA(dom.dip, "opacity", s.dip);
       paintLattice(dom, s.currentX, s.currentY);
       paintCore(dom, s.currentX, s.currentY);
       paintMini(dom, t);
@@ -595,17 +642,27 @@ export function HeroVisual({ activeStage = 0, onSelectStage, isSplitLayout = tru
       s.currentX += (s.targetX + s.tiltX - s.currentX) * rotF;
       s.currentY += (s.targetY + s.tiltY - s.currentY) * rotF;
 
-      // Camera: exponential decay, identical at 60 / 120 Hz.
+      // Camera: follow the scroll-driven stage position (or the discrete stage on
+      // mobile) through a critically damped spring — smooth start, smooth stop,
+      // identical at 60 / 120 Hz.
+      const pos = stagePosRef?.current;
+      const goal = pos == null ? CAMERA_STAGES[s.stage] ?? CAM0 : sampleCamera(pos);
+      s.targetScale = goal.scale;
+      s.targetPanX = goal.x;
+      s.targetPanY = goal.y;
       if (reduced) {
-        s.camScale = s.targetScale;
-        s.camPanX = s.targetPanX;
-        s.camPanY = s.targetPanY;
+        s.camScale = goal.scale;
+        s.camPanX = goal.x;
+        s.camPanY = goal.y;
+        s.camVS = s.camVX = s.camVY = 0;
       } else {
-        const camF = decay(3.5, dt);
-        s.camScale += (s.targetScale - s.camScale) * camF;
-        s.camPanX += (s.targetPanX - s.camPanX) * camF;
-        s.camPanY += (s.targetPanY - s.camPanY) * camF;
+        [s.camScale, s.camVS] = smoothDamp(s.camScale, goal.scale, s.camVS, CAMERA_SMOOTH_TIME, dt);
+        [s.camPanX, s.camVX] = smoothDamp(s.camPanX, goal.x, s.camVX, CAMERA_SMOOTH_TIME, dt);
+        [s.camPanY, s.camVY] = smoothDamp(s.camPanY, goal.y, s.camVY, CAMERA_SMOOTH_TIME, dt);
       }
+      // "Loading glance": the world softens while the camera travels, then clears.
+      const speed = Math.hypot(s.camVX, s.camVY) + Math.abs(s.camVS) * 350;
+      s.dip += (TRAVEL_DIP_MAX * smooth(speed / 900) - s.dip) * decay(10, dt);
 
       const ptrF = decay(5, dt);
       s.ptrX += (s.ptrTX - s.ptrX) * ptrF;
@@ -627,6 +684,8 @@ export function HeroVisual({ activeStage = 0, onSelectStage, isSplitLayout = tru
       Math.abs(s.targetScale - s.camScale) < 0.0005 &&
       Math.abs(s.targetPanX - s.camPanX) < 0.05 &&
       Math.abs(s.targetPanY - s.camPanY) < 0.05 &&
+      Math.abs(s.camVX) + Math.abs(s.camVY) + Math.abs(s.camVS) < 0.05 &&
+      s.dip < 0.004 &&
       Math.abs(s.velocityX) + Math.abs(s.velocityY) < 0.01 &&
       Math.abs(s.ptrTX - s.ptrX) + Math.abs(s.ptrTY - s.ptrY) < 0.002;
 
@@ -669,9 +728,12 @@ export function HeroVisual({ activeStage = 0, onSelectStage, isSplitLayout = tru
       kick();
     };
     reducedMq.addEventListener("change", onReducedChange);
+    // Scroll drives the camera; wake a sleeping (reduced-motion) loop.
+    window.addEventListener("scroll", kick, { passive: true });
 
     // Snap camera to the current stage on mount (also covers remount mid-scroll).
-    const c = CAMERA_STAGES[s.stage] ?? CAMERA_STAGES[0];
+    const startPos = stagePosRef?.current;
+    const c = startPos == null ? CAMERA_STAGES[s.stage] ?? CAM0 : sampleCamera(startPos);
     s.camScale = c.scale;
     s.camPanX = c.x;
     s.camPanY = c.y;
@@ -685,8 +747,9 @@ export function HeroVisual({ activeStage = 0, onSelectStage, isSplitLayout = tru
       io.disconnect();
       document.removeEventListener("visibilitychange", setPaused);
       reducedMq.removeEventListener("change", onReducedChange);
+      window.removeEventListener("scroll", kick);
     };
-  }, [isSplitLayout]);
+  }, [isSplitLayout, stagePosRef]);
 
   // ─── Pointer input ─────────────────────────────────────────────────────────
   const handlePointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
@@ -806,7 +869,7 @@ export function HeroVisual({ activeStage = 0, onSelectStage, isSplitLayout = tru
       onPointerLeave={handlePointerLeave}
       className="hero-svg absolute top-0 left-0 w-full h-full z-0 select-none cursor-grab"
       // Horizontal drags rotate the planet; vertical swipes still scroll the page on touch.
-      style={{ touchAction: "pan-y" }}
+      style={{ touchAction: "pan-y", willChange: "transform" }}
     >
       <defs>
         <radialGradient id="skyGrad" cx="50%" cy="50%" r="65%">
@@ -854,9 +917,6 @@ export function HeroVisual({ activeStage = 0, onSelectStage, isSplitLayout = tru
           <stop offset="85%" stopColor="#FFFFFF" stopOpacity="0.4" />
           <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
         </linearGradient>
-        <clipPath id="pclipSphere">
-          <circle cx="0" cy="0" r="345" />
-        </clipPath>
         <linearGradient id="meteorTailA" x1="0%" y1="0%" x2="100%" y2="0%">
           <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0" />
           <stop offset="70%" stopColor="#DDE8F8" stopOpacity="0.6" />
@@ -932,7 +992,9 @@ export function HeroVisual({ activeStage = 0, onSelectStage, isSplitLayout = tru
         <g pointerEvents="none">
           <circle r="345" fill="url(#masterPlanetBody)" stroke="rgba(255,255,255,0.22)" strokeWidth="1.2" opacity={0.7} />
 
-          <g clipPath="url(#pclipSphere)">
+          {/* Everything here lies on the sphere, so it can't leave the disc: no clip-path needed
+              (clip-path + per-frame mutation caused partial-repaint seams in Chrome). */}
+          <g>
             {LAT_ANGLES.map((_, i) => (
               <ellipse key={`lat-${i}`} ref={(el) => { domRef.current.lats[i] = el; }} cx="0" fill="none" stroke="#FFFFFF" strokeWidth={LAT_STROKE[i]} />
             ))}
@@ -1079,6 +1141,9 @@ export function HeroVisual({ activeStage = 0, onSelectStage, isSplitLayout = tru
             <circle className="ringflow" r="1420" fill="none" stroke="#FFFFFF" strokeWidth="1" strokeDasharray="500 400 100 300" opacity="0.45" style={{ animationDuration: "140s" }} />
           </g>
         </g>
+
+        {/* Travel veil: softens the world (not the pins) while the camera is moving */}
+        <rect ref={(el) => { domRef.current.dip = el; }} x="-2600" y="-2600" width="5200" height="5200" fill="#030304" opacity="0" pointerEvents="none" />
 
         {/* ── Pin 1 · Fixed yield — diamond ── */}
         <g className="pin cursor-pointer pointer-events-auto" data-stage="1" transform="translate(-100 240)">
