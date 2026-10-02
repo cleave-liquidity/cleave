@@ -13,6 +13,8 @@ export type YieldErrorCode =
   | "transaction-reverted"
   | "rpc-unavailable"
   | "live-integration-not-configured"
+  | "live-source-unavailable"
+  | "unsupported-operation"
   | "invalid-token-metadata"
   | "transaction-not-found"
   | "quote-expired"
@@ -42,6 +44,8 @@ export const YIELD_ERROR_CODES = {
   TRANSACTION_REVERTED: "transaction-reverted",
   RPC_UNAVAILABLE: "rpc-unavailable",
   LIVE_INTEGRATION_NOT_CONFIGURED: "live-integration-not-configured",
+  LIVE_SOURCE_UNAVAILABLE: "live-source-unavailable",
+  UNSUPPORTED_OPERATION: "unsupported-operation",
   INVALID_TOKEN_METADATA: "invalid-token-metadata",
   TRANSACTION_NOT_FOUND: "transaction-not-found",
   QUOTE_EXPIRED: "quote-expired",

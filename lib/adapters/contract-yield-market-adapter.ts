@@ -3,7 +3,7 @@ import { YieldMarket } from "@/types/market";
 import { FixedYieldQuote, LongYieldQuote } from "@/types/quote";
 import { FixedYieldPosition, LongYieldPosition, YieldPosition } from "@/types/position";
 import { TokenApprovalRequest, TransactionHash, TransactionReceiptResult } from "@/types/transaction";
-import { PositionTransactionResult, YieldMarketAdapter } from "./types";
+import { PositionTransactionResult, YieldAdapterRuntime, YieldMarketAdapter } from "./types";
 
 /**
  * Contract adapter boundary only. It deliberately contains no ABI guesses or
@@ -29,15 +29,15 @@ export class ContractYieldMarketAdapter implements YieldMarketAdapter {
     return this.unavailable();
   }
 
-  getPositions(_userAddress?: `0x${string}`, _chainId?: number): Promise<YieldPosition[]> {
+  getPositions(_userAddress?: `0x${string}`, _chainId?: number, _runtime?: YieldAdapterRuntime): Promise<YieldPosition[]> {
     return this.unavailable();
   }
 
-  getFixedQuote(_marketId: string, _inputAmount: number): Promise<FixedYieldQuote> {
+  getFixedQuote(_marketId: string, _inputAmount: number, _runtime?: YieldAdapterRuntime): Promise<FixedYieldQuote> {
     return this.unavailable();
   }
 
-  getLongQuote(_marketId: string, _inputAmount: number): Promise<LongYieldQuote> {
+  getLongQuote(_marketId: string, _inputAmount: number, _runtime?: YieldAdapterRuntime): Promise<LongYieldQuote> {
     return this.unavailable();
   }
 
@@ -46,7 +46,8 @@ export class ContractYieldMarketAdapter implements YieldMarketAdapter {
     _inputAmount: number,
     _userAddress: `0x${string}`,
     _quote: FixedYieldQuote,
-    _chainId?: number
+    _chainId?: number,
+    _runtime?: YieldAdapterRuntime
   ): Promise<FixedYieldPosition> {
     return this.unavailable();
   }
@@ -56,32 +57,33 @@ export class ContractYieldMarketAdapter implements YieldMarketAdapter {
     _inputAmount: number,
     _userAddress: `0x${string}`,
     _quote: LongYieldQuote,
-    _chainId?: number
+    _chainId?: number,
+    _runtime?: YieldAdapterRuntime
   ): Promise<LongYieldPosition> {
     return this.unavailable();
   }
 
-  getClaimableYield(_position: LongYieldPosition, _now?: number): Promise<number> {
+  getClaimableYield(_position: LongYieldPosition, _now?: number, _runtime?: YieldAdapterRuntime): Promise<number> {
     return this.unavailable();
   }
 
-  approveToken(_request: TokenApprovalRequest): Promise<PositionTransactionResult> {
+  approveToken(_request: TokenApprovalRequest, _runtime?: YieldAdapterRuntime): Promise<PositionTransactionResult> {
     return this.unavailable();
   }
 
-  getTransactionStatus(_txHash: TransactionHash, _chainId: number): Promise<TransactionReceiptResult> {
+  getTransactionStatus(_txHash: TransactionHash, _chainId: number, _runtime?: YieldAdapterRuntime): Promise<TransactionReceiptResult> {
     return this.unavailable();
   }
 
-  claimYield(_positionId: string, _userAddress: `0x${string}`, _chainId?: number): Promise<PositionTransactionResult> {
+  claimYield(_positionId: string, _userAddress: `0x${string}`, _chainId?: number, _runtime?: YieldAdapterRuntime): Promise<PositionTransactionResult> {
     return this.unavailable();
   }
 
-  redeemFixed(_positionId: string, _userAddress: `0x${string}`, _chainId?: number): Promise<PositionTransactionResult> {
+  redeemFixed(_positionId: string, _userAddress: `0x${string}`, _chainId?: number, _runtime?: YieldAdapterRuntime): Promise<PositionTransactionResult> {
     return this.unavailable();
   }
 
-  sellPosition(_positionId: string, _userAddress: `0x${string}`, _chainId?: number): Promise<PositionTransactionResult> {
+  sellPosition(_positionId: string, _userAddress: `0x${string}`, _chainId?: number, _runtime?: YieldAdapterRuntime): Promise<PositionTransactionResult> {
     return this.unavailable();
   }
 }

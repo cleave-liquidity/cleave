@@ -22,7 +22,7 @@ export const robinhoodChain = defineChain({
   },
   rpcUrls: {
     default: {
-      http: [mainnetRpcUrl || "https://rpc.robinhoodchain.org"],
+      http: mainnetRpcUrl ? [mainnetRpcUrl] : [],
     },
   },
   blockExplorers: {
@@ -43,7 +43,7 @@ export const robinhoodChainTestnet = defineChain({
   },
   rpcUrls: {
     default: {
-      http: [testnetRpcUrl || "https://testnet-rpc.robinhoodchain.org"],
+      http: testnetRpcUrl ? [testnetRpcUrl] : [],
     },
   },
   blockExplorers: {

@@ -40,9 +40,14 @@ export interface YieldMarket {
   dataMode: MarketDataMode;
 
   marketAddress?: `0x${string}`;
+  syAddress?: `0x${string}`;
   ptAddress?: `0x${string}`;
   ytAddress?: `0x${string}`;
   vaultAddress?: `0x${string}`;
+  underlyingTokenAddress?: `0x${string}`;
+  underlyingDecimals?: number;
+  ptDecimals?: number;
+  ytDecimals?: number;
 }
 
 export interface HistoricalYieldPoint {

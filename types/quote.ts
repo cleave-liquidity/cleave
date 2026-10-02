@@ -6,7 +6,7 @@ export interface FixedYieldQuote {
   impliedApy: number;
   quotedFixedApy: number;
   priceImpact: number;
-  networkFeeEstimate: number;
+  networkFeeEstimate?: number;
   estimatedMaturityValue: number;
   ptPrice: number;
   daysToMaturity: number;
@@ -14,6 +14,10 @@ export interface FixedYieldQuote {
   quoteExpiry: number;
   blockNumber?: bigint;
   source?: string;
+  inputBaseUnits?: bigint;
+  outputBaseUnits?: bigint;
+  approvalToken?: `0x${string}`;
+  approvalAmount?: bigint;
 }
 
 export interface LongYieldQuote {
@@ -25,7 +29,7 @@ export interface LongYieldQuote {
   impliedApy: number;
   estimatedBreakEvenApy: number;
   priceImpact: number;
-  networkFeeEstimate: number;
+  networkFeeEstimate?: number;
   estimatedYieldExposure: number; // YT notional that receives the yield stream
   ytPrice: number;
   daysToMaturity: number;
@@ -33,9 +37,13 @@ export interface LongYieldQuote {
   quoteExpiry: number;
   blockNumber?: bigint;
   source?: string;
-  estimatedReturns: {
+  estimatedReturns?: {
     currentRate: { apy: number; returnAmount: number; percentChange: number };
     lowerRate: { apy: number; returnAmount: number; percentChange: number };
     higherRate: { apy: number; returnAmount: number; percentChange: number };
   };
+  inputBaseUnits?: bigint;
+  outputBaseUnits?: bigint;
+  approvalToken?: `0x${string}`;
+  approvalAmount?: bigint;
 }
