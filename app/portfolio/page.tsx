@@ -27,7 +27,8 @@ export default function PortfolioPage() {
   const longValue = positions
     .filter((p) => p.strategy === "long")
     .reduce((acc, p) => acc + p.currentValue, 0);
-  const totalPnl = positions.reduce((acc, p) => acc + p.pnl, 0);
+  const pnlAvailable = positions.some((p) => p.entryDataAvailable !== false);
+  const totalPnl = positions.reduce((acc, p) => acc + (p.entryDataAvailable === false ? 0 : p.pnl), 0);
   const totalClaimable = positions
     .filter((p) => p.strategy === "long")
     .reduce((acc, p) => {
@@ -107,7 +108,9 @@ export default function PortfolioPage() {
                   totalPnl >= 0 ? "text-positive" : "text-negative"
                 }`}
               >
-                {totalPnl >= 0 ? `+${totalPnl.toFixed(2)}` : totalPnl.toFixed(2)} USDG
+                {pnlAvailable
+                  ? `${totalPnl >= 0 ? `+${totalPnl.toFixed(2)}` : totalPnl.toFixed(2)} USDG`
+                  : "—"}
               </span>
             </div>
 

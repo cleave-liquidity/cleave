@@ -5,6 +5,7 @@ import { LongYieldQuote } from "@/types/quote";
 import { LongYieldPosition } from "@/types/position";
 import { yieldAdapter } from "@/lib/adapters/mock-adapter";
 import { queryKeys } from "@/lib/query-keys";
+import { usePublicClient, useWalletClient } from "wagmi";
 
 export interface OpenLongPositionInput {
   marketId: string;
@@ -17,13 +18,15 @@ export interface OpenLongPositionInput {
 
 export function useOpenLongPosition() {
   const queryClient = useQueryClient();
+  const publicClient = usePublicClient();
+  const { data: walletClient } = useWalletClient();
   return useMutation<LongYieldPosition, Error, OpenLongPositionInput>({
     mutationFn: ({ marketId, inputAmount, userAddress, quote, chainId }) =>
-      yieldAdapter.openLongPosition(marketId, inputAmount, userAddress, quote, chainId),
+      yieldAdapter.openLongPosition(marketId, inputAmount, userAddress, quote, chainId, { publicClient, walletClient }),
     onSuccess: (_, variables) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.positions(variables.userAddress, variables.chainId) });
       void queryClient.invalidateQueries({
-        queryKey: queryKeys.balance(variables.userAddress, variables.quoteAsset, variables.chainId),
+        queryKey: queryKeys.balancePrefix(variables.userAddress, variables.chainId),
       });
     },
   });

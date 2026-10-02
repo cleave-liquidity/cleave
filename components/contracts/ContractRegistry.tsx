@@ -54,7 +54,7 @@ export function ContractRegistry() {
           <div className="mono text-[11px] uppercase tracking-[0.18em] text-muted-dark">Deployment registry / Transparency</div>
           <h1 className="mt-3 text-[36px] font-normal leading-none tracking-[-0.04em] text-foreground sm:text-[48px]">CLEAVE Contract Registry</h1>
           <p className="mt-4 max-w-[620px] text-[15px] leading-6 text-muted">
-            Verified deployment addresses used by CLEAVE. This registry only lists addresses explicitly configured as verified integrations.
+            Verified external protocol addresses used by CLEAVE. This registry only lists addresses explicitly configured as verified integrations; none are CLEAVE-owned deployments.
           </p>
         </div>
         <div className="shrink-0 border-l-2 border-amber bg-amber/5 px-4 py-3 text-[12px] leading-5 text-muted">

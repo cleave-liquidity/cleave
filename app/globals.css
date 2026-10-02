@@ -356,6 +356,7 @@ input:focus-visible {
 @media (min-width: 1024px) and (min-height: 700px) {
   .trade-runway {
     height: 290vh;
+    margin-bottom: -4.5rem; /* the pinned panel leaves air below it; pull the next section up to the usual gap */
   }
   .trade-pin {
     position: sticky;

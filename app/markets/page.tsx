@@ -79,10 +79,12 @@ export default function MarketsPage() {
               <div className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_8px_#fbbf24] animate-pulse shrink-0" />
                 <span className="text-[13px] font-medium text-foreground">
-                  Preview Data
+                  {yieldAdapter.mode === "live" ? "Live Data" : "Preview Data"}
                 </span>
               </div>
-              <span className="mono text-[10px] text-muted-dark">Mock Adapter</span>
+              <span className="mono text-[10px] text-muted-dark">
+                {yieldAdapter.mode === "live" ? "Pendle API" : "Mock Adapter"}
+              </span>
             </div>
           </div>
         </div>
