@@ -4,12 +4,12 @@ import { useQuery } from "@tanstack/react-query";
 import { YieldMarket } from "@/types/market";
 import { yieldAdapter } from "@/lib/adapters/mock-adapter";
 import { queryKeys } from "@/lib/query-keys";
-import { useAccount } from "wagmi";
+import { getConfiguredChainId } from "@/lib/web3/environment";
 
 export function useMarket(id: string) {
-  const { chainId } = useAccount();
+  const browseChainId = getConfiguredChainId();
   const query = useQuery<YieldMarket | null>({
-    queryKey: queryKeys.market(id, chainId),
+    queryKey: queryKeys.market(id, browseChainId),
     queryFn: () => yieldAdapter.getMarket(id),
     enabled: Boolean(id),
     staleTime: 60_000,

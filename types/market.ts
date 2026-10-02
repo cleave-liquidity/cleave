@@ -14,6 +14,14 @@ export interface MarketProtocolMetadata {
   iconUrl?: string;
 }
 
+export interface MarketTokenMetadata {
+  address: `0x${string}`;
+  symbol: string;
+  name: string;
+  decimals: number;
+  iconUrl?: string;
+}
+
 export interface YieldMarket {
   id: string;
   symbol: string;
@@ -25,6 +33,9 @@ export interface YieldMarket {
   sourceProtocol?: string;
   assetMetadata?: MarketAssetMetadata;
   protocolMetadata?: MarketProtocolMetadata;
+  syMetadata?: MarketTokenMetadata;
+  ptMetadata?: MarketTokenMetadata;
+  ytMetadata?: MarketTokenMetadata;
 
   underlyingApy: number; // e.g. 7.10 means 7.10%
   impliedApy: number;    // e.g. 6.42 means 6.42%
@@ -48,10 +59,11 @@ export interface YieldMarket {
   underlyingDecimals?: number;
   ptDecimals?: number;
   ytDecimals?: number;
+  historicalData?: HistoricalYieldPoint[];
 }
 
 export interface HistoricalYieldPoint {
-  date: string;
+  timestamp: string;
   underlyingApy: number;
   impliedApy: number;
 }

@@ -10,7 +10,7 @@ import {
   Tooltip,
   CartesianGrid,
 } from "recharts";
-import type { MarketDataMode } from "@/types/market";
+import type { HistoricalYieldPoint, MarketDataMode } from "@/types/market";
 
 const MOCK_HISTORICAL_DATA = [
   { date: "May", underlying: 6.8, implied: 6.2 },
@@ -25,13 +25,23 @@ export function YieldChart({
   underlyingApy,
   impliedApy,
   dataMode,
+  historicalData,
 }: {
   underlyingApy: number;
   impliedApy: number;
   dataMode: MarketDataMode;
+  historicalData?: HistoricalYieldPoint[];
 }) {
-  const chartData = dataMode === "live"
-    ? [{ date: "Now", underlying: underlyingApy, implied: impliedApy }]
+  const liveHistory = (historicalData || []).map((point) => ({
+    date: formatHistoryDate(point.timestamp),
+    underlying: point.underlyingApy,
+    implied: point.impliedApy,
+  }));
+  const hasLiveHistory = dataMode === "live" && liveHistory.length > 0;
+  const chartData = hasLiveHistory
+    ? liveHistory
+    : dataMode === "live"
+      ? [{ date: "Now", underlying: underlyingApy, implied: impliedApy }]
     : [
         ...MOCK_HISTORICAL_DATA.slice(0, 5),
         { date: "Now", underlying: underlyingApy, implied: impliedApy },
@@ -48,7 +58,9 @@ export function YieldChart({
             Yield History & Implied Rate
           </h4>
           <span className="text-[12px] text-muted-dark">
-            {dataMode === "live"
+            {hasLiveHistory
+              ? "Pendle historical rate data vs implied price"
+              : dataMode === "live"
               ? "Current live rate vs implied price"
               : "Trailing 6 months vs current implied price"}
           </span>
@@ -115,10 +127,22 @@ export function YieldChart({
         </ResponsiveContainer>
       </div>
       <figcaption className="sr-only">
-        {dataMode === "live"
+        {hasLiveHistory
+          ? `Historical live comparison of implied APY and underlying rate. Implied APY is ${impliedApy}% and the current underlying rate is ${underlyingApy}%.`
+          : dataMode === "live"
           ? `Current live comparison of implied APY and underlying rate. Implied APY is ${impliedApy}% and the current underlying rate is ${underlyingApy}%.`
           : `Historical comparison of implied APY and underlying rate. Implied APY is ${impliedApy}% and the current underlying rate is ${underlyingApy}%.`}
       </figcaption>
     </figure>
   );
+}
+
+function formatHistoryDate(timestamp: string): string {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return timestamp;
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+    timeZone: "UTC",
+  }).format(date);
 }

@@ -1,5 +1,11 @@
 import { describe, expect, it } from "bun:test";
-import { normalizePendleMarket, normalizePendleTransaction, pendleLiveYieldAdapter } from "./pendle-live-adapter";
+import {
+  normalizePendleHistoricalData,
+  normalizePendleMarket,
+  normalizePendleTransaction,
+  PendleLiveYieldMarketAdapter,
+  pendleLiveYieldAdapter,
+} from "./pendle-live-adapter";
 
 const underlying = {
   address: "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168" as `0x${string}`,
@@ -10,8 +16,8 @@ const underlying = {
 };
 
 const pendleAssets = new Map([
-  ["0x6982e39521a070a3c40782548bfbed6dc8f566ef", { decimals: 6, symbol: "PT-USDG-25MAR2027", name: "PT USDG" }],
-  ["0xf35ee6bd9a93fe42bc7e628bfc4ddbdc6de1f615", { decimals: 6, symbol: "YT-USDG-25MAR2027", name: "YT USDG" }],
+  ["0x6982e39521a070a3c40782548bfbed6dc8f566ef", { decimals: 6, symbol: "PT-USDG-25MAR2027", name: "PT USDG", iconUrl: "https://storage.googleapis.com/prod-pendle-bucket-a/pt.svg" }],
+  ["0xf35ee6bd9a93fe42bc7e628bfc4ddbdc6de1f615", { decimals: 6, symbol: "YT-USDG-25MAR2027", name: "YT USDG", iconUrl: "https://storage.googleapis.com/prod-pendle-bucket-a/yt.svg" }],
 ]);
 
 describe("Pendle live market normalization", () => {
@@ -34,7 +40,7 @@ describe("Pendle live market normalization", () => {
       underlying,
       new Map([
         ...pendleAssets,
-        ["0x8d3127aabf76f95fe2970a0480b8662b4ad4c286", { decimals: 18, symbol: "SY-USDG", name: "SY USDG" }],
+        ["0x8d3127aabf76f95fe2970a0480b8662b4ad4c286", { decimals: 18, symbol: "SY-USDG", name: "SY USDG", iconUrl: "https://storage.googleapis.com/prod-pendle-bucket-a/sy.svg" }],
       ]),
     );
 
@@ -51,6 +57,9 @@ describe("Pendle live market normalization", () => {
     expect(market?.description).toBe("USDG market");
     expect(market?.assetMetadata?.iconUrl).toBe("https://example.invalid/usdg.svg");
     expect(market?.protocolMetadata?.iconUrl).toBeUndefined();
+    expect(market?.ptMetadata).toMatchObject({ symbol: "PT-USDG-25MAR2027", iconUrl: "https://storage.googleapis.com/prod-pendle-bucket-a/pt.svg" });
+    expect(market?.ytMetadata).toMatchObject({ symbol: "YT-USDG-25MAR2027", iconUrl: "https://storage.googleapis.com/prod-pendle-bucket-a/yt.svg" });
+    expect(market?.syMetadata).toMatchObject({ symbol: "SY-USDG", iconUrl: "https://storage.googleapis.com/prod-pendle-bucket-a/sy.svg" });
   });
 
   it("rejects a market missing verified token addresses or live financial fields", () => {
@@ -73,6 +82,29 @@ describe("Pendle live market normalization", () => {
     expect(transaction.value).toBe(BigInt(0));
     expect(() => normalizePendleTransaction({ to: "0x0000000000000000000000000000000000000001", data: "0x1234" })).not.toThrow();
     expect(() => normalizePendleTransaction({ to: "0x0000000000000000000000000000000000000001", data: "0x1234", value: "-1" })).toThrow();
+  });
+
+  it("normalizes verified historical APY fractions without synthesizing points", () => {
+    const history = normalizePendleHistoricalData([
+      { timestamp: "2026-10-02T00:00:00.000Z", underlyingApy: 0.033, impliedApy: 0.0345 },
+      { timestamp: "invalid", underlyingApy: undefined, impliedApy: 0.0345 },
+    ]);
+    expect(history).toHaveLength(1);
+    expect(history[0]?.timestamp).toBe("2026-10-02T00:00:00.000Z");
+    expect(history[0]?.underlyingApy).toBeCloseTo(3.3, 8);
+    expect(history[0]?.impliedApy).toBeCloseTo(3.45, 8);
+  });
+
+  it("keeps live API failures as typed errors instead of returning mock markets", async () => {
+    const previousFetch = globalThis.fetch;
+    globalThis.fetch = async () => new Response(JSON.stringify({ message: "unavailable" }), { status: 503 });
+    try {
+      await expect(new PendleLiveYieldMarketAdapter().getMarkets()).rejects.toMatchObject({
+        code: "live-source-unavailable",
+      });
+    } finally {
+      globalThis.fetch = previousFetch;
+    }
   });
 
   it("reports testnet as unavailable instead of falling back to mainnet live data", async () => {

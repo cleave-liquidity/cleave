@@ -21,7 +21,7 @@ import { verifiedTokenMetadata } from "@/lib/metadata/tokens";
 import { displayAmountToBaseUnits } from "@/lib/utils/amounts";
 import { getContractByName } from "@/lib/contracts/deployments";
 import { normalizeYieldError, YieldDomainError } from "@/types/errors";
-import type { YieldMarket } from "@/types/market";
+import type { HistoricalYieldPoint, MarketTokenMetadata, YieldMarket } from "@/types/market";
 import type { FixedYieldQuote, LongYieldQuote } from "@/types/quote";
 import type { FixedYieldPosition, LongYieldPosition, YieldPosition } from "@/types/position";
 import type { TokenApprovalRequest, TransactionHash, TransactionReceiptResult } from "@/types/transaction";
@@ -66,6 +66,35 @@ type AssetResponse = {
     proIcon?: unknown;
   }>;
 };
+
+type HistoricalResponse = {
+  results?: Array<{
+    timestamp?: unknown;
+    underlyingApy?: unknown;
+    impliedApy?: unknown;
+  }>;
+};
+
+type PendleAssetMetadata = {
+  decimals: number;
+  symbol: string;
+  name: string;
+  iconUrl?: string;
+};
+
+export function normalizePendleHistoricalData(
+  results: HistoricalResponse["results"] = [],
+): HistoricalYieldPoint[] {
+  return (results || [])
+    .map((point): HistoricalYieldPoint | undefined => {
+      const timestamp = asString(point?.timestamp);
+      const underlyingApy = asFiniteNumber(point?.underlyingApy);
+      const impliedApy = asFiniteNumber(point?.impliedApy);
+      if (!timestamp || underlyingApy === undefined || impliedApy === undefined) return undefined;
+      return { timestamp, underlyingApy: underlyingApy * 100, impliedApy: impliedApy * 100 };
+    })
+    .filter((point): point is HistoricalYieldPoint => Boolean(point));
+}
 
 type ConvertResponse = {
   action?: unknown;
@@ -207,7 +236,7 @@ export function normalizePendleMarket(
   raw: RawMarket,
   chainId: 4663,
   underlying: TokenMetadata,
-  pendleAssets: Map<string, { decimals: number; symbol: string; name: string }>,
+  pendleAssets: Map<string, PendleAssetMetadata>,
 ): YieldMarket | null {
   const address = toAddress(raw.address);
   const ptAddress = assetAddress(raw.pt, chainId);
@@ -237,6 +266,7 @@ export function normalizePendleMarket(
 
   const ptMeta = pendleAssets.get(lower(ptAddress));
   const ytMeta = pendleAssets.get(lower(ytAddress));
+  const syMeta = pendleAssets.get(lower(syAddress));
   if (!ptMeta || !ytMeta) return null;
 
   const sourceProtocol = "Pendle";
@@ -244,6 +274,16 @@ export function normalizePendleMarket(
   const yieldSource = asString(utilizedProtocol?.name) || asString(raw.protocol) || sourceProtocol;
   const description = asString(raw.marketInfo?.assetDescription);
   const name = asString(raw.name) || underlying.name;
+  const tokenMetadata = (address: Address, metadata?: PendleAssetMetadata): MarketTokenMetadata | undefined =>
+    metadata
+      ? {
+          address,
+          symbol: metadata.symbol,
+          name: metadata.name,
+          decimals: metadata.decimals,
+          iconUrl: metadata.iconUrl,
+        }
+      : undefined;
 
   return {
     id: lower(address),
@@ -260,6 +300,9 @@ export function normalizePendleMarket(
       iconUrl: asString(raw.icon),
     },
     protocolMetadata: { name: "Pendle" },
+    syMetadata: tokenMetadata(syAddress, syMeta),
+    ptMetadata: tokenMetadata(ptAddress, ptMeta),
+    ytMetadata: tokenMetadata(ytAddress, ytMeta),
     underlyingApy: underlyingApy * 100,
     impliedApy: impliedApy * 100,
     maturity: formatMaturity(expiry),
@@ -284,6 +327,7 @@ export function normalizePendleMarket(
 export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
   readonly mode = "live" as const;
   private readonly marketsCache = new Map<number, { expiresAt: number; markets: YieldMarket[] }>();
+  private readonly historicalCache = new Map<string, { expiresAt: number; history?: HistoricalYieldPoint[] }>();
 
   private getChainId(chainId?: number): 4663 {
     const selected = chainId ?? getConfiguredChainId();
@@ -369,7 +413,7 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
   private async fetchPendleAssetMetadata(
     markets: RawMarket[],
     chainId: 4663,
-  ): Promise<Map<string, { decimals: number; symbol: string; name: string }>> {
+  ): Promise<Map<string, PendleAssetMetadata>> {
     const ids = markets.flatMap((market) => [market.pt, market.yt, market.sy])
       .map((value) => {
         const address = assetAddress(value, chainId);
@@ -377,17 +421,25 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
       })
       .filter((value): value is string => Boolean(value));
     const uniqueIds = [...new Set(ids)];
-    const assets = new Map<string, { decimals: number; symbol: string; name: string }>();
+    const assets = new Map<string, PendleAssetMetadata>();
     for (let index = 0; index < uniqueIds.length; index += 20) {
       const chunk = uniqueIds.slice(index, index + 20).join(",");
       const response = await this.request<AssetResponse>(`/v1/assets/all?ids=${encodeURIComponent(chunk)}`);
       for (const asset of response.assets || []) {
         const address = toAddress(asset.address);
+        const assetChainId = asFiniteNumber(asset.chainId);
         const decimals = asFiniteNumber(asset.decimals);
         const symbol = asString(asset.symbol);
         const name = asString(asset.name);
-        if (address && decimals !== undefined && symbol && name && Number.isInteger(decimals)) {
-          assets.set(lower(address), { decimals, symbol, name });
+        if (
+          address &&
+          (assetChainId === undefined || assetChainId === chainId) &&
+          decimals !== undefined &&
+          symbol &&
+          name &&
+          Number.isInteger(decimals)
+        ) {
+          assets.set(lower(address), { decimals, symbol, name, iconUrl: asString(asset.proIcon) });
         }
       }
     }
@@ -450,7 +502,11 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
         throw error;
       }
     }));
-    const markets = normalized.filter((market): market is YieldMarket => Boolean(market));
+    const marketsById = new Map<string, YieldMarket>();
+    for (const market of normalized) {
+      if (market) marketsById.set(market.id, market);
+    }
+    const markets = [...marketsById.values()];
     if (markets.length === 0) {
       throw new YieldDomainError(
         "live-source-unavailable",
@@ -482,7 +538,27 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
     const raw = rawMarkets.find((candidate) => lower(String(candidate.address || "")) === lower(alias));
     if (!raw) return null;
     const markets = await this.normalizeMarkets([raw], chainId);
-    return markets[0] || null;
+    const market = markets[0];
+    if (!market) return null;
+    return { ...market, historicalData: await this.getHistoricalData(market.id) };
+  }
+
+  private async getHistoricalData(marketAddress: string): Promise<HistoricalYieldPoint[] | undefined> {
+    const cached = this.historicalCache.get(marketAddress);
+    if (cached && cached.expiresAt > Date.now()) return cached.history;
+
+    try {
+      const response = await this.request<HistoricalResponse>(
+        `/v3/${ROBINHOOD_CHAIN_ID}/markets/${marketAddress}/historical-data`,
+      );
+      const history = normalizePendleHistoricalData(response.results);
+      const value = history.length > 0 ? history : undefined;
+      this.historicalCache.set(marketAddress, { history: value, expiresAt: Date.now() + 60_000 });
+      return value;
+    } catch {
+      this.historicalCache.set(marketAddress, { history: undefined, expiresAt: Date.now() + 60_000 });
+      return undefined;
+    }
   }
 
   private async getMarketOrThrow(id: string, runtime?: YieldAdapterRuntime): Promise<YieldMarket> {

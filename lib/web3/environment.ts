@@ -6,9 +6,9 @@ import {
 } from "@/lib/web3/chains";
 
 export function getConfiguredNetwork(): RobinhoodNetwork {
-  return process.env.NEXT_PUBLIC_ROBINHOOD_CHAIN_ENV === "mainnet"
-    ? "mainnet"
-    : "testnet";
+  return process.env.NEXT_PUBLIC_ROBINHOOD_CHAIN_ENV === "testnet"
+    ? "testnet"
+    : "mainnet";
 }
 
 export function getConfiguredChainId():

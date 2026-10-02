@@ -21,6 +21,14 @@ function initials(value: string): string {
     .toUpperCase() || "?";
 }
 
+function isVerifiedIconUrl(iconUrl?: string): boolean {
+  return Boolean(
+    iconUrl &&
+      ((iconUrl.startsWith("/") && !iconUrl.startsWith("//")) ||
+        iconUrl.startsWith("https://storage.googleapis.com/prod-pendle-bucket-a/")),
+  );
+}
+
 export function AssetIcon({
   symbol,
   name,
@@ -37,7 +45,7 @@ export function AssetIcon({
   const [hasError, setHasError] = useState(false);
   const accessibleName = name || symbol;
   const fallback = protocol ? initials(accessibleName) : symbol.slice(0, 4).toUpperCase();
-  const hasVerifiedLocalIcon = Boolean(iconUrl && iconUrl.startsWith("/") && !iconUrl.startsWith("//"));
+  const hasVerifiedIcon = isVerifiedIconUrl(iconUrl);
 
   return (
     <span
@@ -49,7 +57,7 @@ export function AssetIcon({
           : "border-ice/30 bg-ice/10 text-ice"
       } mono flex items-center justify-center overflow-hidden font-medium tracking-tight`}
     >
-      {hasVerifiedLocalIcon && !hasError ? (
+      {hasVerifiedIcon && !hasError ? (
         <img
           src={iconUrl}
           alt=""

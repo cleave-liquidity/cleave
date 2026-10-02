@@ -131,6 +131,7 @@ export function MarketDetailClient({
               underlyingApy={market.underlyingApy}
               impliedApy={market.impliedApy}
               dataMode={market.dataMode}
+              historicalData={market.historicalData}
             />
 
             <details className="group/advanced border border-white/14 bg-surface/70 p-5 sm:p-6">

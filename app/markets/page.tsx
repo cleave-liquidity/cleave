@@ -10,14 +10,11 @@ import { getYieldErrorMessage } from "@/types/errors";
 import { ApplicationBackdrop } from "@/components/layout/ApplicationBackdrop";
 import { DataModeBadge } from "@/components/layout/DataModeBadge";
 import { yieldAdapter } from "@/lib/adapters/mock-adapter";
-import { useNetworkGuard } from "@/hooks/useNetworkGuard";
-import { getNetworkLabel, getNetworkShortLabel } from "@/lib/web3/environment";
+import { getConfiguredChainId, getNetworkShortLabel } from "@/lib/web3/environment";
 
 export default function MarketsPage() {
   const { markets, isLoading, error } = useMarkets();
-  const { chainId, isConnected } = useNetworkGuard();
-  const networkLabel = getNetworkLabel(chainId, isConnected);
-  const networkShortLabel = getNetworkShortLabel(chainId, isConnected);
+  const networkShortLabel = getNetworkShortLabel(getConfiguredChainId(), false);
 
   const totalLiquidity = markets.reduce(
     (sum, m) => sum + m.liquidityUsd,
