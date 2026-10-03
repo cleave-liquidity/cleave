@@ -61,7 +61,7 @@ const TONE = {
     rail: "border-ice",
     card: "border-ice/55 bg-ice/[0.06] shadow-[0_0_30px_rgba(59,134,255,0.07)]",
     soft: "border-ice/25 bg-ice/[0.07]",
-    cta: "bg-ice shadow-[0_4px_24px_rgba(59,134,255,0.25)]",
+    cta: "bg-ice shadow-[0_4px_24px_rgba(59,134,255,0.25)] hover:shadow-[0_8px_30px_rgba(59,134,255,0.5)]",
     seg: "bg-ice text-[#0A0C10]",
   },
   long: {
@@ -70,7 +70,7 @@ const TONE = {
     rail: "border-amber",
     card: "border-amber/55 bg-amber/[0.06] shadow-[0_0_30px_rgba(239,95,34,0.07)]",
     soft: "border-amber/25 bg-amber/[0.07]",
-    cta: "bg-amber shadow-[0_4px_24px_rgba(239,95,34,0.25)]",
+    cta: "bg-amber shadow-[0_4px_24px_rgba(239,95,34,0.25)] hover:shadow-[0_8px_30px_rgba(239,95,34,0.5)]",
     seg: "bg-amber text-[#0A0C10]",
   },
 } as const;
@@ -431,7 +431,7 @@ export function TradePreview() {
                 ) : canOpen ? (
                   <Link
                     href={checkout}
-                    className={`flex min-h-[48px] items-center justify-center rounded-xl text-[15px] font-medium text-[#0A0C10] transition-all hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice ${tone.cta}`}
+                    className={`flex min-h-[48px] items-center justify-center rounded-xl text-[15px] font-medium text-[#0A0C10] transition-all hover:text-[#0A0C10] hover:brightness-110 hover:-translate-y-px active:translate-y-0 active:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice ${tone.cta}`}
                   >
                     Open {isFixed ? "Fixed" : "Long"} Position →
                   </Link>

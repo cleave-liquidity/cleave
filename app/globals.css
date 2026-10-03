@@ -738,7 +738,8 @@ input:focus-visible {
    highlight so it still sits on the glass instead of reading as a flat sticker. */
 .lg-cta,
 .lg-cta:hover {
-  color: #0a0b0c;
+  color: #ffffff;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.28);
 }
 .lg-cta {
   position: relative;

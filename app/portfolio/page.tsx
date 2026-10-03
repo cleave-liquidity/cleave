@@ -224,7 +224,7 @@ export default function PortfolioPage() {
                 </div>
                 <Link
                   href="/markets"
-                  className="mt-2 inline-flex items-center gap-2 px-6 py-2.5 bg-foreground text-background font-medium rounded-xl text-[14px] hover:bg-white transition-all shadow-[0_2px_12px_rgba(255,255,255,0.15)]"
+                  className="mt-2 inline-flex items-center gap-2 px-6 py-2.5 bg-foreground text-background font-medium rounded-xl text-[14px] hover:bg-white hover:text-background transition-all shadow-[0_2px_12px_rgba(255,255,255,0.15)]"
                 >
                   <span>Browse Markets</span>
                   <ArrowRight className="w-4 h-4" />

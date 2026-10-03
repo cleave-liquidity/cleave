@@ -425,7 +425,7 @@ export function Hero() {
                 <div style={rise(5)} className="hero-rise flex items-center gap-2.5 sm:gap-3 flex-wrap mt-5 sm:mt-6 pointer-events-auto">
                   <Link
                     href={stage.primaryCtaHref}
-                    className={`inline-flex items-center gap-2 min-h-[42px] sm:min-h-[46px] px-5 sm:px-6 bg-foreground text-background font-medium text-[13px] sm:text-[14px] hover:bg-white transition-colors shadow-[0_0_30px_rgba(255,255,255,0.15)] ${FOCUS_RING}`}
+                    className={`inline-flex items-center gap-2 min-h-[42px] sm:min-h-[46px] px-5 sm:px-6 bg-foreground text-background font-medium text-[13px] sm:text-[14px] hover:bg-white hover:text-background transition-colors shadow-[0_0_30px_rgba(255,255,255,0.15)] ${FOCUS_RING}`}
                   >
                     {stage.primaryCtaText} <span aria-hidden="true">→</span>
                   </Link>

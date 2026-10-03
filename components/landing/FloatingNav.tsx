@@ -191,7 +191,7 @@ export function FloatingNav() {
 
           <Link
             href="/markets"
-            className={`lg-cta inline-flex min-h-[38px] cursor-pointer items-center justify-center rounded-full px-4 text-[13px] font-medium sm:px-5 ${FOCUS_RING}`}
+            className={`lg-cta inline-flex min-h-[38px] cursor-pointer items-center justify-center rounded-full px-4 text-[13px] font-semibold sm:px-5 ${FOCUS_RING}`}
           >
             <span className="relative z-10">Launch app</span>
           </Link>

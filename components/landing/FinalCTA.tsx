@@ -92,7 +92,7 @@ export function FinalCTA() {
       <div className="relative z-10 flex items-center gap-3 flex-wrap justify-center mt-6">
         <Link
           href="/markets"
-          className="inline-flex items-center gap-2 min-h-[48px] sm:min-h-[52px] px-7 bg-foreground text-background font-medium text-[14px] sm:text-[15px] hover:bg-white transition-all shadow-[0_0_28px_rgba(255,255,255,0.18)]"
+          className="inline-flex items-center gap-2 min-h-[48px] sm:min-h-[52px] px-7 bg-foreground text-background font-medium text-[14px] sm:text-[15px] hover:bg-white hover:text-background transition-all shadow-[0_0_28px_rgba(255,255,255,0.18)]"
         >
           Explore markets &rarr;
         </Link>

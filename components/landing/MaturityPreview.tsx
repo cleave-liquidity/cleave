@@ -163,7 +163,7 @@ export function MaturityPreview() {
               className={`flex-1 min-h-[46px] px-4 rounded-xl text-[13px] font-medium transition-all shadow-[0_2px_14px_rgba(239,95,34,0.2)] ${
                 claimed
                   ? "bg-white/10 text-muted border border-white/10 cursor-not-allowed"
-                  : "bg-amber text-[#0A0C10] hover:bg-white cursor-pointer"
+                  : "bg-amber text-[#0A0C10] cursor-pointer hover:brightness-110 hover:-translate-y-px hover:shadow-[0_8px_30px_rgba(239,95,34,0.5)] active:translate-y-0 active:brightness-95"
               }`}
             >
               {claimed ? "Yield Claimed (36.63 USDG)" : "Claim 36.63 USDG Yield"}

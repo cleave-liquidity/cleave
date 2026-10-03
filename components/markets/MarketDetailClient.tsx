@@ -159,7 +159,7 @@ export function MarketDetailClient({
               {isTradeable ? (
                 <Link
                   href={`/trade/${market.id}`}
-                  className="mt-5 flex min-h-[48px] items-center justify-center bg-amber px-4 text-[14px] font-medium text-[#0A0B0C] transition-all hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice"
+                  className="mt-5 flex min-h-[48px] items-center justify-center bg-amber px-4 text-[14px] font-medium text-[#0A0B0C] transition-all hover:text-[#0A0B0C] hover:brightness-110 hover:shadow-[0_8px_30px_rgba(239,95,34,0.45)] active:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice"
                 >
                   Trade Yield →
                 </Link>

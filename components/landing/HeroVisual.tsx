@@ -291,6 +291,7 @@ function createSim() {
     // eased emphasis
     fixedOp: 0.72, longOp: 0.72,
     iceBack: 0.55, amberBack: 0.7,
+    limb: { white: 1, ice: 0, amber: 0, mint: 0 } as Record<LimbKey, number>,
     engineVis: 0, vaultVis: 0,
     pinVis: [1, 1, 1, 1], pinAct: [0, 0, 0, 0], pinHover: [0, 0, 0, 0],
     stage: 0,
@@ -314,6 +315,12 @@ function emphasisGoals(s: Sim) {
     longOp: st === 2 ? 1 : st === 1 ? 0.35 : 0.72 + longBias * 0.28,
     iceBack: st === 1 ? 1 : st === 2 ? 0.15 : 0.55,
     amberBack: st === 2 ? 1 : st === 1 ? 0 : 0.7,
+    limb: {
+      white: st === 1 || st === 2 || st === 4 ? 0 : 1,
+      ice: st === 1 ? 1 : 0,
+      amber: st === 2 ? 1 : 0,
+      mint: st === 4 ? 1 : 0,
+    } as Record<LimbKey, number>,
     engineVis: st === 3 ? 1 : 0,
     vaultVis: st === 4 ? 1 : 0,
     pinAct: [0, 1, 2, 3].map((i): number => (st === i + 1 ? 1 : 0)),
@@ -322,13 +329,17 @@ function emphasisGoals(s: Sim) {
 }
 
 // ─── Gradients (built once, unit-space, reused through translate/scale) ──────
+/** The planet's own light (atmosphere + limb) is tinted by the stage: pale white, fixed blue, long orange, vault green. */
+type LimbKey = "white" | "ice" | "amber" | "mint";
+const LIMB_KEYS: readonly LimbKey[] = ["white", "ice", "amber", "mint"];
+
 interface Gfx {
   glow: Record<"white" | "ice" | "amber" | "mint", CanvasGradient>;
   body: CanvasGradient;
-  atmo: CanvasGradient;
+  atmo: Record<LimbKey, CanvasGradient>;
   haloIce: CanvasGradient;
   haloAmber: CanvasGradient;
-  rim: CanvasGradient;
+  rim: Record<LimbKey, CanvasGradient>;
   pinBody: CanvasGradient[];
   starSprite: HTMLCanvasElement;
 }
@@ -343,11 +354,30 @@ function createGfx(ctx: CanvasRenderingContext2D): Gfx {
     radial(0, 0, 0, 0, 0, 1, [[0, rgba(rgb, 0.85)], [0.35, rgba(rgb, 0.35)], [1, rgba(rgb, 0)]]);
   const pin = (stops: ReadonlyArray<readonly [number, string]>) => radial(-10.4, -11.4, 0, -10.4, -11.4, 37.4, stops);
 
-  const rim = ctx.createLinearGradient(-0.78, -0.78, 0.78, 0.78);
-  rim.addColorStop(0, "rgba(255,255,255,0.95)");
-  rim.addColorStop(0.32, "rgba(235,242,255,0.5)");
-  rim.addColorStop(0.62, "rgba(59,134,255,0.12)");
-  rim.addColorStop(1, "rgba(59,134,255,0.05)");
+  // Per-stage tints for the planet's light. "white" is the neutral overview look (pale, slightly cool white).
+  const LIMB_TINT: Record<LimbKey, { near: string; far: string; rimNear: number; rimFar: number }> = {
+    white: { near: "169,200,238", far: "120,170,235", rimNear: 0.12, rimFar: 0.05 },
+    ice: { near: ICE, far: ICE, rimNear: 0.2, rimFar: 0.09 },
+    amber: { near: AMBER, far: AMBER, rimNear: 0.2, rimFar: 0.09 },
+    mint: { near: MINT, far: MINT, rimNear: 0.2, rimFar: 0.09 },
+  };
+  const atmo = {} as Record<LimbKey, CanvasGradient>;
+  const rim = {} as Record<LimbKey, CanvasGradient>;
+  for (const key of LIMB_KEYS) {
+    const tint = LIMB_TINT[key];
+    atmo[key] = radial(0, 0, 0.94, 0, 0, 1.26, [
+      [0, rgba(tint.near, 0)],
+      [0.2, rgba(tint.near, 0.32)],
+      [0.55, rgba(tint.far, 0.08)],
+      [1, rgba(tint.far, 0)],
+    ]);
+    const limb = ctx.createLinearGradient(-0.78, -0.78, 0.78, 0.78);
+    limb.addColorStop(0, "rgba(255,255,255,0.95)");
+    limb.addColorStop(0.32, "rgba(235,242,255,0.5)");
+    limb.addColorStop(0.62, rgba(tint.near, tint.rimNear));
+    limb.addColorStop(1, rgba(tint.near, tint.rimFar));
+    rim[key] = limb;
+  }
 
   // Soft round sprite for stars — drawImage is far cheaper than a gradient per star.
   const sprite = document.createElement("canvas");
@@ -371,12 +401,7 @@ function createGfx(ctx: CanvasRenderingContext2D): Gfx {
       [0.68, "rgba(6,12,22,0.85)"],
       [1, "rgba(2,4,8,0.95)"],
     ]),
-    atmo: radial(0, 0, 0.94, 0, 0, 1.26, [
-      [0, "rgba(59,134,255,0)"],
-      [0.2, "rgba(59,134,255,0.32)"],
-      [0.55, "rgba(120,170,235,0.08)"],
-      [1, "rgba(120,170,235,0)"],
-    ]),
+    atmo,
     haloIce: radial(0, 0, 0.5, 0, 0, 2.4, [
       [0, "rgba(106,163,232,0.2)"],
       [0.42, "rgba(60,110,190,0.075)"],
@@ -1208,10 +1233,16 @@ export function HeroVisual({ activeStage = 0, onSelectStage, isSplitLayout = tru
       // 2 · atmosphere + glassy body
       ctx.save();
       ctx.scale(R, R);
-      ctx.fillStyle = gfx.atmo;
-      ctx.beginPath();
-      ctx.arc(0, 0, 1.26, 0, TAU);
-      ctx.fill();
+      for (const key of LIMB_KEYS) {
+        const weight = s.limb[key];
+        if (weight < 0.01) continue;
+        ctx.globalAlpha = clamp(weight, 0, 1);
+        ctx.fillStyle = gfx.atmo[key];
+        ctx.beginPath();
+        ctx.arc(0, 0, 1.26, 0, TAU);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
       ctx.fillStyle = gfx.body;
       ctx.beginPath();
       ctx.arc(0, 0, 1, 0, TAU);
@@ -1281,11 +1312,17 @@ export function HeroVisual({ activeStage = 0, onSelectStage, isSplitLayout = tru
       // 5 · limb light
       ctx.save();
       ctx.scale(R, R);
-      ctx.strokeStyle = gfx.rim;
       ctx.lineWidth = (1.6 * inv) / R;
-      ctx.beginPath();
-      ctx.arc(0, 0, 1, 0, TAU);
-      ctx.stroke();
+      for (const key of LIMB_KEYS) {
+        const weight = s.limb[key];
+        if (weight < 0.01) continue;
+        ctx.globalAlpha = clamp(weight, 0, 1);
+        ctx.strokeStyle = gfx.rim[key];
+        ctx.beginPath();
+        ctx.arc(0, 0, 1, 0, TAU);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
       ctx.restore();
 
       // 6 · rings + moons in front of the planet
@@ -1349,6 +1386,7 @@ export function HeroVisual({ activeStage = 0, onSelectStage, isSplitLayout = tru
       s.longOp += (g.longOp - s.longOp) * e;
       s.iceBack += (g.iceBack - s.iceBack) * e;
       s.amberBack += (g.amberBack - s.amberBack) * e;
+      for (const key of LIMB_KEYS) s.limb[key] += (g.limb[key] - s.limb[key]) * e;
       s.engineVis += (g.engineVis - s.engineVis) * e;
       s.vaultVis += (g.vaultVis - s.vaultVis) * e;
       for (let i = 0; i < 4; i++) {
@@ -1364,6 +1402,7 @@ export function HeroVisual({ activeStage = 0, onSelectStage, isSplitLayout = tru
       const emphasis =
         Math.abs(g.fixedOp - s.fixedOp) + Math.abs(g.longOp - s.longOp) +
         Math.abs(g.iceBack - s.iceBack) + Math.abs(g.amberBack - s.amberBack) +
+        LIMB_KEYS.reduce((a, key) => a + Math.abs(g.limb[key] - s.limb[key]), 0) +
         Math.abs(g.engineVis - s.engineVis) + Math.abs(g.vaultVis - s.vaultVis) +
         g.pinAct.reduce((a, v, i) => a + Math.abs(v - s.pinAct[i]), 0) +
         g.pinVis.reduce((a, v, i) => a + Math.abs(v - s.pinVis[i]), 0) +

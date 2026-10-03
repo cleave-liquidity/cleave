@@ -332,7 +332,7 @@ export function StrategySection() {
             </div>
             <Link
               href={market ? marketHref(market.id, "fixed") : "/markets"}
-              className="mt-2 min-h-[44px] bg-ice text-[#0A0C10] font-medium text-[13px] flex items-center justify-center hover:bg-white transition-all shadow-[0_0_20px_rgba(59,134,255,0.2)]"
+              className="mt-2 min-h-[44px] bg-ice text-[#0A0C10] font-medium text-[13px] flex items-center justify-center transition-all shadow-[0_0_20px_rgba(59,134,255,0.2)] hover:text-[#0A0C10] hover:brightness-110 hover:-translate-y-px hover:shadow-[0_8px_30px_rgba(59,134,255,0.5)] active:translate-y-0 active:brightness-95"
             >
               Lock Fixed Rate (PT) &rarr;
             </Link>
@@ -459,7 +459,7 @@ export function StrategySection() {
             </div>
             <Link
               href={market ? marketHref(market.id, "long") : "/markets"}
-              className="mt-2 min-h-[44px] bg-amber text-[#0A0C10] font-medium text-[13px] flex items-center justify-center hover:bg-white transition-all shadow-[0_0_20px_rgba(239,95,34,0.2)]"
+              className="mt-2 min-h-[44px] bg-amber text-[#0A0C10] font-medium text-[13px] flex items-center justify-center transition-all shadow-[0_0_20px_rgba(239,95,34,0.2)] hover:text-[#0A0C10] hover:brightness-110 hover:-translate-y-px hover:shadow-[0_8px_30px_rgba(239,95,34,0.5)] active:translate-y-0 active:brightness-95"
             >
               Trade Long Yield (YT) &rarr;
             </Link>
