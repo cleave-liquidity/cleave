@@ -32,7 +32,7 @@ export function MarketTable({
 }: {
   markets: YieldMarket[];
   hrefForMarket?: (market: YieldMarket) => string;
-  /** When given, rows carry Fixed / Long trade actions instead of linking to the market page. */
+  /** When given, rows carry Fixed Yield / Trading Yield trade actions instead of linking to the market page. */
   tradeHrefs?: (market: YieldMarket) => TradeHrefs;
   defaultSort?: { field: SortField; asc: boolean };
 }) {
@@ -209,7 +209,7 @@ export function MarketTable({
           <div className="divide-y divide-white/[0.05]">
             {filteredAndSortedMarkets.length === 0 ? (
               <div className="py-20 text-center text-muted font-mono text-[13px]">
-                No yield markets found matching your filters.
+                No markets match your search. Try another asset or clear the filter.
               </div>
             ) : (
               filteredAndSortedMarkets.map((market) => {
@@ -226,7 +226,7 @@ export function MarketTable({
                       <MarketRowCells market={market} showMaturingTag />
                       <span className="flex items-center justify-end gap-2">
                         <TradeAction href={hrefs.fixed} tone="ice" label="Fixed" market={market} />
-                        <TradeAction href={hrefs.long} tone="amber" label="Long" market={market} />
+                        <TradeAction href={hrefs.long} tone="amber" label="Trading" market={market} />
                       </span>
                     </div>
                   );
@@ -363,7 +363,7 @@ function TradeAction({
   return (
     <Link
       href={href}
-      aria-label={`Trade ${label} Yield on ${symbol}`}
+      aria-label={label === "Fixed" ? `Open Fixed Yield on ${symbol}` : `Open Trading Yield on ${symbol}`}
       className={`inline-flex min-h-[36px] items-center justify-center gap-1 rounded-lg border px-3 text-[12px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice ${
         tone === "ice"
           ? "border-ice/30 bg-ice/10 text-ice hover:border-ice/60 hover:bg-ice/20"

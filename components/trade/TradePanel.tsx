@@ -392,7 +392,7 @@ export function TradePanel({
         const txHash = openedPosition.txHash ?? openedPosition.mockTxHash;
         setTxState({ step: "success", txHash });
         toast.success(
-          `Successfully opened Long Yield position for ${inputAmount} ${market.quoteAsset}!`
+          `Successfully opened Trading Yield position for ${inputAmount} ${market.quoteAsset}!`
         );
       }
 
@@ -422,7 +422,7 @@ export function TradePanel({
       {/* Panel Header */}
       <div className="flex justify-between items-center pb-2 border-b border-white/10">
         <span className="mono text-[13px] tracking-wider text-muted-dark uppercase">
-          Trade Position
+          {isFixed ? "Open Fixed Yield" : "Open Trading Yield"}
         </span>
       </div>
 
@@ -433,7 +433,7 @@ export function TradePanel({
           <div className="flex items-center gap-2 mono text-[12px]">
             <span>
               BALANCE: {!isConnected
-                ? "Connect wallet"
+                ? "—"
                 : balanceLoading
                   ? "Loading…"
                   : balanceError
@@ -538,7 +538,7 @@ export function TradePanel({
 
           <div className="flex flex-col text-[14px]">
             <div className="flex justify-between py-2.5 border-b border-white/10">
-              <span className="text-muted-dark">PT Received</span>
+              <span className="text-muted-dark">You receive (PT)</span>
               <span className="mono text-right text-muted">{fixedQuote ? `${formatTokenAmount(fixedQuote.ptReceived)} ${market.symbol}` : "Available after quote"}</span>
             </div>
             <div className="flex justify-between py-2.5 border-b border-white/10">
@@ -587,7 +587,7 @@ export function TradePanel({
               {longQuote && <span className="text-[16px] text-muted">{market.symbol}</span>}
           </div>
             <div className="mono text-[13px] text-amber">
-              {longQuote ? "Current quote estimate" : "Break-even available after quote"}
+              {longQuote ? "Current quote estimate" : "Break-even shown after quote"}
             </div>
           </div>
 
@@ -646,14 +646,14 @@ export function TradePanel({
             <p className="m-0 text-[12px] leading-[1.5] text-muted-light font-normal">
               <strong className="text-amber font-medium">Risk Notice: </strong>
               If the underlying yield is lower than the implied yield you paid
-              for, a large portion of the position value can be lost. YT value
-              trends toward zero at maturity.
+              for, a large portion of the position value can be lost. Trading
+              Yield expires at maturity.
             </p>
           </div>
 
           <div className="flex flex-col text-[14px]">
             <div className="flex justify-between py-2 border-b border-white/10">
-              <span className="text-muted-dark">YT Received</span>
+              <span className="text-muted-dark">You receive (YT)</span>
               <span className="mono text-right text-muted">{longQuote ? `${formatTokenAmount(longQuote.ytReceived)} ${market.symbol}` : "Available after quote"}</span>
             </div>
             <div className="flex justify-between py-2 border-b border-white/10">
@@ -823,7 +823,7 @@ export function TradePanel({
               onClick={handleConnectWallet}
               className="min-h-[52px] border-0 rounded-lg bg-amber text-[#0A0B0C] text-[15px] font-medium flex items-center justify-center hover:brightness-105 transition-all cursor-pointer"
             >
-              Connect Wallet
+              Connect wallet to execute
             </button>
           );
         }
@@ -880,18 +880,18 @@ export function TradePanel({
           >
             {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
             {txState.step === "approval-required" && "Approval Required"}
-            {txState.step === "approving" && "Approving Token..."}
+            {txState.step === "approving" && `Approving ${market.quoteAsset}…`}
             {txState.step === "approval-success" && "Approval Confirmed"}
             {(txState.step === "confirming" || txState.step === "pending") &&
-              `Opening ${isFixed ? "Fixed" : "Long"} Position...`}
+              `Opening ${isFixed ? "Fixed Yield" : "Trading Yield"}…`}
             {txState.step === "success" && (
               <>
                 <CheckCircle2 className="w-4 h-4" /> Position Opened!
               </>
             )}
-            {isApprovalRequired && (txState.step === "idle" || txState.step === "ready") && "Approve Token"}
+            {isApprovalRequired && (txState.step === "idle" || txState.step === "ready") && `Approve ${market.quoteAsset}`}
             {(txState.step === "idle" || txState.step === "ready") &&
-              !isApprovalRequired && (isFixed ? "Open Fixed Position" : "Open Long Position")}
+              !isApprovalRequired && (isFixed ? "Open Fixed Yield" : "Open Trading Yield")}
             {txState.step === "error" && "Try Again"}
           </button>
         );

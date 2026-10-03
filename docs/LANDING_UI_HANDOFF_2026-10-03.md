@@ -3,6 +3,8 @@
 Written for the engineer / agent working on **live integration and logic** (Codex), so UI and logic stay in sync.
 Author: Claude Code (UI pass). Sits next to `ROBINHOOD_YIELD_TRADING_MASTER_BRIEF_FINAL_V2.md`; it does not replace or restate it.
 
+> The later **Update** sections supersede parts of §1–§3. In particular: `/trade` now exists (§2 "Links and market page" is obsolete), and the last update ("trade pages, floating navbar, palette") **did touch logic-adjacent files** — see its first subsection before assuming "presentation only".
+
 ## 1. Boundaries
 
 - This pass is **presentation only**. No Web3, adapter, hook, quote, valuation or contract logic was changed.
@@ -97,3 +99,98 @@ Verified against the real Pendle list on chain 4663 and the Alchemy RPCs (`eth_c
 3. The live adapter is mainnet-only: `NEXT_PUBLIC_ROBINHOOD_CHAIN_ENV=testnet` + `live` yields no markets.
 4. The Alchemy RPC key is a `NEXT_PUBLIC_*` variable, so it ships to the browser. Restrict it by allowed domains in the Alchemy dashboard. Vercel needs both RPC URLs, `…_CHAIN_ENV` and `…_DATA_MODE` set, then a redeploy.
 5. Still static by design: `MaturityPreview` (illustrative portfolio simulation) and the Hero headline "10x Yield Exposure." (live leverage differs by market).
+
+---
+
+## Update — trade pages, floating navbar, palette (same day, evening)
+
+Written for the logic side again. Verified with `tsc --noEmit`, `eslint .`, `bun test` (69 pass) and `next build --webpack`, plus headless-Chrome checks at 1440×900, 1000×420 @2x and 390×844.
+
+### Boundary change (supersedes §1 for this round)
+Unlike the earlier passes, this round edited a few logic-adjacent files. Each change is small and covered by tests; please review them:
+
+| File | Change |
+|---|---|
+| `hooks/useNetworkGuard.ts` | `switchToRobinhood(targetChainId = getConfiguredChainId())`; `TradePanel` now passes `market.chainId` (it used to always switch to the configured chain, which loops when the market lives on another one). |
+| `hooks/useTokenBalance.ts` | Returns an extra `hasBalance` (`query.data !== undefined`). `balance` still falls back to `0` before the first read. |
+| `lib/markets/balance-shortcuts.ts` | New pure `hasInsufficientBalance({ isConnected, hasBalance, error, balance, amount })`. |
+| `lib/markets/trade-strategy.ts` | New pure `isSettledTransactionStep(step)`. |
+| `lib/utils/formatters.ts` | New `formatPriceImpact` (`<0.01%` for tiny values) and `formatNetworkFee` (`~0.000010 ETH`, `<0.000001 ETH`, never a misleading `0`). |
+| tests | `balance-shortcuts.test.ts`, `trade-strategy.test.ts`, new `lib/utils/formatters.test.ts`. |
+
+`types/*`, `lib/adapters/*`, `lib/contracts/*`, `lib/quotes/*` were **not** touched.
+
+### Routes (replaces the `/trade does not exist` note in §2)
+- `/trade` is the hub; `/trade/[marketId]?strategy=fixed|long` is the workspace (`TradeWorkspaceClient` + `TradePanel`). Landing links go through `marketHref()` in `featuredMarket.ts` and already point to `/trade/<id>`.
+- Market detail: the Fixed / Long rows in "Strategy overview" are links to `buildTradeWorkspaceHref(id, strategy)`; the "Trade Yield →" button goes to `/trade/<id>`. Without `?strategy=` the workspace shows two selectable strategy cards instead of a dead end.
+
+### Trade hub = the Markets table
+- `MarketTable` got an **opt-in trade variant** (`tradeHrefs`, `defaultSort`, `TRADE_COLS`); `MarketCard` got `tradeHrefs`. The last column becomes "TRADE" with **Fixed ↗** / **Long ↗** actions. `/markets` renders the same markup as before.
+- `TradeMarketHub` filters with `isMarketTradable(market)` and shows the same header + four stat tiles as `/markets`.
+- `MarketMetricsStrip` (new, `components/markets/`) is the shared four-cell strip used by market detail and the workspace.
+- New `xs` size on `AssetIcon` (source-protocol pill in the detail headers).
+
+### Logic fixed in the trade path (what the audit found)
+1. **False "Insufficient balance".** The balance hook returns `0` until the first read and when the read fails, so every amount looked unaffordable. The check now needs a balance that was actually read (`hasBalance`, no error).
+2. **Wrong-network switch target** — see the table above.
+3. **Transaction-state reset timer.** The 3 s `idle` reset was never cancelled, so it could wipe the state of a newer attempt (re-enabling the button mid-flight). The timers are refs, cleared on the next attempt and on unmount, and only settled states (`success` / `error` / `approval-success`) are cleared.
+4. **One definition of "tradeable".** Everything uses `getMarketStatus` / `isMarketTradable` (date-aware); paused vs matured messages follow it.
+5. **Raw numbers.** Price impact (`0.007949170015582442%`), network fee (`~0.000010479932584 ETH`), break-even / scenario APYs and the chart legend are formatted.
+6. **Brief rows.** Fixed panel: Implied APY, Maturity + days left. Long panel: Underlying APY, Implied APY, Maturity + days left and the brief's break-even sentence.
+
+### Not done — for the logic side
+1. **Slippage** and **claimable yield** are required by the brief's Fixed / Long panels but are not on the quote types, so they are not shown (nothing invented).
+2. **Status vs date.** With live data `/markets` still labels some markets "Active" while they show `0 DAYS` and a 0.00 % implied APY (e.g. sNET, maturity 17 Sept 2026 on 3 Oct). `/trade` hides them because it is date-based; consider normalizing `status` in the adapter. `/markets` was deliberately left alone.
+
+### Floating navbar (landing only)
+- `components/landing/FloatingNav.tsx`, `liquidGlass.ts` (+ test), `.lg-*` block at the end of `globals.css`; mounted once in `app/page.tsx`. The hero keeps its own navbar inside the pinned scene; this one appears when the hero (pinned runway included) has fully left the viewport and disappears again when scrolling back.
+- **Coupled to the hero's `id="top"`** (`IntersectionObserver`; fallback is `scrollY > innerHeight`). Do not rename or remove it. While hidden the nav is `inert`.
+- Looks: dark glass (near-clear dark tint; gloss comes from rim light, specular arc and refraction, not a white fill), glass hover bead, pointer-follow highlight, one-time sweep, solid orange "Launch app" with white semibold text. `z-40`, below `SplashScreen` (`z-[9999]`).
+- Refraction is **Chromium only**: a canvas-generated displacement map (`computeLensMap`) feeds an SVG filter used from `backdrop-filter: url(#cleave-liquid-lens)`; the map is rebuilt when the pill resizes. Elsewhere the plain blur/gloss fallback is used (`supportsBackdropLens` checks for `Chrome/` in the UA; headless Chrome reports `HeadlessChrome/`).
+- Two traps worth remembering: `<g>` wrappers inside `<filter>` are invalid and turn the pill white; `feBlend mode="screen"` for the three-channel merge also goes white in Chromium — the merge uses `feComposite operator="arithmetic"`.
+- The link list is a copy of the one in `Navbar.tsx`; keep them in sync when a menu item changes.
+
+### Palette (vivid, not pastel)
+- `tailwind.config.ts`: `ice` `#A9C8EE → #3B86FF`, `amber` `#F0A85C → #EF5F22` (reference: Helius orange, measured ≈ rgb 214,79,52); glow tokens follow. `amber.primary` (`#F07A2B`, the Saturn orange) is unchanged; `ice.light` / `amber.light` are unused.
+- The old values were also hardcoded as hex / `rgba(...)` / bare `"169,200,238"` triplets across landing, charts and layout files; all were replaced mechanically (grep for `59, 134, 255` and `239, 95, 34`, plus the bare triplets in `HeroVisual.tsx`). **New code should use the tokens**, not new hex values.
+- Contrast: dark labels on the new fills are ≈ 5–6:1; the white label on the orange nav button is ≈ 3.3:1 (user request) — it carries a small text shadow.
+- `next dev` caches the Tailwind config: restart it after editing tokens.
+
+### Hero planet light follows the stage
+- The planet's atmosphere + limb are now four pre-built gradients (`LimbKey`: white / ice / amber / mint) cross-faded by eased weights: stage 0 and 3 white, 1 blue, 2 orange, 4 green. Rings, moons and the back glows (`haloIce` / `haloAmber`) are unchanged.
+- `limbWeights(s)` creates the weights lazily because Fast Refresh keeps the old sim object alive; without it one missing field throws inside the frame loop and freezes the planet until a full reload.
+
+### Buttons and cursor
+- The global `a:hover { color: #fff }` makes the label of an anchor-styled button white on hover (invisible on a white or light fill). Coloured CTAs (`bg-ice`, `bg-amber`) no longer use `hover:bg-white`; they keep their hue (brighter, lifted 1 px, same-colour glow) and carry an explicit `hover:text-[#0A0C10]`. White buttons keep `hover:bg-white` plus `hover:text-background`. The global rule was left alone on purpose (it gives every other link its hover feedback); new anchor buttons with dark labels need the explicit hover text class.
+- A zero-specificity `:where(...)` rule in `globals.css` sets `cursor: pointer` on links, enabled buttons, tabs, `summary`, `select`, `label[for]` and checkbox / radio / range inputs, so utilities such as `cursor-not-allowed` still win.
+
+### Gotchas added today
+- Only one `next dev` can run per project directory. To check a build on another port use `next build --webpack` then `next start -p <port>`; production always picks up the latest Tailwind config.
+- Tailwind opacity steps 8 / 12 / 14 / 16 / 18 are still invalid (see §4). New and rewritten code in this round uses 10 / 15 / 20 (the trade workspace, market detail and `TradePanel` borders were fixed). Two pre-existing `/markets`-only lines were left as they are because `/markets` was not to change: `MarketCard` (`border-white/14`) and the `MarketTable` search input (`border-white/12`).
+
+---
+
+## Update — product copywriting (same day, night)
+
+Copy only: no layout, styling, routing, hook, adapter or transaction logic changed (the one non-UI file touched is `lib/adapters/mock-adapter.ts`, two error-message strings).
+
+### Naming rule
+- User-facing: **Fixed Yield** and **Trading Yield**. "Long Yield" no longer appears anywhere a user can read it.
+- Internal, unchanged on purpose: `strategy=long`, the `"long"` enum / `kind: "long"`, `useLongYieldQuote`, `openLongPosition`, `hrefs.long`, `LongYieldQuote`, the `#long` docs anchor, YT mechanics, test names. Do not rename these to match the copy.
+- PT / YT stay as secondary information ("Powered by PT", "(PT)", the glossary, the advanced panel), never as the first label.
+
+### Voice
+- Fixed Yield = lock a quoted yield toward maturity (more predictable, early exit is market-priced). Trading Yield = trade exposure to future yield as rates move (value can fall).
+- No guarantee language: "Guaranteed payout" → "Quoted payout", "APY LOCKED" → "QUOTED APY", "certainty" → "predictability"; "leverage" → "exposure"; "bet / speculation" removed.
+- Markets = research ("Explore live yield markets. Compare rates, maturity, liquidity…"); `/trade` = execution ("Choose a live market. Then lock a quoted yield with Fixed Yield, or trade future yield with Trading Yield."); Portfolio = position management (Active / Claim Yield / Sell Early / Redeem at Maturity for Fixed; Expires at Maturity for Trading Yield).
+- Wallet: browsing and quotes never need a wallet; the panel CTA reads "Connect wallet to execute".
+
+### Where the copy lives
+- Hero: `components/landing/heroStages.ts` (stage text, tab names, CTAs; numbers still come from the market and quotes), `STAGE_SHORT` in `Hero.tsx`, planet pin labels in `PIN_STYLE` / `HeroLabels` in `HeroVisual.tsx`.
+- Table / card trade actions: `MarketTable.tsx` (`Fixed` / `Trading`) and `MarketCard.tsx` (`Fixed Yield →` / `Trading Yield →`); aria-labels read "Open Fixed Yield on SYM" / "Open Trading Yield on SYM".
+- Kept verbatim on purpose: the brief-mandated risk sentence in the Review step and in the trade panel's Long risk notice ("If the underlying yield is lower than the implied yield you paid for, a large portion of the position value can be lost.").
+
+### Still open
+- Live-adapter error messages (`lib/adapters/pendle-live-adapter.ts`, e.g. "Only YT positions can claim yield.") still say PT / YT; they were not changed because adapters are logic-owned. If they can reach the UI, they should be reworded on that side.
+- `/contracts` was left alone (registry copy is transparency text with no strategy wording, and the file is under parallel edit).
+

@@ -23,6 +23,8 @@ export type ContractDeployment = {
   ownership?: "external" | "project";
   explorerUrl?: string;
   source?: string;
+  usedByRuntime: boolean;
+  runtimeRole: string;
 };
 
 export const contractDeployments: Readonly<Record<ContractChainId, readonly ContractDeployment[]>> = {
@@ -39,6 +41,8 @@ export const contractDeployments: Readonly<Record<ContractChainId, readonly Cont
       ownership: "external",
       explorerUrl: "https://robinhoodchain.blockscout.com/address/0x888888888889758F76e7103c6CbF23ABbF58F946",
       source: "https://github.com/pendle-finance/pendle-core-v2-public/blob/main/deployments/4663-core.json",
+      usedByRuntime: true,
+      runtimeRole: "Quote route target, approval spender, and transaction target.",
     },
     {
       id: "pendle-router-static-v2",
@@ -52,6 +56,8 @@ export const contractDeployments: Readonly<Record<ContractChainId, readonly Cont
       ownership: "external",
       explorerUrl: "https://robinhoodchain.blockscout.com/address/0x6813d43782395A1F2AAb42f39aeEDE03ac655e09",
       source: "https://github.com/pendle-finance/pendle-core-v2-public/blob/main/deployments/4663-core.json",
+      usedByRuntime: false,
+      runtimeRole: "Verified registry record; the current adapter does not call it directly.",
     },
     {
       id: "pendle-market-factory-v6",
@@ -65,6 +71,8 @@ export const contractDeployments: Readonly<Record<ContractChainId, readonly Cont
       ownership: "external",
       explorerUrl: "https://robinhoodchain.blockscout.com/address/0x544BF81c855AE84c1e8b65d5E38770898D01EeE2",
       source: "https://github.com/pendle-finance/pendle-core-v2-public/blob/main/deployments/4663-core.json",
+      usedByRuntime: false,
+      runtimeRole: "Verified registry record; market discovery comes from Pendle live metadata.",
     },
     {
       id: "pendle-yield-contract-factory-v6",
@@ -78,6 +86,8 @@ export const contractDeployments: Readonly<Record<ContractChainId, readonly Cont
       ownership: "external",
       explorerUrl: "https://robinhoodchain.blockscout.com/address/0xa543BF1ac6441822E95eD408076bB53090a0a9d7",
       source: "https://github.com/pendle-finance/pendle-core-v2-public/blob/main/deployments/4663-core.json",
+      usedByRuntime: false,
+      runtimeRole: "Verified registry record; PT/YT addresses come from live market metadata.",
     },
     {
       id: "pendle-sy-factory",
@@ -91,6 +101,8 @@ export const contractDeployments: Readonly<Record<ContractChainId, readonly Cont
       ownership: "external",
       explorerUrl: "https://robinhoodchain.blockscout.com/address/0x466CeD3b33045Ea986B2f306C8D0aA8067961CF8",
       source: "https://github.com/pendle-finance/pendle-core-v2-public/blob/main/deployments/4663-core.json",
+      usedByRuntime: false,
+      runtimeRole: "Verified registry record; SY addresses come from live market metadata.",
     },
   ],
   46630: [],

@@ -13,7 +13,7 @@ export function MarketCard({
 }: {
   market: YieldMarket;
   href?: string;
-  /** When given the card is a static summary with Fixed / Long trade actions (the Trade hub). */
+  /** When given the card is a static summary with Fixed Yield / Trading Yield trade actions (the Trade hub). */
   tradeHrefs?: { fixed: string; long: string };
 }) {
   const isMaturing = market.status === "maturing";
@@ -63,7 +63,7 @@ export function MarketCard({
       <div className="grid grid-cols-2 gap-3 py-3 border-y border-white/10 text-center">
         <div className="flex flex-col gap-1 items-start">
           <span className="text-[11px] mono uppercase tracking-wider text-muted-dark">
-            Implied Yield
+            Implied APY
           </span>
           <span className="mono tabular-nums text-[18px] font-medium text-ice">
             {formatApy(market.impliedApy)}
@@ -104,17 +104,17 @@ export function MarketCard({
         <div className="mt-4 grid grid-cols-2 gap-2.5">
           <Link
             href={tradeHrefs.fixed}
-            aria-label={`Trade Fixed Yield on ${symbol}`}
+            aria-label={`Open Fixed Yield on ${symbol}`}
             className="flex min-h-[44px] items-center justify-center rounded-lg border border-ice/30 bg-ice/10 text-[13px] font-medium text-ice transition-colors hover:border-ice/60 hover:bg-ice/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice"
           >
-            Trade Fixed →
+            Fixed Yield →
           </Link>
           <Link
             href={tradeHrefs.long}
-            aria-label={`Trade Long Yield on ${symbol}`}
+            aria-label={`Open Trading Yield on ${symbol}`}
             className="flex min-h-[44px] items-center justify-center rounded-lg border border-amber/30 bg-amber/10 text-[13px] font-medium text-amber transition-colors hover:border-amber/60 hover:bg-amber/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice"
           >
-            Trade Long →
+            Trading Yield →
           </Link>
         </div>
       </article>

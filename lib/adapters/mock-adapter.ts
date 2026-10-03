@@ -526,13 +526,13 @@ export class MockYieldMarketAdapter implements YieldMarketAdapter {
     if (position.strategy !== "long") {
       throw new YieldDomainError(
         "position-not-found",
-        "Only a Long Yield position can claim yield.",
+        "Only a Trading Yield position can claim yield.",
       );
     }
     if (position.status === "closed") {
       throw new YieldDomainError(
         "position-closed",
-        "This Long Yield position is already closed.",
+        "This Trading Yield position is already closed.",
       );
     }
     const claimable = await this.getClaimableYield(position);

@@ -58,7 +58,7 @@ export function PositionCard({
     if (!fixedPos) return;
     try {
       setLoadingAction("redeem");
-      if (!address) throw new Error("Connect a wallet to redeem PT.");
+      if (!address) throw new Error("Connect a wallet to redeem this position.");
       const res = await redeemFixed.mutateAsync({ positionId: position.id, userAddress: address });
       toast.success(
         `Redeemed ${formatTokenAmount(res.redeemedAmount ?? 0)} ${position.assetSymbol} at maturity!`
@@ -109,7 +109,7 @@ export function PositionCard({
               size="sm"
             />
             <span className="text-[19px] font-medium text-foreground">
-              {isFixed ? "Fixed" : "Long"} · {position.assetSymbol}
+              {isFixed ? "Fixed Yield" : "Trading Yield"} · {position.assetSymbol}
             </span>
             <span
               className={`mono text-[11px] px-2 py-0.5 rounded-full border ${
@@ -122,7 +122,7 @@ export function PositionCard({
             </span>
           </div>
           <div className="text-[13px] text-muted-dark mt-0.5">
-            Opened {position.openedAt} · Ends {position.maturity}
+            Opened {position.openedAt} · {isFixed ? "Matures" : "Expires"} {position.maturity}
           </div>
         </div>
 
@@ -133,8 +133,8 @@ export function PositionCard({
             }`}
           >
             {isFixed
-              ? `Locked ${fixedPos?.quotedFixedApy}%`
-              : `Underlying ${longPos?.currentUnderlyingApy}%`}
+              ? `Quoted ${fixedPos?.quotedFixedApy}%`
+              : `Rate now ${longPos?.currentUnderlyingApy}%`}
           </span>
           <span className="text-[12px] text-muted-faint capitalize">
             {position.status}
@@ -198,7 +198,7 @@ export function PositionCard({
         </Link>
 
         <div className="flex items-center gap-3">
-          {/* Long Strategy Actions */}
+          {/* Trading Yield (long) actions */}
           {!isFixed && (isActive || isMatured) && (
             <button
               type="button"

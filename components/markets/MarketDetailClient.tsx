@@ -135,22 +135,22 @@ export function MarketDetailClient({
           <div className="w-full lg:sticky lg:top-28">
             <div className="border border-white/15 bg-surface/70 p-5 sm:p-6">
               <div className="mono text-[11px] uppercase tracking-[0.14em] text-muted-dark">
-                Strategy overview
+                Trade this market
               </div>
               <h2 className="mt-2 text-[21px] font-normal text-foreground">
-                Choose your yield exposure
+                Choose how to trade this yield
               </h2>
               <div className="mt-5 flex flex-col divide-y divide-white/10 border-y border-white/10">
                 <StrategyRow
                   title="Fixed Yield"
-                  caption="Market implied APY · not a quote"
+                  caption="Lock a quoted yield · implied APY shown"
                   figure={formatApy(market.impliedApy)}
                   tone="ice"
                   href={isTradeable ? buildTradeWorkspaceHref(market.id, "fixed") : undefined}
                 />
                 <StrategyRow
-                  title="Long Yield"
-                  caption="Underlying APY exposure"
+                  title="Trading Yield"
+                  caption="Trade future yield · rate now shown"
                   figure={formatApy(market.underlyingApy)}
                   tone="amber"
                   href={isTradeable ? buildTradeWorkspaceHref(market.id, "long") : undefined}

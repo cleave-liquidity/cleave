@@ -15,7 +15,7 @@ import { getConfiguredChainId, getNetworkShortLabel } from "@/lib/web3/environme
 
 /**
  * Trade hub: the same market table as the Markets page, narrowed to what can be traded right now,
- * with the two ways in (Fixed / Long) as the row action.
+ * with the two ways in (Fixed Yield / Trading Yield) as the row action.
  */
 export function TradeMarketHub() {
   const { markets, isLoading, error } = useMarkets();
@@ -41,8 +41,8 @@ export function TradeMarketHub() {
                 Trade Yield
               </h1>
               <p className="text-[16px] text-muted max-w-[560px] m-0 font-light">
-                Pick a market that is open right now, then choose Fixed Yield for a predictable outcome or Long Yield
-                for exposure to future yield.
+                Choose a live market. Then lock a quoted yield with Fixed Yield, or trade future yield with Trading
+                Yield.
               </p>
             </div>
 
@@ -79,7 +79,7 @@ export function TradeMarketHub() {
           <div className="mt-8">
             {isLoading ? (
               <div className="py-24 text-center text-muted font-mono" role="status">
-                Loading tradeable markets...
+                Loading live markets…
               </div>
             ) : error ? (
               <div className="py-24 text-center text-negative" role="alert">
@@ -87,9 +87,9 @@ export function TradeMarketHub() {
               </div>
             ) : tradeableMarkets.length === 0 ? (
               <div className="rounded-2xl border border-white/10 bg-surface/60 px-6 py-20 text-center" role="status">
-                <div className="mono text-[11px] uppercase tracking-[0.14em] text-muted-dark">No open markets</div>
+                <div className="mono text-[11px] uppercase tracking-[0.14em] text-muted-dark">No markets open right now</div>
                 <p className="mx-auto mt-3 max-w-[420px] text-[14px] leading-6 text-muted">
-                  Every market is past maturity or paused right now. Browse the Markets page to see what comes next.
+                  Every market is paused or past maturity right now. Explore Markets to see what&apos;s coming next.
                 </p>
               </div>
             ) : (

@@ -123,7 +123,7 @@ export function TradeWorkspaceClient({
           <div className="mt-8 grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-8 lg:gap-12 items-start">
             <div className="flex flex-col gap-4 max-w-[620px]">
               <div className="mono text-[11px] tracking-[0.14em] text-muted-dark uppercase">
-                Select your yield exposure
+                Choose how to trade this yield
               </div>
               <div
                 role="group"
@@ -152,7 +152,7 @@ export function TradeWorkspaceClient({
                       : "bg-transparent text-muted hover:text-white"
                   }`}
                 >
-                  Long Yield
+                  Trading Yield
                 </button>
               </div>
               <StrategyContext strategy={strategy} market={market} quoteContext={quoteContext} />
@@ -179,19 +179,19 @@ export function TradeWorkspaceClient({
                 </div>
               ) : (
                 <div className="border border-white/15 rounded-[10px] bg-surface p-5 sm:p-6 flex flex-col gap-3">
-                  <div className="mono text-[11px] uppercase tracking-[0.14em] text-muted-dark">Choose your yield exposure</div>
+                  <div className="mono text-[11px] uppercase tracking-[0.14em] text-muted-dark">Choose how to trade this yield</div>
                   <StrategyChoice
                     tone="ice"
                     title="Fixed Yield"
                     figure={formatApy(market.impliedApy)}
-                    caption="Market implied APY · predictable outcome"
+                    caption="Lock a quoted yield toward maturity"
                     onSelect={() => handleStrategyChange("fixed")}
                   />
                   <StrategyChoice
                     tone="amber"
-                    title="Long Yield"
+                    title="Trading Yield"
                     figure={formatApy(market.underlyingApy)}
-                    caption="Underlying APY · exposure to future yield"
+                    caption="Trade exposure to future yield"
                     onSelect={() => handleStrategyChange("long")}
                   />
                 </div>
@@ -229,7 +229,7 @@ function StrategyContext({
   if (!strategy) {
     return (
       <p className="text-[16px] leading-7 text-muted">
-        Choose Fixed Yield or Long Yield to load the matching quote and execution flow.
+        Choose Fixed Yield or Trading Yield to get a quote for this market.
       </p>
     );
   }
@@ -265,46 +265,46 @@ function StrategyContext({
 
   const points = fixed
     ? [
-        ["How it works", "You receive PT exposure from the current quote."],
-        ["At maturity", "Eligible PT may be redeemed for underlying value."],
-        ["Before maturity", "The position may be exited at prevailing market pricing."],
-        ["Key risk", "Early exit can produce a different realized outcome from the quoted maturity outcome."],
+        ["How it works", "You buy at a discount and target the quoted maturity value (PT)."],
+        ["At maturity", "Redeem for the underlying asset."],
+        ["Before maturity", "Sell early at the prevailing market price."],
+        ["Key risk", "Early exit can result in a different realized outcome."],
       ]
     : [
-        ["How it works", "You receive YT exposure to the future yield stream."],
-        ["While active", "Eligible yield may be claimable while the position remains active."],
-        ["At maturity", "YT does not redeem principal; its exposure follows maturity behavior."],
-        ["Key risk", "The position may lose value if realized yield underperforms market expectations."],
+        ["How it works", "You get exposure to future yield as rates move (YT)."],
+        ["While active", "Accrued yield can be claimed while the position is active."],
+        ["At maturity", "The position expires. It does not redeem principal."],
+        ["Key risk", "The position can lose value if realized yield underperforms market expectations."],
       ];
 
   return (
     <div className="flex flex-col gap-4">
       <div>
         <h2 className={`text-[24px] font-normal ${fixed ? "text-ice" : "text-amber"}`}>
-          {fixed ? "Fixed Yield" : "Long Yield"}
+          {fixed ? "Fixed Yield" : "Trading Yield"}
         </h2>
         <p className="mt-2 text-[16px] leading-7 text-muted">
           {fixed
-            ? "A predictable-outcome position held toward maturity."
-            : "Exposure to future yield until maturity."}
+            ? "Lock a quoted yield toward maturity."
+            : "Trade exposure to future yield as rates move."}
         </p>
       </div>
 
       <div className="border-y border-white/10 py-3">
-        <div className="mono text-[10px] uppercase tracking-[0.14em] text-muted-dark">Market lens</div>
+        <div className="mono text-[10px] uppercase tracking-[0.14em] text-muted-dark">This market</div>
         <p className="mt-2 text-[14px] leading-6 text-muted">
           {assetName} ({assetSymbol}) · {sourceLabel}. The market is pricing {formatApy(market.impliedApy)} implied APY
           against {formatApy(market.underlyingApy)} current underlying APY, with {timeRemaining} until {market.maturity}.
         </p>
         <p className="mt-2 text-[13px] leading-6 text-muted-dark">
           {fixed
-            ? `PT behavior is maturity-oriented: redemption follows the market's maturity terms, while an early exit uses prevailing ${assetSymbol} pricing.`
-            : `YT behavior follows the future yield stream: claims depend on realized yield while active, and the exposure expires at ${market.maturity}.`}
+            ? `Held to maturity, Fixed Yield follows the quote you accept. Selling early is priced by the market, so the result can differ.`
+            : `Trading Yield follows realized yield: you can claim yield while the position is active, and it expires on ${market.maturity}.`}
         </p>
       </div>
 
       <div className="border-b border-white/10 pb-3">
-        <div className="mono text-[10px] uppercase tracking-[0.14em] text-muted-dark">Position lens</div>
+        <div className="mono text-[10px] uppercase tracking-[0.14em] text-muted-dark">Your quote</div>
         <p className="mt-2 text-[14px] leading-6 text-muted">{positionContext}</p>
       </div>
 
@@ -335,17 +335,17 @@ function getFixedPositionContext({
   inputAmount: number | null;
 }): string {
   if (!marketIsTradeable) return "This market is not currently tradeable, so no position quote is shown.";
-  if (quoteState === "quoting") return `Fetching a live Fixed quote for ${inputAmount ?? "your"} ${market.quoteAsset}.`;
-  if (quoteState === "unavailable") return "No executable Fixed route is available for this amount. No position outputs are shown.";
-  if (quoteState === "error") return "The live Fixed quote could not be fetched. Retry before relying on position-specific values.";
+  if (quoteState === "quoting") return `Fetching a live Fixed Yield quote for ${inputAmount ?? "your"} ${market.quoteAsset}.`;
+  if (quoteState === "unavailable") return "No route is available for this amount right now. Try a different amount.";
+  if (quoteState === "error") return "We couldn't fetch a live Fixed Yield quote. Retry before acting on these numbers.";
   if (quoteState !== "ready" || !quote || inputAmount === null) {
-    return `Enter an amount in the trade panel to preview PT received, Fixed APY, maturity value, impact, and fee for ${market.symbol}.`;
+    return `Enter an amount to see what you'd receive, your quoted APY, the maturity value, price impact and fee for ${market.symbol}.`;
   }
 
   const fee = quote.networkFeeEstimate === undefined
     ? "the network fee is shown before confirmation"
     : `the estimated network fee is ${formatNetworkFee(quote.networkFeeEstimate)}`;
-  return `For ${formatTokenAmount(inputAmount)} ${market.quoteAsset}, the quote returns ${formatTokenAmount(quote.ptReceived)} ${market.symbol} at ${formatApy(quote.quotedFixedApy)} Fixed APY. It estimates ${formatTokenAmount(quote.estimatedMaturityValue)} ${market.symbol} at maturity with ${formatPriceImpact(quote.priceImpact)} price impact; ${fee}.`;
+  return `For ${formatTokenAmount(inputAmount)} ${market.quoteAsset}, the quote returns ${formatTokenAmount(quote.ptReceived)} ${market.symbol} at a quoted ${formatApy(quote.quotedFixedApy)} APY. It estimates ${formatTokenAmount(quote.estimatedMaturityValue)} ${market.symbol} at maturity with ${formatPriceImpact(quote.priceImpact)} price impact; ${fee}.`;
 }
 
 function getLongPositionContext({
@@ -362,17 +362,17 @@ function getLongPositionContext({
   inputAmount: number | null;
 }): string {
   if (!marketIsTradeable) return "This market is not currently tradeable, so no position quote is shown.";
-  if (quoteState === "quoting") return `Fetching a live Long quote for ${inputAmount ?? "your"} ${market.quoteAsset}.`;
-  if (quoteState === "unavailable") return "No executable Long route is available for this amount. No position outputs are shown.";
-  if (quoteState === "error") return "The live Long quote could not be fetched. Retry before relying on position-specific values.";
+  if (quoteState === "quoting") return `Fetching a live Trading Yield quote for ${inputAmount ?? "your"} ${market.quoteAsset}.`;
+  if (quoteState === "unavailable") return "No route is available for this amount right now. Try a different amount.";
+  if (quoteState === "error") return "We couldn't fetch a live Trading Yield quote. Retry before acting on these numbers.";
   if (quoteState !== "ready" || !quote || inputAmount === null) {
-    return `Enter an amount in the trade panel to preview YT received, break-even APY, yield exposure, impact, and fee for ${market.symbol}.`;
+    return `Enter an amount to see what you'd receive, the break-even APY, your yield exposure, price impact and fee for ${market.symbol}.`;
   }
 
   const fee = quote.networkFeeEstimate === undefined
     ? "the network fee is shown before confirmation"
     : `the estimated network fee is ${formatNetworkFee(quote.networkFeeEstimate)}`;
-  return `For ${formatTokenAmount(inputAmount)} ${market.quoteAsset}, the quote returns ${formatTokenAmount(quote.ytReceived)} ${market.symbol} YT with a ${formatApy(quote.estimatedBreakEvenApy)} break-even APY and ${formatTokenAmount(quote.estimatedYieldExposure)} ${market.symbol} estimated yield exposure. Price impact is ${formatPriceImpact(quote.priceImpact)}; ${fee}.`;
+  return `For ${formatTokenAmount(inputAmount)} ${market.quoteAsset}, the quote returns ${formatTokenAmount(quote.ytReceived)} YT (${market.symbol}) with a ${formatApy(quote.estimatedBreakEvenApy)} break-even APY and ${formatTokenAmount(quote.estimatedYieldExposure)} ${market.symbol} of estimated yield exposure. Price impact is ${formatPriceImpact(quote.priceImpact)}; ${fee}.`;
 }
 
 function StrategyChoice({
