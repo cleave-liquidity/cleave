@@ -4,6 +4,11 @@ import { projectContractDeployments } from "./project-deployments";
 export type ContractChainId = RobinhoodChainId;
 
 export type ContractCategory =
+  | "core"
+  | "integration"
+  | "risk"
+  | "execution"
+  | "read"
   | "market"
   | "router"
   | "pt"
