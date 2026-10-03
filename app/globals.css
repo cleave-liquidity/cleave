@@ -593,3 +593,183 @@ input:focus-visible {
     transition: none;
   }
 }
+
+/* ── Liquid glass (landing floating navbar) ─────────────────────────────────
+   Dark glass: the body is a near-clear dark tint, so on this black page it reads as part of the scene
+   rather than a pale slab. The "gloss" comes from edge light (rim, specular arc, ice/amber edge fringe)
+   and from refraction, not from a white fill. Layers, back to front: backdrop (refracted + lightly frosted)
+   → dark tint → specular arc + corner light (::after) → rim ring (::before) → pointer glow → one-time sweep
+   → content. In Chromium FloatingNav also bends the page behind the rim with an SVG displacement map;
+   everywhere else the plain blur below is the fallback. */
+.lg-enter {
+  transform-origin: 50% 0;
+  transition: transform 0.8s cubic-bezier(0.34, 1.45, 0.64, 1), opacity 0.4s ease;
+}
+
+.lg-panel {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 9999px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.015) 48%, rgba(255, 255, 255, 0.03) 100%),
+    rgba(9, 10, 13, 0.4);
+  -webkit-backdrop-filter: blur(3px) saturate(1.6) brightness(0.95);
+  backdrop-filter: blur(3px) saturate(1.6) brightness(0.95);
+  box-shadow:
+    0 20px 44px -18px rgba(0, 0, 0, 0.85),
+    0 2px 10px rgba(0, 0, 0, 0.4),
+    /* bevel light: thin and bright only where light would catch the glass edge */
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.08),
+    inset 1px 0 0 rgba(255, 255, 255, 0.07),
+    inset -1px 0 0 rgba(255, 255, 255, 0.05),
+    /* edge fringe, like the colour split on the rim of real glass: ice on the left, amber on the right */
+    inset 3px 0 5px -2px rgba(120, 170, 255, 0.3),
+    inset -3px 0 5px -2px rgba(255, 150, 80, 0.26),
+    /* the glass thickens toward its lower edge */
+    inset 0 -14px 18px -14px rgba(0, 0, 0, 0.55);
+}
+
+/* Rim light: a hairline ring, brightest at the top-left and bottom-right where light catches the bevel. */
+.lg-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  padding: 1.25px;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    120deg,
+    rgba(255, 255, 255, 0.75) 0%,
+    rgba(255, 255, 255, 0.1) 22%,
+    rgba(255, 255, 255, 0.015) 50%,
+    rgba(255, 255, 255, 0.1) 78%,
+    rgba(255, 255, 255, 0.6) 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+
+/* Specular arc along the top edge (a sharp highlight that fades toward both ends) plus faint
+   ice / amber light pooling in the lower corners. */
+.lg-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(70% 55% at 50% -12%, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.05) 48%, transparent 72%),
+    radial-gradient(34% 120% at 0% 125%, rgba(169, 200, 238, 0.16), transparent 70%),
+    radial-gradient(34% 120% at 100% 125%, rgba(240, 168, 92, 0.14), transparent 70%);
+}
+
+.lg-glow {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(170px circle at var(--lg-x, 50%) var(--lg-y, 50%), rgba(255, 255, 255, 0.13), transparent 68%);
+  transition: opacity 0.35s ease;
+}
+.lg-panel:hover .lg-glow {
+  opacity: 1;
+}
+
+/* A single highlight that glides across the glass as it settles into place. */
+.lg-sweep {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(100deg, transparent 0%, transparent 38%, rgba(255, 255, 255, 0.16) 50%, transparent 62%, transparent 100%);
+  transform: translateX(-100%);
+}
+.lg-sweep[data-play="true"] {
+  animation: lg-sweep 1.3s 0.3s cubic-bezier(0.4, 0, 0.2, 1) 1 both;
+}
+@keyframes lg-sweep {
+  0% {
+    opacity: 1;
+    transform: translateX(-100%);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(100%);
+  }
+}
+
+/* The glass bead that slides to whichever link is hovered or focused. */
+.lg-chip {
+  position: absolute;
+  top: 50%;
+  height: 100%;
+  border-radius: 9999px;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-50%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.38),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.08),
+    0 6px 14px rgba(0, 0, 0, 0.45);
+  transition: left 0.5s cubic-bezier(0.34, 1.4, 0.64, 1), width 0.5s cubic-bezier(0.34, 1.4, 0.64, 1), opacity 0.25s ease;
+}
+.lg-chip[data-on="true"] {
+  opacity: 1;
+}
+
+/* Launch app: amber-tinted glass (same family as the hero navbar's amber button), not a solid white slab. */
+.lg-cta,
+.lg-cta:hover {
+  color: #ffe8cc;
+}
+.lg-cta {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(240, 168, 92, 0.42), rgba(240, 122, 43, 0.18));
+  -webkit-backdrop-filter: blur(6px) saturate(1.5);
+  backdrop-filter: blur(6px) saturate(1.5);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 224, 186, 0.6),
+    inset 0 -1px 0 rgba(240, 168, 92, 0.25),
+    0 0 0 1px rgba(240, 168, 92, 0.42),
+    0 6px 18px rgba(0, 0, 0, 0.45),
+    0 0 20px rgba(240, 140, 60, 0.16);
+  transition: filter 0.2s ease, transform 0.2s ease;
+}
+.lg-cta::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 52% 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0));
+}
+.lg-cta:hover {
+  filter: brightness(1.12);
+}
+.lg-cta:active {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lg-enter,
+  .lg-chip,
+  .lg-glow,
+  .lg-cta {
+    transition: none;
+  }
+  .lg-sweep[data-play="true"] {
+    animation: none;
+  }
+}

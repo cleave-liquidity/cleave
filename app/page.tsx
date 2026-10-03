@@ -7,6 +7,7 @@ import { TradePreview } from "@/components/landing/TradePreview";
 import { MaturityPreview } from "@/components/landing/MaturityPreview";
 import { FinalCTA } from "@/components/landing/FinalCTA";
 import { ScrollReveal } from "@/components/landing/ScrollReveal";
+import { FloatingNav } from "@/components/landing/FloatingNav";
 import { Footer } from "@/components/layout/Footer";
 
 export default function LandingPage() {
@@ -25,6 +26,7 @@ export default function LandingPage() {
         <MaturityPreview />
       </div>
       <ScrollReveal />
+      <FloatingNav />
 
       {/* ── 2. SCROLL SPACER ────────────────────────────────────────────────
           Provides 100vh scroll runway so the main content curtain peels away
