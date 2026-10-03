@@ -3,15 +3,44 @@ import { join } from "node:path";
 
 const chainId = 46630;
 const repoDir = process.cwd();
-const broadcastPath = join(repoDir, "contracts", "broadcast", "Deploy.s.sol", String(chainId), "run-latest.json");
 const outputPath = join(repoDir, "lib", "contracts", "project-deployments.ts");
 
 type JsonObject = Record<string, unknown>;
+
+type ProjectEntry = {
+  id: string;
+  name: string;
+  description: string;
+  chainId: number;
+  category: string;
+  address: `0x${string}`;
+  verified: boolean;
+  ownership: "project";
+  explorerUrl: string;
+  usedByRuntime: false;
+  runtimeRole: string;
+  deploymentTx: `0x${string}`;
+  deploymentBlock: number;
+  deployer?: `0x${string}`;
+  gasUsed?: string;
+  verificationStatus: "VERIFIED" | "DEPLOYED / NOT VERIFIED";
+};
 
 function asObject(value: unknown): JsonObject {
   return value !== null && typeof value === "object" && !Array.isArray(value)
     ? value as JsonObject
     : {};
+}
+
+function readBroadcast(path: string): JsonObject {
+  try {
+    const broadcast = JSON.parse(readFileSync(path, "utf8")) as JsonObject;
+    if (Number(broadcast.chain) !== chainId) throw new Error(`Broadcast ${path} is not for chain ${chainId}.`);
+    return broadcast;
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("not for chain")) throw error;
+    throw new Error(`No valid Testnet broadcast found at ${path}. Deploy first; no registry data was changed.`);
+  }
 }
 
 function asAddress(value: unknown, label: string): `0x${string}` {
@@ -34,77 +63,129 @@ function asBlock(value: unknown): number {
     : typeof value === "string" || typeof value === "number"
       ? Number(value)
       : Number.NaN;
-  if (!Number.isSafeInteger(block) || block < 0) {
-    throw new Error("Broadcast metadata is missing a valid deployment block.");
-  }
+  if (!Number.isSafeInteger(block) || block < 0) throw new Error("Broadcast metadata is missing a valid deployment block.");
   return block;
 }
 
-function asOptionalString(value: unknown): string | undefined {
-  return typeof value === "string" && value.length > 0 ? value : undefined;
-}
-
-function asOptionalQuantity(value: unknown): string | undefined {
-  const raw = asOptionalString(value);
-  if (raw === undefined) return undefined;
+function asQuantity(value: unknown): string | undefined {
+  if (typeof value !== "string" || value.length === 0) return undefined;
   try {
-    return BigInt(raw).toString(10);
+    return BigInt(value).toString(10);
   } catch {
     throw new Error("Broadcast metadata contains an invalid gas-used quantity.");
   }
 }
 
-function main(): void {
-  const verified = process.env.DEPLOYMENT_VERIFIED === "1";
-  let broadcast: JsonObject;
-  try {
-    broadcast = JSON.parse(readFileSync(broadcastPath, "utf8")) as JsonObject;
-  } catch {
-    throw new Error(`No Testnet broadcast found at ${broadcastPath}. Deploy first; no registry data was changed.`);
-  }
-
+function readDeployment(
+  broadcast: JsonObject,
+  contractName: string,
+  metadata: Pick<ProjectEntry, "id" | "name" | "category" | "description" | "runtimeRole">,
+  verified: boolean,
+): ProjectEntry {
   const transactions = Array.isArray(broadcast.transactions) ? broadcast.transactions.map(asObject) : [];
   const creation = transactions.find((transaction) =>
-    transaction.transactionType === "CREATE" && transaction.contractName === "CleaveRegistry",
+    transaction.transactionType === "CREATE" && transaction.contractName === contractName,
   );
-  if (!creation) throw new Error("The Testnet broadcast contains no CleaveRegistry CREATE transaction.");
+  if (!creation) throw new Error(`The Testnet broadcast contains no ${contractName} CREATE transaction.`);
 
   const deploymentTx = asHash(creation.hash);
   const receipts = Array.isArray(broadcast.receipts) ? broadcast.receipts.map(asObject) : [];
   const receipt = receipts.find((candidate) => candidate.transactionHash === deploymentTx) ?? asObject(creation.receipt);
-  if (receipt.status !== undefined && receipt.status !== "0x1" && receipt.status !== "1") {
-    throw new Error("The CleaveRegistry deployment receipt did not succeed.");
+  if (receipt.status !== "0x1" && receipt.status !== "1") {
+    throw new Error(`The ${contractName} deployment receipt did not succeed.`);
   }
-  const transaction = asObject(creation.transaction);
-  const address = asAddress(creation.contractAddress, "contract address");
-  const deploymentBlock = asBlock(receipt.blockNumber ?? creation.blockNumber);
-  const deployerValue = transaction.from ?? receipt.from ?? creation.from;
-  const deployer = deployerValue === undefined ? undefined : asAddress(deployerValue, "deployer address");
-  const gasUsed = asOptionalQuantity(receipt.gasUsed);
 
-  const entry = {
-    id: "cleave-registry-testnet",
-    name: "CleaveRegistry",
-    description: "CLEAVE-owned configuration anchor for approved external Pendle references; it does not custody funds or execute trades.",
+  const transaction = asObject(creation.transaction);
+  const address = asAddress(creation.contractAddress, `${contractName} address`);
+  const deployerValue = transaction.from ?? receipt.from ?? creation.from;
+  const deployer = deployerValue === undefined ? undefined : asAddress(deployerValue, `${contractName} deployer address`);
+  const deploymentBlock = asBlock(receipt.blockNumber ?? creation.blockNumber);
+  const gasUsed = asQuantity(receipt.gasUsed);
+
+  return {
+    ...metadata,
     chainId,
-    category: "other",
     address,
     verified,
     ownership: "project",
     explorerUrl: `https://explorer.testnet.chain.robinhood.com/address/${address}`,
     usedByRuntime: false,
-    runtimeRole: "Registry-only configuration anchor; not part of the Pendle trade execution path.",
     deploymentTx,
     deploymentBlock,
     ...(deployer ? { deployer } : {}),
     ...(gasUsed ? { gasUsed } : {}),
     verificationStatus: verified ? "VERIFIED" : "DEPLOYED / NOT VERIFIED",
   };
+}
 
-  const content = `import type { ContractChainId, ContractDeployment } from "./deployments";\n\n/** Generated from the verified Foundry Testnet broadcast. */\nexport const projectContractDeployments: Readonly<Record<ContractChainId, readonly ContractDeployment[]>> = {\n  4663: [],\n  46630: [${JSON.stringify(entry, null, 2)}],\n};\n\nexport function getProjectContractDeployments(\n  chainId: ContractChainId,\n): readonly ContractDeployment[] {\n  return projectContractDeployments[chainId];\n}\n`;
+function main(): void {
+  const verifiedModules = process.env.DEPLOYMENT_VERIFIED === "1";
+  const existingBroadcast = readBroadcast(join(repoDir, "contracts", "broadcast", "Deploy.s.sol", String(chainId), "run-latest.json"));
+  const moduleBroadcast = readBroadcast(join(repoDir, "contracts", "broadcast", "DeployTestnetModules.s.sol", String(chainId), "run-latest.json"));
 
+  const entries: ProjectEntry[] = [
+    readDeployment(existingBroadcast, "CleaveRegistry", {
+      id: "cleave-registry-testnet",
+      name: "CleaveRegistry",
+      category: "core",
+      description: "Existing CLEAVE-owned configuration anchor; preserved without redeployment.",
+      runtimeRole: "Top-level CLEAVE discovery/configuration anchor; not part of the Pendle trade execution path.",
+    }, true),
+    readDeployment(moduleBroadcast, "CleaveAccessManager", {
+      id: "cleave-access-manager-testnet",
+      name: "CleaveAccessManager",
+      category: "core",
+      description: "Central CLEAVE protocol role authority.",
+      runtimeRole: "Shared admin, operator, and guardian authorization layer for CLEAVE modules.",
+    }, verifiedModules),
+    readDeployment(moduleBroadcast, "CleaveAdapterRegistry", {
+      id: "cleave-adapter-registry-testnet",
+      name: "CleaveAdapterRegistry",
+      category: "integration",
+      description: "Approved external yield protocol integration registry.",
+      runtimeRole: "Registry-only external adapter configuration; no arbitrary protocol execution.",
+    }, verifiedModules),
+    readDeployment(moduleBroadcast, "CleaveMarketRegistry", {
+      id: "cleave-market-registry-testnet",
+      name: "CleaveMarketRegistry",
+      category: "integration",
+      description: "Verified external market metadata registry.",
+      runtimeRole: "Registry-only market, PT, YT, SY, underlying, maturity, and adapter metadata.",
+    }, verifiedModules),
+    readDeployment(moduleBroadcast, "CleaveRiskGuard", {
+      id: "cleave-risk-guard-testnet",
+      name: "CleaveRiskGuard",
+      category: "risk",
+      description: "Non-custodial global, market, and adapter pause controls.",
+      runtimeRole: "Risk state consumed by the CLEAVE execution boundary.",
+    }, verifiedModules),
+    readDeployment(moduleBroadcast, "CleaveExecutionRouter", {
+      id: "cleave-execution-router-testnet",
+      name: "CleaveExecutionRouter",
+      category: "execution",
+      description: "Validated CLEAVE execution boundary without arbitrary external calls.",
+      runtimeRole: "Validates market, adapter, and risk state; current frontend Pendle execution remains direct.",
+    }, verifiedModules),
+    readDeployment(moduleBroadcast, "CleaveLifecycleManager", {
+      id: "cleave-lifecycle-manager-testnet",
+      name: "CleaveLifecycleManager",
+      category: "execution",
+      description: "Fixed Yield and Trading Yield lifecycle eligibility rules.",
+      runtimeRole: "Read-only sell, maturity, expiry, and yield-claim eligibility rules; no settlement or amount fabrication.",
+    }, verifiedModules),
+    readDeployment(moduleBroadcast, "CleaveLens", {
+      id: "cleave-lens-testnet",
+      name: "CleaveLens",
+      category: "read",
+      description: "Read-only aggregation layer for CLEAVE modules and market state.",
+      runtimeRole: "Canonical combined read surface for frontend and deployment diagnostics.",
+    }, verifiedModules),
+  ];
+
+  const entriesJson = JSON.stringify(entries, null, 2).replace(/^/gm, "  ");
+  const content = `import type { ContractChainId, ContractDeployment } from "./deployments";\n\n/** Generated from the confirmed Foundry Testnet broadcasts. */\nexport const projectContractDeployments: Readonly<Record<ContractChainId, readonly ContractDeployment[]>> = {\n  4663: [],\n  46630: ${entriesJson},\n};\n\nexport function getProjectContractDeployments(\n  chainId: ContractChainId,\n): readonly ContractDeployment[] {\n  return projectContractDeployments[chainId];\n}\n`;
   writeFileSync(outputPath, content, "utf8");
-  console.log(`Synchronized ${entry.name} at ${entry.address} from Testnet broadcast.`);
+  console.log(`Synchronized ${entries.length} CLEAVE Testnet deployments from confirmed broadcasts.`);
 }
 
 main();

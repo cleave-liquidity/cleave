@@ -19,6 +19,11 @@ const networkOptions: readonly NetworkOption[] = [
 ];
 
 const categoryLabels: Record<ContractCategory, string> = {
+  core: "Core",
+  integration: "Integration",
+  risk: "Risk",
+  execution: "Execution",
+  read: "Read",
   market: "Market",
   router: "Router",
   pt: "PT",
