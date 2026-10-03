@@ -18,12 +18,80 @@ import {
 } from "../lib/web3/chains";
 
 const PENDLE_API_BASE = "https://api-v2.pendle.finance/core";
+const LABEL_WIDTH = 38;
 
 type RpcProbe = { status: "PASS" | "FAIL"; blockNumber?: bigint };
 type MarketProbe = { status: "PASS" | "FAIL"; total?: number };
 
+const useColor = Boolean(process.stdout.isTTY);
+const useTypewriter = useColor;
+const ANSI = {
+  reset: "\u001b[0m",
+  dim: "\u001b[2m",
+  cyan: "\u001b[38;5;117m",
+  ice: "\u001b[38;5;159m",
+  green: "\u001b[38;5;120m",
+  yellow: "\u001b[38;5;221m",
+  white: "\u001b[38;5;255m",
+};
+
+function paint(value: string, color: keyof typeof ANSI): string {
+  return useColor ? `${ANSI[color]}${value}${ANSI.reset}` : value;
+}
+
+function styledValue(value: string): string {
+  if (value.includes("FAIL") || value.includes("UNAVAILABLE") || value.includes("NOT VERIFIED")) {
+    return paint(value, "yellow");
+  }
+  if (value.includes("PASS") || value.includes("READY") || value.includes("ACTIVE") || value.includes("ONLINE")) {
+    return paint(value, "green");
+  }
+  if (value.includes("REGISTRY ONLY")) return paint(value, "dim");
+  return paint(value, "white");
+}
+
 function line(label: string, value: string): void {
-  console.log(`${`${label} `.padEnd(28, " ")}${value}`);
+  console.log(`${paint(`${label} `.padEnd(LABEL_WIDTH, " "), "dim")}${styledValue(value)}`);
+}
+
+function section(title: string): void {
+  console.log();
+  console.log(paint(`◆ ${title}`, "cyan"));
+  console.log(paint("─".repeat(66), "dim"));
+}
+
+function badge(label: string, tone: "success" | "warning" | "info"): string {
+  const color = tone === "success" ? "green" : tone === "warning" ? "yellow" : "cyan";
+  return paint(`[${label}]`, color);
+}
+
+function sleep(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+async function typewriter(message: string): Promise<void> {
+  if (!useTypewriter) {
+    console.log(message);
+    return;
+  }
+  for (const character of message) {
+    process.stdout.write(character);
+    await sleep(7);
+  }
+  process.stdout.write("\n");
+}
+
+async function showConnectionSequence(
+  mainnetRpc: RpcProbe,
+  markets: number,
+  testnetRpc: RpcProbe,
+): Promise<void> {
+  await typewriter(`${badge("+", "success")} YIELD TRADING UPLINK ESTABLISHED`);
+  await typewriter(`${badge("+", "info")} CONNECTING TO ROBINHOOD MAINNET... ${mainnetRpc.status}`);
+  await typewriter(`${badge("+", "success")} RPC HANDSHAKE... ${mainnetRpc.status}`);
+  await typewriter(`${badge("+", "success")} CHAIN HEAD SYNCED... ${mainnetRpc.blockNumber === undefined ? "UNAVAILABLE" : `block #${mainnetRpc.blockNumber}`}`);
+  await typewriter(`${badge("+", "success")} PENDLE MARKET ADAPTER... ${markets > 0 ? "ONLINE" : "UNAVAILABLE"}`);
+  await typewriter(`${badge("+", testnetRpc.status === "PASS" ? "success" : "warning")} TESTNET PROBE... ${testnetRpc.status}`);
 }
 
 async function probeRpc(chainId: number): Promise<RpcProbe> {
@@ -108,30 +176,44 @@ async function main(): Promise<void> {
       featured?.ytAddress &&
       quotes.long,
   );
+  const mainnetReady = Boolean(
+    environment.dataMode === "live" &&
+      mainnetRpc.status === "PASS" &&
+      markets.length > 0 &&
+      fixedReady &&
+      longReady,
+  );
 
-  console.log("╭────────────────────────────────────────────╮");
-  console.log("│           CLEAVE DEPLOYMENT AUDIT           │");
-  console.log("╰────────────────────────────────────────────╯");
-  console.log();
-  console.log("MAINNET");
+  console.log(paint(" ██████╗██╗     ███████╗ █████╗ ██╗   ██╗███████╗", "cyan"));
+  console.log(paint("██╔════╝██║     ██╔════╝██╔══██╗██║   ██║██╔════╝", "cyan"));
+  console.log(paint("██║     ██║     █████╗  ███████║██║   ██║█████╗  ", "cyan"));
+  console.log(paint("██║     ██║     ██╔══╝  ██╔══██║╚██╗ ██╔╝██╔══╝  ", "cyan"));
+  console.log(paint("╚██████╗███████╗███████╗██║  ██║ ╚████╔╝ ███████╗", "cyan"));
+  console.log(paint(" ╚═════╝╚══════╝╚══════╝╚═╝  ╚═╝  ╚═══╝  ╚══════╝", "cyan"));
+  console.log(paint("                 DEPLOYMENT / NETWORK AUDIT", "dim"));
+  await showConnectionSequence(mainnetRpc, markets.length, testnetRpc);
+
+  section("MAINNET · ROBINHOOD CHAIN");
   line("Network", "Robinhood Chain");
   line("Chain ID", String(ROBINHOOD_CHAIN_ID));
   line("RPC", `${mainnetRpc.status}${mainnetRpc.blockNumber === undefined ? "" : ` · block ${mainnetRpc.blockNumber}`}`);
+  line("Current block", mainnetRpc.blockNumber === undefined ? "UNAVAILABLE" : `#${mainnetRpc.blockNumber}`);
   line("Data Mode", environment.dataMode.toUpperCase());
   line("Market Source", yieldAdapter.mode === "live" ? "Pendle live API" : "Mock adapter");
   line("Markets", markets.length ? `${markets.length} dynamic` : "UNAVAILABLE");
   line("Tradeable", markets.length ? String(tradeableMarkets.length) : "UNAVAILABLE");
   line("Featured", featured ? `${featured.name} · ${featured.marketAddress}` : "UNAVAILABLE");
-  console.log();
-  console.log("EXECUTION");
-  line("Fixed", `${fixedReady ? "READY" : "UNAVAILABLE"} · live PT route`);
-  line("Long", `${longReady ? "READY" : "UNAVAILABLE"} · live YT route`);
-  line("Quote Source", quotes.source || "UNAVAILABLE");
+
+  section("YIELD ENGINE");
+  line("Fixed Yield / PT", `${fixedReady ? "READY" : "UNAVAILABLE"} · live PT route`);
+  line("Trading Yield / YT", `${longReady ? "READY" : "UNAVAILABLE"} · live YT route`);
+  line("Quote Source", quotes.source ? "Pendle Convert API" : "UNAVAILABLE");
+  line("Quote Endpoint", quotes.source || "UNAVAILABLE");
   line("Router / Spender", router?.address || "NOT VERIFIED");
   line("PT / YT Source", featured ? "LIVE MARKET METADATA" : "UNAVAILABLE");
   line("Transaction", "Wallet request only; this audit sends no transaction");
-  console.log();
-  console.log("CONTRACTS · MAINNET 4663");
+
+  section("MAINNET CONTRACTS · CHAIN 4663");
   for (const deployment of mainnetDeployments) {
     line(deployment.name, `${deployment.usedByRuntime ? "ACTIVE" : "REGISTRY ONLY"} · EXTERNAL · ${deployment.address}`);
   }
@@ -143,18 +225,26 @@ async function main(): Promise<void> {
     line("Underlying", `INPUT TOKEN · EXTERNAL · ${featured.underlyingTokenAddress}`);
   }
   line("Project Contracts", `Mainnet ${mainnetDeployments.filter((deployment) => deployment.ownership === "project").length} · Testnet ${testnetDeployments.filter((deployment) => deployment.ownership === "project").length}`);
-  console.log();
-  console.log("TESTNET");
+
+  section("TESTNET · ROBINHOOD CHAIN · 46630");
   line("Network", "Robinhood Chain");
   line("Chain ID", String(ROBINHOOD_TESTNET_CHAIN_ID));
   line("RPC", `${testnetRpc.status}${testnetRpc.blockNumber === undefined ? "" : ` · block ${testnetRpc.blockNumber}`}`);
+  line("Current block", testnetRpc.blockNumber === undefined ? "UNAVAILABLE" : `#${testnetRpc.blockNumber}`);
   line("Pendle API Markets", testnetMarkets.status === "PASS" ? String(testnetMarkets.total) : "UNAVAILABLE");
   line("Registry", testnetDeployments.length ? `${testnetDeployments.length} verified` : "0 verified deployments");
   line("Pendle Router", "NOT VERIFIED");
   line("Market / PT / YT / SY", "NOT VERIFIED");
   line("Trading", "UNAVAILABLE · live adapter is Mainnet-only");
+
+  section("FINAL STATUS");
+  console.log(`${mainnetReady ? badge("✓", "success") : badge("!", "warning")} ${mainnetReady ? "CLEAVE MAINNET INTEGRATION READY" : "CLEAVE MAINNET INTEGRATION NOT READY"}`);
+  console.log(`${badge("!", "warning")} REAL WALLET CANARY STILL REQUIRED`);
   console.log();
-  console.log("All addresses above are public contract or market metadata addresses; EXTERNAL describes ownership, not network environment.");
+  console.log(paint("All addresses above are public contract or market metadata addresses; EXTERNAL describes ownership, not network environment.", "dim"));
+  console.log();
+  console.log(paint("[DEV@CLEAVE]", "ice"));
+  console.log(paint("└─▶", "dim"));
 }
 
 await main();
