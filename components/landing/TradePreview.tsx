@@ -19,7 +19,7 @@ import { DEFAULT_TICKET, marketHref, pickFeaturedMarket } from "./featuredMarket
 // "Open a position" walkthrough, straight from the product brief:
 //   Fixed Yield: Select Market → Fixed → Enter Amount → Review Quote → Approve → Confirm → Open PT Position
 //   Long Yield:  Select Market → Long  → Enter Amount → Review YT exposure + risk → Approve → Confirm → Open YT Position
-// First layer speaks in strategies (Fixed / Long); PT and YT only appear as "powered by".
+// First layer speaks in strategies (Fixed Yield / Trading Yield); PT and YT only appear as "powered by".
 //
 // Data: nothing here is hardcoded. The market comes from `useMarkets()`, quotes from
 // `useFixedYieldQuote` / `useLongYieldQuote`, the icon from `AssetIcon`, the data-mode
@@ -48,9 +48,9 @@ const RATE_CASES: ReadonlyArray<{ key: RateCase; label: string }> = [
 ];
 
 const COMPARISON: ReadonlyArray<readonly [label: string, fixed: string, long: string]> = [
-  ["You get", "A set amount at maturity", "The yield the vault actually pays"],
-  ["Rate moves", "Payout unchanged", "Payout moves with it"],
-  ["Risk", "Low — price is locked", "Higher — value can be lost"],
+  ["You get", "A quoted amount at maturity", "Exposure to the yield actually paid"],
+  ["Rates move", "Held to maturity: unchanged", "Value moves with them"],
+  ["Risk", "Lower — early exit varies", "Higher — value can fall"],
 ];
 
 // Full class names (Tailwind can't see dynamically built ones).
@@ -241,7 +241,7 @@ export function TradePreview() {
     {
       tab: "Strategy",
       title: "Choose your strategy",
-      body: "Predictable yield, or exposure to future yield. PT and YT power them behind the scenes.",
+      body: "A more predictable yield, or exposure to future yield. PT and YT power them behind the scenes.",
     },
     {
       tab: "Amount",
@@ -292,11 +292,11 @@ export function TradePreview() {
               <h2 className="m-0 text-[36px] font-normal leading-[1.04] tracking-[-0.035em] text-balance sm:text-[48px] lg:text-[54px]">
                 Same market.
                 <br />
-                <span className="text-muted">Pick a side.</span>
+                <span className="text-muted">Pick how to trade it.</span>
               </h2>
               <p className="m-0 max-w-[460px] text-[15px] font-light leading-[1.6] text-muted sm:text-[16px]">
-                Fixed tells you exactly what you&apos;ll have at maturity. Long takes exposure to future yield — and shows
-                you the risk before you commit.
+                Fixed Yield locks a quoted outcome toward maturity. Trading Yield gives you exposure to future yield —
+                with the risk shown before you commit.
               </p>
 
               <ol aria-label="Steps" className="m-0 mt-1 flex max-w-[460px] list-none flex-col gap-2 p-0">
@@ -426,14 +426,14 @@ export function TradePreview() {
                     disabled={!market || (step === 1 && !amountValid)}
                     className="flex min-h-[48px] items-center justify-center rounded-xl border border-white/20 bg-white/[0.04] text-[14px] font-medium text-foreground transition-colors hover:border-white/40 hover:bg-white/[0.07] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice"
                   >
-                    {step === 0 ? `Continue with ${isFixed ? "Fixed" : "Long"} Yield` : "Review quote"} →
+                    {step === 0 ? `Continue with ${isFixed ? "Fixed" : "Trading"} Yield` : "Review quote"} →
                   </button>
                 ) : canOpen ? (
                   <Link
                     href={checkout}
                     className={`flex min-h-[48px] items-center justify-center rounded-xl text-[15px] font-medium text-[#0A0C10] transition-all hover:text-[#0A0C10] hover:brightness-110 hover:-translate-y-px active:translate-y-0 active:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice ${tone.cta}`}
                   >
-                    Open {isFixed ? "Fixed" : "Long"} Position →
+                    Open {isFixed ? "Fixed" : "Trading"} Yield →
                   </Link>
                 ) : market && !marketOpen ? (
                   <button
@@ -450,7 +450,7 @@ export function TradePreview() {
                     disabled={!market}
                     className="flex min-h-[48px] items-center justify-center rounded-xl border border-white/20 text-[14px] font-medium text-foreground disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice"
                   >
-                    Fix the amount to continue
+                    Enter an amount to continue
                   </button>
                 )}
                 <span className="mono text-center text-[10px] tracking-[0.1em] text-muted-dark">
@@ -502,19 +502,19 @@ function StrategyStep({ market, isFixed, setStrategy, fixedQuote, longQuote }: S
           selected={isFixed}
           onSelect={() => setStrategy("fixed")}
           title="Fixed Yield"
-          tagline="Lock a predictable rate until maturity."
+          tagline="Lock a quoted yield toward maturity."
           figure={formatApy(fixedQuote?.quotedFixedApy ?? market.impliedApy)}
           figureLabel={fixedQuote ? "Quoted fixed APY" : "Implied APY"}
           note={`Market implied ${formatApy(market.impliedApy)}`}
           powered="Powered by PT"
-          chip="PREDICTABLE"
+          chip="TO MATURITY"
         />
         <StrategyCard
           kind="long"
           selected={!isFixed}
           onSelect={() => setStrategy("long")}
-          title="Long Yield"
-          tagline="Take exposure to changing yield before maturity."
+          title="Trading Yield"
+          tagline="Trade exposure to future yield as rates move."
           figure={longQuote ? formatApy(longQuote.estimatedBreakEvenApy) : "—"}
           figureLabel="Break-even APY"
           note={`Rate now ${formatApy(market.underlyingApy)}`}
@@ -606,7 +606,7 @@ function AmountStep({
         <span className={`mono text-[12px] ${tone.text} ${dim}`}>
           {isFixed
             ? fixedQuote
-              ? `+${formatTokenAmount(fixedQuote.estimatedMaturityValue - amount)} ${market.symbol} · locked ${fixedQuote.quotedFixedApy}% APY`
+              ? `+${formatTokenAmount(fixedQuote.estimatedMaturityValue - amount)} ${market.symbol} · quoted ${fixedQuote.quotedFixedApy}% APY`
               : "—"
             : longQuote
               ? `until ${market.maturity} · break-even ${longQuote.estimatedBreakEvenApy}%`
@@ -666,7 +666,7 @@ function ReviewStep({ market, isFixed, tone, amount, fixedQuote, longQuote, stal
             <div className="flex items-center justify-between gap-3">
               <span className="text-[13px] text-muted-dark">You&apos;ll receive on {market.maturity}</span>
               <span className="mono inline-flex items-center gap-1 rounded border border-ice/30 px-2 py-0.5 text-[10px] tracking-[0.12em] text-ice">
-                <Lock className="h-3 w-3" aria-hidden="true" /> LOCKED
+                <Lock className="h-3 w-3" aria-hidden="true" /> QUOTED
               </span>
             </div>
             <div className="mono flex flex-wrap items-baseline gap-2 text-[30px] leading-none tracking-[-0.02em] text-foreground">
@@ -690,7 +690,7 @@ function ReviewStep({ market, isFixed, tone, amount, fixedQuote, longQuote, stal
                   ? "Pick a lending rate to compare."
                   : edge >= 0
                     ? `At this rate Fixed finishes ${formatTokenAmount(edge)} ${market.symbol} ahead of simply holding the vault.`
-                    : `At this rate holding the vault would finish ${formatTokenAmount(-edge)} ${market.symbol} ahead — that gap is the price of certainty.`}
+                    : `At this rate holding the vault would finish ${formatTokenAmount(-edge)} ${market.symbol} ahead — that gap is the price of predictability.`}
               </span>
             </div>
           </>
@@ -704,7 +704,7 @@ function ReviewStep({ market, isFixed, tone, amount, fixedQuote, longQuote, stal
                 <span className={`text-[13px] ${scenario.percentChange >= 0 ? "text-positive" : "text-negative"}`}>{signed(scenario.percentChange)}</span>
               )}
             </div>
-            <span className="text-[12px] leading-relaxed text-muted">Moves with the rate the vault actually pays — that&apos;s the bet.</span>
+            <span className="text-[12px] leading-relaxed text-muted">Moves with the rate the vault actually pays — that&apos;s the exposure.</span>
           </>
         )}
       </div>

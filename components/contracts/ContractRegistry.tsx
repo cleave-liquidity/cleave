@@ -2,11 +2,15 @@
 
 import { useMemo, useState } from "react";
 import { Check, Copy, ExternalLink } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import type { ContractCategory, ContractDeployment } from "@/lib/contracts/deployments";
 import { getContractDeployments } from "@/lib/contracts/deployments";
 import type { RobinhoodNetwork } from "@/types/market";
 import { getConfiguredNetwork } from "@/lib/web3/environment";
 import { NetworkSelect, type NetworkOption } from "@/components/contracts/NetworkSelect";
+import { yieldAdapter } from "@/lib/adapters/mock-adapter";
+import { isMarketTradable } from "@/lib/markets/status";
+import type { YieldMarket } from "@/types/market";
 
 const networkOptions: readonly NetworkOption[] = [
   { value: "mainnet", label: "Robinhood Chain Mainnet", chainId: 4663, hint: "Production" },
@@ -23,8 +27,75 @@ const categoryLabels: Record<ContractCategory, string> = {
   other: "Other",
 };
 
-function shortAddress(address: string): string {
-  return `${address.slice(0, 6)}…${address.slice(-4)}`;
+function LiveMarketContracts({ network }: { network: RobinhoodNetwork }) {
+  const liveEnabled = network === "mainnet" && yieldAdapter.mode === "live";
+  const { data: markets = [], isLoading, isError } = useQuery<YieldMarket[]>({
+    queryKey: ["contract-registry-live-markets", network],
+    enabled: liveEnabled,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const liveMarkets = await yieldAdapter.getMarkets();
+      return liveMarkets
+        .filter((market) => isMarketTradable(market))
+        .sort((a, b) => b.liquidityUsd - a.liquidityUsd || a.id.localeCompare(b.id));
+    },
+  });
+
+  return (
+    <section className="flex flex-col gap-4">
+      <div>
+        <div className="mono text-[10px] uppercase tracking-[0.16em] text-muted-dark">Runtime market metadata</div>
+        <h2 className="mt-2 text-[24px] font-normal tracking-[-0.03em] text-foreground">Pendle market and PT / YT / SY addresses</h2>
+        <p className="mt-2 max-w-[760px] text-[13px] leading-6 text-muted">
+          These addresses are resolved from the live Pendle market response for the selected chain. They are not CLEAVE-owned deployments and are not copied into the static registry.
+        </p>
+      </div>
+
+      {network === "testnet" ? (
+        <div className="border border-amber/35 bg-amber/5 px-5 py-5 text-[13px] leading-6 text-muted">
+          <span className="mono block text-[10px] uppercase tracking-[0.14em] text-amber">Not verified</span>
+          No verified Pendle market, PT, YT, or SY deployments are available for Robinhood Chain Testnet `46630`. Live Testnet trading is unavailable; no Mainnet address is reused here.
+        </div>
+      ) : yieldAdapter.mode !== "live" ? (
+        <div className="border border-amber/35 bg-amber/5 px-5 py-5 text-[13px] leading-6 text-muted">
+          <span className="mono block text-[10px] uppercase tracking-[0.14em] text-amber">Live inventory hidden</span>
+          The application is running in explicit mock mode, so no mock market address is presented as a verified deployment.
+        </div>
+      ) : isLoading ? (
+        <div className="border border-white/15 bg-surface/70 px-5 py-6 text-[13px] text-muted">Loading live Pendle market metadata…</div>
+      ) : isError ? (
+        <div className="border border-amber/35 bg-amber/5 px-5 py-5 text-[13px] leading-6 text-muted">
+          <span className="mono block text-[10px] uppercase tracking-[0.14em] text-amber">Live source unavailable</span>
+          No market address is shown because the current Pendle response could not be verified.
+        </div>
+      ) : markets.length === 0 ? (
+        <div className="border border-amber/35 bg-amber/5 px-5 py-5 text-[13px] leading-6 text-muted">
+          <span className="mono block text-[10px] uppercase tracking-[0.14em] text-amber">No tradeable market</span>
+          Pendle returned no currently tradeable Mainnet market metadata.
+        </div>
+      ) : (
+        <div className="overflow-x-auto border border-white/15 bg-surface/70">
+          <div className="min-w-[1040px]">
+            <div className="mono grid grid-cols-[1.3fr_1.5fr_1.5fr_1.5fr_1.5fr] gap-4 border-b border-white/15 px-5 py-3 text-[10px] uppercase tracking-[0.14em] text-muted-dark">
+              <span>Market / chain</span><span>Market</span><span>PT</span><span>YT</span><span>SY</span>
+            </div>
+            {markets.map((market) => (
+              <div key={market.id} className="grid grid-cols-[1.3fr_1.5fr_1.5fr_1.5fr_1.5fr] gap-4 border-b border-white/10 px-5 py-4 text-[11px] last:border-b-0">
+                <div>
+                  <span className="block text-[13px] text-foreground">{market.name}</span>
+                  <span className="mono text-muted-dark">Mainnet · {market.chainId}</span>
+                </div>
+                <code className="break-all text-muted" title={market.marketAddress}>{market.marketAddress || "Not verified"}</code>
+                <code className="break-all text-muted" title={market.ptAddress}>{market.ptAddress || "Not verified"}</code>
+                <code className="break-all text-muted" title={market.ytAddress}>{market.ytAddress || "Not verified"}</code>
+                <code className="break-all text-muted" title={market.syAddress}>{market.syAddress || "Not verified"}</code>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </section>
+  );
 }
 
 export function ContractRegistry() {
@@ -54,7 +125,7 @@ export function ContractRegistry() {
           <div className="mono text-[11px] uppercase tracking-[0.18em] text-muted-dark">Deployment registry / Transparency</div>
           <h1 className="mt-3 text-[36px] font-normal leading-none tracking-[-0.04em] text-foreground sm:text-[48px]">CLEAVE Contract Registry</h1>
           <p className="mt-4 max-w-[620px] text-[15px] leading-6 text-muted">
-            Verified external protocol addresses used by CLEAVE. This registry only lists addresses explicitly configured as verified integrations; none are CLEAVE-owned deployments.
+            Verified external protocol addresses used by CLEAVE. Static rows come from the deployment registry; live market, PT, YT, and SY rows come from verified Pendle metadata. None are CLEAVE-owned deployments.
           </p>
         </div>
         <div className="shrink-0 border-l-2 border-amber bg-amber/5 px-4 py-3 text-[12px] leading-5 text-muted">
@@ -79,6 +150,10 @@ export function ContractRegistry() {
         </div>
       </div>
 
+      <div className="mono text-[11px] uppercase tracking-[0.14em] text-muted">
+        {network === "mainnet" ? "Robinhood Chain Mainnet · Chain 4663" : "Robinhood Chain Testnet · Chain 46630"}
+      </div>
+
       {representedCategories.length > 0 && (
         <div className="flex flex-wrap items-center gap-2" aria-label="Filter contract categories">
           <button type="button" aria-pressed={category === "all"} onClick={() => setCategory("all")} className="min-h-[34px] border-b-2 border-transparent px-2 text-[12px] text-muted transition-colors aria-pressed:border-ice aria-pressed:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice">All</button>
@@ -93,28 +168,31 @@ export function ContractRegistry() {
       {filteredDeployments.length === 0 ? (
         <div className="border border-white/15 bg-surface/70 px-6 py-16 text-center sm:px-12">
           <div className="mono text-[11px] uppercase tracking-[0.16em] text-amber">{network === "mainnet" ? "Robinhood Chain Mainnet" : "Robinhood Chain Testnet"}</div>
-          <h2 className="mt-3 text-[22px] font-normal text-foreground">No verified CLEAVE contracts configured.</h2>
+          <h2 className="mt-3 text-[22px] font-normal text-foreground">No verified external deployments configured.</h2>
           <p className="mx-auto mt-3 max-w-[520px] text-[14px] leading-6 text-muted">
-            Contract deployments will appear here once the protocol integration is deployed and verified. Preview market addresses are not listed as deployments.
+            No address is fabricated for this network. Preview or Mainnet market addresses are not copied into the Testnet registry.
           </p>
         </div>
       ) : (
         <div className="overflow-x-auto border border-white/15 bg-surface/70">
-          <div className="min-w-[760px]">
-            <div className="mono grid grid-cols-[1.7fr_0.8fr_0.7fr_1.4fr_0.7fr_0.9fr] gap-4 border-b border-white/15 px-5 py-3 text-[10px] uppercase tracking-[0.14em] text-muted-dark">
-              <span>Contract</span><span>Category</span><span>Version</span><span>Address</span><span>Status</span><span className="text-right">Actions</span>
+          <div className="min-w-[1220px]">
+            <div className="mono grid grid-cols-[1.5fr_0.75fr_0.6fr_1.7fr_0.75fr_0.85fr_1.35fr_1fr] gap-4 border-b border-white/15 px-5 py-3 text-[10px] uppercase tracking-[0.14em] text-muted-dark">
+              <span>Contract / role</span><span>Category</span><span>Version</span><span>Address</span><span>Ownership</span><span>Status</span><span>Used by runtime</span><span className="text-right">Actions</span>
             </div>
             {filteredDeployments.map((deployment) => (
-              <div key={deployment.id} className="grid grid-cols-[1.7fr_0.8fr_0.7fr_1.4fr_0.7fr_0.9fr] items-center gap-4 border-b border-white/10 px-5 py-4 text-[13px] last:border-b-0">
-                <div><span className="block text-foreground">{deployment.name}</span><span className="text-[11px] text-muted-dark">{deployment.description}</span></div>
+              <div key={deployment.id} className="grid grid-cols-[1.5fr_0.75fr_0.6fr_1.7fr_0.75fr_0.85fr_1.35fr_1fr] items-center gap-4 border-b border-white/10 px-5 py-4 text-[13px] last:border-b-0">
+                <div><span className="block text-foreground">{deployment.name}</span><span className="text-[11px] text-muted-dark">{deployment.runtimeRole}</span></div>
                 <span className="text-muted">{categoryLabels[deployment.category]}</span>
                 <span className="mono text-muted">{deployment.version || "—"}</span>
-                <span className="mono text-muted">{shortAddress(deployment.address)}</span>
+                <code className="break-all text-[11px] text-muted" title={deployment.address}>{deployment.address}</code>
+                <span className="text-muted">{deployment.ownership === "project" ? "Project" : "External"}</span>
                 <span className={deployment.verified ? "text-positive" : "text-amber"}>{deployment.verified ? "Verified" : "Unverified"}</span>
+                <span className={deployment.usedByRuntime ? "text-positive" : "text-muted-dark"}>{deployment.usedByRuntime ? "YES" : "NO · registry"}</span>
                 <div className="flex justify-end gap-2">
                   <button type="button" onClick={() => copyAddress(deployment)} aria-label={`Copy ${deployment.name} address`} className="inline-flex min-h-[30px] items-center gap-1 border border-white/15 px-2 text-[11px] text-muted hover:border-white/35 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice">
                     {copiedId === deployment.id ? <Check className="h-3.5 w-3.5" aria-hidden="true" /> : <Copy className="h-3.5 w-3.5" aria-hidden="true" />} Copy
                   </button>
+                  {deployment.source && <a href={deployment.source} target="_blank" rel="noopener noreferrer" aria-label={`Open ${deployment.name} deployment source`} className="inline-flex min-h-[30px] items-center border border-white/15 px-2 text-[11px] text-muted hover:border-white/35 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice">Source</a>}
                   {deployment.explorerUrl && <a href={deployment.explorerUrl} target="_blank" rel="noopener noreferrer" aria-label={`Open ${deployment.name} in explorer`} className="inline-flex min-h-[30px] items-center border border-white/15 px-2 text-muted hover:border-white/35 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice"><ExternalLink className="h-3.5 w-3.5" aria-hidden="true" /></a>}
                 </div>
               </div>
@@ -122,6 +200,16 @@ export function ContractRegistry() {
           </div>
         </div>
       )}
+
+      <LiveMarketContracts network={network} />
+
+      <section className="flex flex-col gap-3">
+        <div className="mono text-[10px] uppercase tracking-[0.16em] text-muted-dark">Project-owned contracts</div>
+        <div className="border border-white/15 bg-surface/70 px-5 py-5 text-[13px] leading-6 text-muted">
+          <span className="block text-foreground">None registered</span>
+          CLEAVE currently integrates external Pendle deployments. No CLEAVE-owned Mainnet or Testnet contract is represented as deployed or verified.
+        </div>
+      </section>
     </div>
   );
 }

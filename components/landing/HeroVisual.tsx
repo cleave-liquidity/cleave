@@ -7,10 +7,10 @@ import { STAR_NODES } from "./heroStars";
 /** Text on the planet that comes from the market (symbol, rate) instead of being fixed in the scene. */
 export interface HeroLabels {
   fixedPin: string; // e.g. "FIXED · 3.36%"
-  vaultPin: string; // e.g. "USDG VAULT"
+  vaultPin: string; // e.g. "USDG MARKET"
   core: string; // e.g. "USDG · SPLIT VAULT CORE"
 }
-const DEFAULT_LABELS: HeroLabels = { fixedPin: "FIXED YIELD", vaultPin: "VAULT", core: "SPLIT VAULT CORE" };
+const DEFAULT_LABELS: HeroLabels = { fixedPin: "FIXED YIELD", vaultPin: "MARKET", core: "YIELD SPLIT" };
 
 export interface HeroVisualProps {
   /** Market-derived labels; neutral wording is shown until they arrive. */
@@ -902,10 +902,10 @@ function paintPinGeometry(ctx: CanvasRenderingContext2D, g: Gfx, idx: number, t:
 }
 
 const PIN_STYLE = [
-  { rgb: ICE, bg: "rgba(4,9,18,0.92)", w: 132, title: "", sub: "SENIOR TRANCHE", orbit: -26, orbitR: 46 },
-  { rgb: AMBER, bg: "rgba(16,8,3,0.92)", w: 136, title: "LONG · FLOATING", sub: "JUNIOR TRANCHE", orbit: 32, orbitR: 48 },
-  { rgb: FG, bg: "rgba(8,10,16,0.92)", w: 132, title: "SPLIT ENGINE", sub: "TRANCHE CLEAVER", orbit: 0, orbitR: 0 },
-  { rgb: MINT, bg: "rgba(3,14,10,0.92)", w: 132, title: "", sub: "DELTA-NEUTRAL", orbit: 0, orbitR: 0 },
+  { rgb: ICE, bg: "rgba(4,9,18,0.92)", w: 132, title: "", sub: "QUOTED YIELD", orbit: -26, orbitR: 46 },
+  { rgb: AMBER, bg: "rgba(16,8,3,0.92)", w: 136, title: "TRADING YIELD", sub: "FLOATING RATE", orbit: 32, orbitR: 48 },
+  { rgb: FG, bg: "rgba(8,10,16,0.92)", w: 132, title: "THE SPLIT", sub: "PT + YT", orbit: 0, orbitR: 0 },
+  { rgb: MINT, bg: "rgba(3,14,10,0.92)", w: 132, title: "", sub: "LIVE MARKET", orbit: 0, orbitR: 0 },
 ] as const;
 
 const PIN_GLOW = ["ice", "amber", "white", "mint"] as const;

@@ -6,7 +6,7 @@ import Link from "next/link";
 export const DOCS_SECTIONS = [
   ["start", "00", "Start here"],
   ["fixed", "01", "Fixed Yield"],
-  ["long", "02", "Long Yield"],
+  ["long", "02", "Trading Yield"],
   ["rates", "03", "Understanding rates"],
   ["maturity", "04", "Maturity"],
   ["risk", "05", "Risk"],
@@ -27,12 +27,8 @@ function scrollToSection(id: string) {
 }
 
 export function DocsNavigator() {
-  const [activeId, setActiveId] = useState<string>(() => {
-    if (typeof window === "undefined") return "start";
-    return DOCS_SECTIONS.some(([id]) => id === window.location.hash.slice(1))
-      ? window.location.hash.slice(1)
-      : "start";
-  });
+  // Must match the server render ("start"); the URL hash is applied after hydration, in the effect below.
+  const [activeId, setActiveId] = useState<string>("start");
 
   useEffect(() => {
     const sectionElements = DOCS_SECTIONS.map(([id]) => document.getElementById(id)).filter(
@@ -61,6 +57,7 @@ export function DocsNavigator() {
     const initialHash = window.location.hash.slice(1);
     if (DOCS_SECTIONS.some(([id]) => id === initialHash)) {
       window.requestAnimationFrame(() => {
+        setActiveId(initialHash);
         document.getElementById(initialHash)?.scrollIntoView({ block: "start" });
       });
     }
@@ -126,7 +123,7 @@ export function DocsNavigator() {
           {/* Bottom Card Summary */}
           <div className="mt-8 pt-5 border-t border-white/10 text-[12px] leading-relaxed text-muted-dark flex flex-col gap-3">
             <p className="m-0">
-              A calm guide to choosing, reading, and managing yield exposure.
+              How to choose, read, and manage Fixed Yield and Trading Yield.
             </p>
             <Link
               href="/markets"

@@ -38,8 +38,8 @@ export default function MarketsPage() {
               Market Explorer
             </h1>
             <p className="text-[16px] text-muted max-w-[560px] m-0 font-light">
-              Explore yield-bearing assets on Robinhood Chain. Choose Fixed Yield
-              for predictable outcomes or Long Yield for floating rate exposure.
+              Explore live yield markets. Compare rates, maturity, liquidity, and
+              market conditions before you trade.
             </p>
           </div>
 
@@ -90,7 +90,7 @@ export default function MarketsPage() {
         <div className="mt-8">
           {isLoading ? (
             <div className="py-24 text-center text-muted font-mono">
-              Loading yield markets...
+              Loading live markets…
             </div>
           ) : error ? (
             <div className="py-24 text-center text-negative">

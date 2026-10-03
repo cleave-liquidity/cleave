@@ -68,10 +68,10 @@ export function MaturityPreview() {
             <div className="flex justify-between items-baseline gap-3 pb-3 border-b border-white/10">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-ice shrink-0" />
-                <span className="text-[18px] font-medium text-foreground">Fixed · USDG (PT)</span>
+                <span className="text-[18px] font-medium text-foreground">Fixed Yield · USDG</span>
               </div>
               <span className="mono text-[11px] tracking-[0.12em] text-ice border border-ice/30 px-2 py-0.5 rounded">
-                LOCKED 6.38% APY
+                QUOTED 6.38% APY
               </span>
             </div>
 
@@ -104,13 +104,13 @@ export function MaturityPreview() {
               disabled
               className="flex-1 min-h-[46px] px-4 border border-white/10 rounded-xl bg-white/5 text-muted text-[13px] mono font-medium cursor-not-allowed text-center"
             >
-              Redeem (Matures in 118d)
+              Redeem at Maturity (118d)
             </button>
             <Link
               href="/portfolio"
               className="min-h-[46px] px-5 border border-white/20 rounded-xl bg-transparent text-foreground hover:border-white text-[13px] font-medium flex items-center justify-center transition-colors"
             >
-              Sell Early on AMM &rarr;
+              Sell Early &rarr;
             </Link>
           </div>
         </div>
@@ -121,7 +121,7 @@ export function MaturityPreview() {
             <div className="flex justify-between items-baseline gap-3 pb-3 border-b border-white/10">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-amber shrink-0" />
-                <span className="text-[18px] font-medium text-foreground">Long · USDG (YT)</span>
+                <span className="text-[18px] font-medium text-foreground">Trading Yield · USDG</span>
               </div>
               <span className="mono text-[11px] tracking-[0.12em] text-amber border border-amber/30 px-2 py-0.5 rounded">
                 RATE NOW: 7.10%
@@ -136,7 +136,7 @@ export function MaturityPreview() {
               <div className="flex flex-col gap-1">
                 <span className="mono text-[10px] text-muted-dark uppercase tracking-wider">Remaining Value</span>
                 <span className="mono text-[18px] font-medium text-foreground">$67.74</span>
-                <span className="mono text-[10px] text-muted-dark">Ends at $0</span>
+                <span className="mono text-[10px] text-muted-dark">Falls to $0 at maturity</span>
               </div>
               <div className="flex flex-col gap-1">
                 <span className="mono text-[10px] text-muted-dark uppercase tracking-wider">Yield Streamed</span>
@@ -166,13 +166,13 @@ export function MaturityPreview() {
                   : "bg-amber text-[#0A0C10] cursor-pointer hover:brightness-110 hover:-translate-y-px hover:shadow-[0_8px_30px_rgba(239,95,34,0.5)] active:translate-y-0 active:brightness-95"
               }`}
             >
-              {claimed ? "Yield Claimed (36.63 USDG)" : "Claim 36.63 USDG Yield"}
+              {claimed ? "Yield Claimed (36.63 USDG)" : "Claim Yield (36.63 USDG)"}
             </button>
             <Link
               href="/portfolio"
               className="min-h-[46px] px-5 border border-white/20 rounded-xl bg-transparent text-foreground hover:border-white text-[13px] font-medium flex items-center justify-center transition-colors"
             >
-              Exit Position &rarr;
+              Sell Early &rarr;
             </Link>
           </div>
         </div>

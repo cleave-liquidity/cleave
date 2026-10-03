@@ -60,8 +60,8 @@ export default function PortfolioPage() {
                 Yield Portfolio
               </h1>
               <p className="text-[16px] text-muted max-w-[560px] m-0 font-light">
-                Manage fixed and long yield exposure. Claim accrued yield, redeem matured
-                positions, or exit early on AMM.
+                Manage your Fixed Yield and Trading Yield positions. Claim yield, sell
+                early, or redeem at maturity.
               </p>
             </div>
 
@@ -83,7 +83,7 @@ export default function PortfolioPage() {
 
             <div className="p-3.5 sm:p-4 rounded-xl border border-white/10 bg-surface/50 backdrop-blur-sm flex flex-col gap-1">
               <span className="mono text-[10px] text-muted-dark uppercase tracking-wider">
-                Fixed Yield (PT)
+                Fixed Yield
               </span>
               <span className="mono text-[20px] sm:text-[22px] font-medium text-ice">
                 {formatUsd(fixedValue)}
@@ -92,7 +92,7 @@ export default function PortfolioPage() {
 
             <div className="p-3.5 sm:p-4 rounded-xl border border-white/10 bg-surface/50 backdrop-blur-sm flex flex-col gap-1">
               <span className="mono text-[10px] text-muted-dark uppercase tracking-wider">
-                Long Yield (YT)
+                Trading Yield
               </span>
               <span className="mono text-[20px] sm:text-[22px] font-medium text-amber">
                 {formatUsd(longValue)}
@@ -190,10 +190,10 @@ export default function PortfolioPage() {
                 </div>
                 <div className="flex flex-col gap-1 max-w-[420px]">
                   <h3 className="text-[19px] font-medium text-foreground m-0">
-                    Connect your wallet to view positions
+                    Connect your wallet to see your positions
                   </h3>
                   <p className="text-[14px] text-muted m-0 font-light leading-relaxed">
-                    Portfolio data, yield claims, and redemption status are scoped to your connected wallet address.
+                    Your Fixed Yield and Trading Yield positions, claimable yield and maturity status show up here once you connect. Markets and quotes work without a wallet.
                   </p>
                 </div>
                 <div className="pt-2">
@@ -202,7 +202,7 @@ export default function PortfolioPage() {
               </div>
             ) : isLoading ? (
               <div className="py-24 text-center font-mono text-muted text-[13px]">
-                Loading your positions...
+                Loading your positions…
               </div>
             ) : error ? (
               <div className="py-24 text-center text-negative font-mono text-[13px]">
@@ -215,18 +215,18 @@ export default function PortfolioPage() {
                 </div>
                 <div className="flex flex-col gap-1 max-w-[420px]">
                   <h3 className="text-[19px] font-medium text-foreground m-0">
-                    No positions found
+                    No positions yet
                   </h3>
                   <p className="text-[14px] text-muted m-0 font-light leading-relaxed">
                     You don&apos;t have any {filter !== "all" ? filter : ""} positions
-                    yet. Choose a yield market to open a fixed or long position.
+                    yet. Open one from a live market with Fixed Yield or Trading Yield.
                   </p>
                 </div>
                 <Link
                   href="/markets"
                   className="mt-2 inline-flex items-center gap-2 px-6 py-2.5 bg-foreground text-background font-medium rounded-xl text-[14px] hover:bg-white hover:text-background transition-all shadow-[0_2px_12px_rgba(255,255,255,0.15)]"
                 >
-                  <span>Browse Markets</span>
+                  <span>Explore Markets</span>
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>

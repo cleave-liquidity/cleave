@@ -29,7 +29,7 @@ export default function DocsPage() {
                 Yield trading without the complexity.
               </h1>
               <p className="mt-6 max-w-[600px] text-[17px] leading-7 text-muted">
-                CLEAVE turns a yield market into two readable choices: lock in a rate with Fixed Yield, or take a view on where yield is heading with Long Yield.
+                CLEAVE turns a yield market into two readable choices: lock a quoted yield with Fixed Yield, or trade exposure to future yield with Trading Yield.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link href="/markets" className="inline-flex min-h-[42px] items-center border border-ice/50 bg-ice/10 px-5 text-[14px] text-ice transition-colors hover:bg-ice/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice">
@@ -44,33 +44,33 @@ export default function DocsPage() {
             <div className="space-y-16 text-[16px] leading-7 text-muted">
               <section id="start" className="scroll-mt-32">
                 <SectionLabel>00 / Start here</SectionLabel>
-                <h2>One market. Two ways to read it.</h2>
+                <h2>One market. Two ways to trade its yield.</h2>
                 <p>
-                  A yield market has a principal side and a yield side. CLEAVE separates them into simple positions so you can decide whether you want certainty or exposure to future yield.
+                  A yield market has a principal side and a yield side. CLEAVE separates them into two positions so you can choose a more predictable outcome or exposure to future yield.
                 </p>
                 <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                  <GuideCard tone="ice" title="Fixed Yield" text="Know the rate you are targeting and carry the position to maturity." />
-                  <GuideCard tone="amber" title="Long Yield" text="Own the future yield stream and benefit if realized yield stays strong." />
+                  <GuideCard tone="ice" title="Fixed Yield" text="Lock a quoted yield toward maturity. Early exit is priced by the market." />
+                  <GuideCard tone="amber" title="Trading Yield" text="Trade exposure to future yield as rates move. Value can rise or fall." />
                 </div>
               </section>
 
               <section id="fixed" className="scroll-mt-32">
                 <SectionLabel>01 / Fixed Yield</SectionLabel>
-                <h2>Know your rate.</h2>
+                <h2>Lock a quoted yield.</h2>
                 <p>
-                  Fixed Yield is PT-backed exposure. You deposit the quote asset, receive Principal Tokens, and target a known maturity value based on the quoted fixed APY.
+                  Fixed Yield locks a quoted yield toward maturity. You deposit the quote asset, receive Principal Tokens (PT), and target the maturity value implied by the quoted fixed APY.
                 </p>
                 <Flow items={["Open position", "Hold or sell early", "Redeem at maturity"]} tone="ice" />
                 <p className="mt-5">Selling early returns the position’s current market value. Redeeming is available only once the market reaches maturity.</p>
               </section>
 
               <section id="long" className="scroll-mt-32">
-                <SectionLabel>02 / Long Yield</SectionLabel>
+                <SectionLabel>02 / Trading Yield</SectionLabel>
                 <h2>Trade future yield.</h2>
                 <p>
-                  Long Yield gives you Yield Token exposure. YT represents the right to claim the underlying yield stream until maturity; it does not redeem the deposited principal.
+                  Trading Yield gives you exposure to future yield through Yield Tokens (YT). YT represents the right to claim the underlying yield stream until maturity; it does not redeem the deposited principal.
                 </p>
-                <Flow items={["Open position", "Earn the yield stream", "Claim or sell early"]} tone="amber" />
+                <Flow items={["Open position", "Claim yield or sell early", "Expires at maturity"]} tone="amber" />
                 <p className="mt-5">If the realized rate is below the break-even rate, the position can lose value. At maturity, YT trends toward zero.</p>
               </section>
 
@@ -81,7 +81,7 @@ export default function DocsPage() {
                   <Term term="Underlying APY">The current annualized rate produced by the underlying yield source.</Term>
                   <Term term="Implied APY">The annualized rate implied by the market price of principal and yield exposure.</Term>
                   <Term term="Quoted Fixed APY">The rate calculated for the exact amount and maturity in your current Fixed quote.</Term>
-                  <Term term="Break-even APY">The average realized rate Long Yield needs for its yield stream to recover the amount paid.</Term>
+                  <Term term="Break-even APY">The average realized rate Trading Yield needs for its yield stream to recover the amount paid.</Term>
                 </dl>
               </section>
 
@@ -95,18 +95,18 @@ export default function DocsPage() {
 
               <section id="risk" className="scroll-mt-32">
                 <SectionLabel>05 / Risk</SectionLabel>
-                <h2>Long Yield is a view, not a guarantee.</h2>
+                <h2>Trading Yield is a view, not a guarantee.</h2>
                 <div className="border-l-2 border-amber bg-amber/5 px-5 py-4 text-muted-light">
-                  If realized yield falls below the rate implied by the price you paid, a large portion of Long Yield value can be lost. Review break-even, maturity, liquidity, and price impact before confirming.
+                  If realized yield falls below the rate implied by the price you paid, a large portion of Trading Yield value can be lost. Review break-even, maturity, liquidity, and price impact before confirming.
                 </div>
-                <p className="mt-5">Both strategies also carry market, liquidity, protocol, smart-contract, network, and wallet risks.</p>
+                <p className="mt-5">Fixed Yield: selling before maturity can result in a different realized outcome. Both strategies also carry market, liquidity, protocol, smart-contract, network, and wallet risks.</p>
               </section>
 
               <section id="wallet" className="scroll-mt-32">
                 <SectionLabel>06 / Wallet & network</SectionLabel>
                 <h2>Wallet state and market data are separate.</h2>
                 <p>
-                  CLEAVE uses your connected wallet and network state for account access. Robinhood Chain uses ETH for gas. Live market browsing defaults to Mainnet (4663). Testnet (46630) remains available for wallet and explicit mock/development flows; live Pendle markets are not silently substituted there.
+                  You can explore markets and preview quotes without a wallet; connect one only to execute a position or see your portfolio. Robinhood Chain uses ETH for gas. Live market browsing defaults to Mainnet (4663). Testnet (46630) remains available for wallet and explicit mock/development flows; live Pendle markets are not silently substituted there.
                 </p>
               </section>
 

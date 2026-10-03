@@ -80,10 +80,10 @@ export function FinalCTA() {
         <h2 className="m-0 text-[34px] sm:text-[48px] lg:text-[68px] leading-[1.04] font-normal tracking-[-0.035em] text-balance">
           Choose how you
           <br />
-          <span className="text-foreground">hold yield.</span>
+          <span className="text-foreground">trade yield.</span>
         </h2>
         <p className="m-0 text-[14px] sm:text-[16px] leading-[1.6] text-muted font-light max-w-[440px] mx-auto">
-          Lock a fixed rate or go long on where yield is heading — all in {market ? market.symbol : "one asset"}, settled
+          Lock a quoted yield or trade where it&apos;s heading — all in {market ? market.symbol : "one asset"}, live
           on Robinhood Chain.
         </p>
       </div>

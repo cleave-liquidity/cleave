@@ -21,7 +21,7 @@ const NAV_TIMEOUT_MS = 1600; // safety net if `scrollend` never fires
 // A little longer than the 170ms fade in `.hero-copy` (globals.css), so the old copy is fully gone before the swap.
 const COPY_OUT_MS = 210;
 
-const STAGE_SHORT = ["The Split", "Fixed Yield", "Long Yield", "Split Engine", "Live Vaults"];
+const STAGE_SHORT = ["Overview", "Fixed Yield", "Trading Yield", "How It Works", "Live Markets"];
 const STAGE_ACCENT = ["#ECEDEA", "#3B86FF", "#EF5F22", "#DDE8F8", "#34D399"];
 
 const FOCUS_RING =
@@ -81,8 +81,8 @@ export function Hero() {
       featured
         ? {
             fixedPin: `FIXED · ${formatApy(fixedQuote?.quotedFixedApy ?? featured.impliedApy)}`,
-            vaultPin: `${featured.symbol.toUpperCase()} VAULT`,
-            core: `${featured.symbol.toUpperCase()} · SPLIT VAULT CORE`,
+            vaultPin: `${featured.symbol.toUpperCase()} MARKET`,
+            core: `${featured.symbol.toUpperCase()} · YIELD SPLIT`,
           }
         : undefined,
     [featured, fixedQuote],

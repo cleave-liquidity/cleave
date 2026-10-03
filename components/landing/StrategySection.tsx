@@ -124,11 +124,11 @@ export function StrategySection() {
           <h2 className="m-0 text-[34px] sm:text-[46px] lg:text-[58px] leading-[1.05] font-normal tracking-[-0.035em] text-balance">
             Know your number.
             <br />
-            <span className="text-muted">Or bet on it.</span>
+            <span className="text-muted">Or trade the rate.</span>
           </h2>
           <p className="m-0 text-[15px] sm:text-[17px] leading-[1.6] text-muted font-light">
-            Slide the variable lending rate to test how Fixed (PT) and Long (YT)
-            positions react under different market conditions.
+            Slide the lending rate to see how Fixed Yield and Trading Yield respond as
+            rates move. Illustrative, not a quote.
           </p>
         </div>
 
@@ -160,14 +160,14 @@ export function StrategySection() {
         <div className="flex flex-col gap-1 w-full md:w-auto">
           <div className="flex items-center justify-between md:justify-start gap-3">
             <span className="mono text-[11px] tracking-[0.16em] text-muted-dark uppercase">
-              Underlying Vault APY
+              Underlying APY
             </span>
             <span className="mono text-[20px] font-semibold text-foreground">
               {simulatedRate.toFixed(2)}%
             </span>
           </div>
           <span className="mono text-[11px] text-muted-dark">
-            Break-even threshold for Long Yield:{" "}
+            Break-even threshold for Trading Yield:{" "}
             <span className="text-amber">{formatApy(BREAK_EVEN_RATE)}</span>
           </span>
         </div>
@@ -218,18 +218,18 @@ export function StrategySection() {
               <div className="flex items-center gap-2.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-ice shrink-0" />
                 <h3 className="m-0 text-[26px] sm:text-[30px] font-normal tracking-[-0.02em] text-ice">
-                  Fixed Yield (PT)
+                  Fixed Yield
                 </h3>
               </div>
               <span className="mono text-[11px] tracking-[0.14em] text-ice border border-ice/30 px-2.5 py-0.5 rounded">
-                {formatApy(FIXED_APY)} APY LOCKED
+                {formatApy(FIXED_APY)} QUOTED APY
               </span>
             </div>
 
             {/* Dynamic Return readout */}
             <div className="flex flex-col gap-1 pt-2 pb-1 border-b border-white/10">
               <span className="mono text-[11px] tracking-[0.14em] text-muted-dark uppercase">
-                Guaranteed Payout on {maturity}
+                Quoted payout on {maturity}
               </span>
               <div className="flex items-baseline gap-3">
                 <span className="mono text-[32px] sm:text-[36px] font-medium text-foreground">
@@ -244,7 +244,7 @@ export function StrategySection() {
                 </span>
               </div>
               <span className="mono text-[11px] text-muted-dark">
-                Immune to lending rate swings · Zero liquidation risk
+                Unaffected by rate swings if held · No liquidation
               </span>
             </div>
 
@@ -305,15 +305,14 @@ export function StrategySection() {
                   fill="#6F7471"
                   letterSpacing="0.1em"
                 >
-                  PREDICTABLE VALUE ACCRUAL
+                  VALUE TOWARD MATURITY
                 </text>
               </svg>
             </div>
 
             <p className="m-0 text-[14px] sm:text-[15px] leading-[1.6] text-muted font-light">
-              Your effective return is locked the moment you enter. Whether
-              borrow demand collapses or skyrockets, you redeem 1:1 in {symbol} at
-              maturity.
+              Held to maturity, your outcome follows the quote you accept, whatever
+              rates do. Selling early is priced by the market and can differ.
             </p>
           </div>
 
@@ -321,20 +320,20 @@ export function StrategySection() {
             <div className="flex justify-between text-[13px]">
               <span className="text-muted">Best for</span>
               <span className="text-foreground font-medium">
-                Corporate treasuries &amp; risk-off yield
+                A more predictable outcome
               </span>
             </div>
             <div className="flex justify-between text-[13px]">
-              <span className="text-muted">Early Exit</span>
+              <span className="text-muted">Early exit</span>
               <span className="text-foreground">
-                Sell PT anytime on AMM at market price
+                Sell anytime at the market price
               </span>
             </div>
             <Link
               href={market ? marketHref(market.id, "fixed") : "/markets"}
               className="mt-2 min-h-[44px] bg-ice text-[#0A0C10] font-medium text-[13px] flex items-center justify-center transition-all shadow-[0_0_20px_rgba(59,134,255,0.2)] hover:text-[#0A0C10] hover:brightness-110 hover:-translate-y-px hover:shadow-[0_8px_30px_rgba(59,134,255,0.5)] active:translate-y-0 active:brightness-95"
             >
-              Lock Fixed Rate (PT) &rarr;
+              Open Fixed Yield &rarr;
             </Link>
           </div>
         </div>
@@ -346,11 +345,11 @@ export function StrategySection() {
               <div className="flex items-center gap-2.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-amber shrink-0" />
                 <h3 className="m-0 text-[26px] sm:text-[30px] font-normal tracking-[-0.02em] text-amber">
-                  Long Yield (YT)
+                  Trading Yield
                 </h3>
               </div>
               <span className="mono text-[11px] tracking-[0.14em] text-amber border border-amber/30 px-2.5 py-0.5 rounded">
-                ~{LEVERAGE.toFixed(1)}x LEVERAGE
+                ~{LEVERAGE.toFixed(1)}x EXPOSURE
               </span>
             </div>
 
@@ -438,9 +437,9 @@ export function StrategySection() {
             </div>
 
             <p className="m-0 text-[14px] sm:text-[15px] leading-[1.6] text-muted font-light">
-              Because YT costs ~{ytPrice.toFixed(3)} {symbol} per token, you gain ~{LEVERAGE.toFixed(1)}x capital
-              efficiency. When lending demand surges, your yield claimable
-              multiplies dramatically.
+              Each unit costs ~{ytPrice.toFixed(3)} {symbol}, so a small amount buys exposure to ~{LEVERAGE.toFixed(1)}x
+              more yield. Rising rates grow your claimable yield; falling rates can
+              lose value.
             </p>
           </div>
 
@@ -448,20 +447,20 @@ export function StrategySection() {
             <div className="flex justify-between text-[13px]">
               <span className="text-muted">Best for</span>
               <span className="text-foreground font-medium">
-                Yield speculation &amp; rate hedging
+                Traders with a view on rates
               </span>
             </div>
             <div className="flex justify-between text-[13px]">
-              <span className="text-muted">Payout mechanism</span>
+              <span className="text-muted">Yield</span>
               <span className="text-foreground">
-                Claim streaming {symbol} continuously
+                Claim as it accrues
               </span>
             </div>
             <Link
               href={market ? marketHref(market.id, "long") : "/markets"}
               className="mt-2 min-h-[44px] bg-amber text-[#0A0C10] font-medium text-[13px] flex items-center justify-center transition-all shadow-[0_0_20px_rgba(239,95,34,0.2)] hover:text-[#0A0C10] hover:brightness-110 hover:-translate-y-px hover:shadow-[0_8px_30px_rgba(239,95,34,0.5)] active:translate-y-0 active:brightness-95"
             >
-              Trade Long Yield (YT) &rarr;
+              Open Trading Yield &rarr;
             </Link>
           </div>
         </div>

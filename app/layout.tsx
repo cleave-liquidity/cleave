@@ -4,9 +4,9 @@ import { Providers } from "./providers";
 import { SplashScreen } from "@/components/SplashScreen";
 
 export const metadata: Metadata = {
-  title: "Cleave — Yield trading for everyone on Robinhood Chain",
+  title: "Cleave — Trade yield on Robinhood Chain",
   description:
-    "Lock a fixed rate on your USDG, or go long on where yield is heading. Two choices, every number in dollars. Built on Robinhood Chain.",
+    "Yield isn't just something you earn — it's something you can trade. Choose Fixed Yield or Trading Yield on live markets on Robinhood Chain.",
 };
 
 export default function RootLayout({

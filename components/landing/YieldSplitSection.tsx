@@ -388,19 +388,19 @@ export function YieldSplitSection() {
         <div data-reveal className="flex flex-col gap-3 sm:gap-4">
           <div className="mono flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-muted">
             <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-ice" />
-            01 — THE SPLIT ENGINE
+            01 — HOW YIELD SPLITS
           </div>
           <h2 className="m-0 text-[34px] font-normal leading-[1.05] tracking-[-0.035em] text-balance sm:text-[46px] lg:text-[50px]">
             One asset.
             <br />
-            <span className="text-foreground">Two ways to own its yield.</span>
+            <span className="text-foreground">Two ways to trade its yield.</span>
           </h2>
         </div>
 
         <div data-reveal="1" className="flex flex-col gap-3">
           <p className="m-0 text-[15px] font-light leading-[1.6] text-muted sm:text-[16px]">
-            {symbol ? `${symbol} in a lending vault` : "A yield-bearing asset in a lending vault"} earns a rate that changes daily. We split that
-            position: one side holds steady to maturity, the other rides the rate.
+            {symbol ? `${symbol} in a lending vault` : "A yield-bearing asset in a lending vault"} earns a rate that changes daily. Split it in two:
+            one side targets a quoted yield to maturity, the other follows the rate.
           </p>
 
           {/* Interactive Zipper Control & Preset buttons */}
@@ -469,7 +469,7 @@ export function YieldSplitSection() {
             viewBox="0 92 1440 500"
             className="zs-svg cursor-default"
             role="group"
-            aria-label={`Interactive yield split diagram: one ${symbol || "asset"} position splits into Fixed and Long yield and reunites at maturity`}
+            aria-label={`Interactive yield split diagram: one ${symbol || "asset"} position splits into Fixed Yield and Trading Yield and reunites at maturity`}
           >
             <defs>
               {/* Radial gradient for glowing slider handle */}
@@ -690,7 +690,7 @@ export function YieldSplitSection() {
               <g className="mono zs-fade" fontSize="11" letterSpacing="0.12em" style={at(2.6)}>
                 <g opacity={labelOpacity}>
                   <text x={labelX} y="500" fill="#EF5F22">
-                    LONG YIELD · FLOATS WITH THE RATE
+                    TRADING YIELD · FOLLOWS THE RATE
                   </text>
                   <text x={labelX} y="518" fill="#8E9390" fontSize="10">
                     {ptReady ? `+${yieldPaidPercentage.toFixed(0)}% STREAMED · ~${leverage.toFixed(1)}x EXPOSURE` : `+${yieldPaidPercentage.toFixed(0)}% STREAMED`}
@@ -822,16 +822,16 @@ export function YieldSplitSection() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 shrink-0 rounded-full bg-ice" />
-              <span className="text-[16px] font-medium text-ice">Fixed Yield (PT)</span>
+              <span className="text-[16px] font-medium text-ice">Fixed Yield</span>
             </div>
             <span className="mono text-[13px] text-ice">{ptReady ? amt(currentPtPrice) : dash}</span>
           </div>
           <span className="text-[13px] font-light leading-[1.5] text-muted">
-            Worth exactly {splitMarket.underlyingAmount.toFixed(0)} {symbol} at maturity, bought below 1 today. The gap is your locked
-            return, with zero liquidation.
+            Targets {splitMarket.underlyingAmount.toFixed(0)} {symbol} at maturity, bought below 1 today. The gap is your quoted
+            yield. No liquidation.
           </span>
           <div className="mono flex justify-between text-[10px] tracking-[0.1em] text-muted-dark">
-            <span>APY: {formatApy(splitMarket.impliedApy)} LOCKED</span>
+            <span>QUOTED APY: {formatApy(splitMarket.impliedApy)}</span>
             <span>
               MATURES: {splitMarket.underlyingAmount.toFixed(2)} {symbol}
             </span>
@@ -845,23 +845,23 @@ export function YieldSplitSection() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 shrink-0 rounded-full bg-amber" />
-              <span className="text-[16px] font-medium text-amber">Long Yield (YT)</span>
+              <span className="text-[16px] font-medium text-amber">Trading Yield</span>
             </div>
             <span className="mono text-[13px] text-amber">+{yieldPaidPercentage.toFixed(0)}% paid</span>
           </div>
           <span className="text-[13px] font-light leading-[1.5] text-muted">
-            Collects streaming yield until maturity, then ends at zero. You win if the variable rate stays above break-even.
+            Follows the yield as it accrues, then expires at maturity. Gains above break-even; can lose value below it.
           </span>
           <div className="mono flex justify-between text-[10px] tracking-[0.1em] text-muted-dark">
             <span>CLAIMED: {ptReady ? amt(yieldStreamed) : dash}</span>
-            <span>LEVERAGE: {ptReady ? `~${leverage.toFixed(1)}x` : dash}</span>
+            <span>EXPOSURE: {ptReady ? `~${leverage.toFixed(1)}x` : dash}</span>
           </div>
         </div>
 
         <div data-on={cardOn(2)} className="zs-card flex flex-col gap-1.5 py-4 md:py-3 md:pl-8">
-          <span className="mono text-[11px] uppercase tracking-[0.14em] text-muted-dark">Conservation Invariant</span>
+          <span className="mono text-[11px] uppercase tracking-[0.14em] text-muted-dark">The split always adds up</span>
           <span className="mono text-[19px] leading-[1.3] text-foreground">
-            <span className="text-ice">1 PT</span> + <span className="text-amber">1 YT</span> = {splitMarket.underlyingAmount.toFixed(0)} {symbol} Vault
+            <span className="text-ice">1 PT</span> + <span className="text-amber">1 YT</span> = {splitMarket.underlyingAmount.toFixed(0)} {symbol}
           </span>
           <span className="mono text-[10px] tracking-[0.08em] text-muted-dark">
             {isFullZipped ? "MATURITY REACHED · 100% REDEEMABLE" : "ACTIVE SPLIT · NO PROTOCOL DEBT"}

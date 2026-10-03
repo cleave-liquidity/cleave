@@ -6,6 +6,7 @@
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",
+    "deploy:show": "bun scripts/deploy-show.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "bun test"
