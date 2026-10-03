@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import Link from "next/link";
 import { HeroVisual } from "./HeroVisual";
 import { Navbar } from "@/components/layout/Navbar";
+import { ContractAddress } from "./ContractAddress";
 import { useFixedYieldQuote } from "@/hooks/useFixedYieldQuote";
 import { useLongYieldQuote } from "@/hooks/useLongYieldQuote";
 import { useMarkets } from "@/hooks/useMarkets";
@@ -21,7 +22,7 @@ const NAV_TIMEOUT_MS = 1600; // safety net if `scrollend` never fires
 // A little longer than the 170ms fade in `.hero-copy` (globals.css), so the old copy is fully gone before the swap.
 const COPY_OUT_MS = 210;
 
-const STAGE_SHORT = ["Overview", "Fixed Yield", "Trading Yield", "How It Works", "Live Markets"];
+const STAGE_SHORT = ["Overview", "Fixed Yield", "Trading Yield", "How It Works", "Markets"];
 const STAGE_ACCENT = ["#ECEDEA", "#3B86FF", "#EF5F22", "#DDE8F8", "#34D399"];
 
 const FOCUS_RING =
@@ -439,6 +440,8 @@ export function Hero() {
               </div>
               </div>
             </div>
+
+            <ContractAddress />
           </div>
 
           {/* Bottom Stage Timeline Bar */}

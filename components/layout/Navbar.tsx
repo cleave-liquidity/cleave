@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ConnectButton } from "@/components/wallet/ConnectButton";
 import { EnvironmentStrip } from "@/components/layout/EnvironmentStrip";
+import { XIcon } from "@/components/layout/XIcon";
+import { X_URL } from "@/lib/site-links";
 
 export function Navbar({ isLanding = false }: { isLanding?: boolean }) {
   const pathname = usePathname();
@@ -94,6 +96,17 @@ export function Navbar({ isLanding = false }: { isLanding?: boolean }) {
         </nav>
 
         <div className="flex items-center gap-3">
+          <a
+            href={X_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="CLEAVE on X (opens in a new tab)"
+            className={`items-center justify-center border border-white/20 bg-background/50 text-muted transition-colors hover:border-white/40 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice ${
+              isLanding ? "inline-flex h-[38px] w-[38px] sm:h-[44px] sm:w-[44px]" : "hidden h-[46px] w-[46px] sm:inline-flex"
+            }`}
+          >
+            <XIcon className="h-[15px] w-[15px]" />
+          </a>
           {isLanding ? (
             <Link
               href="/markets"

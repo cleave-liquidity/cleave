@@ -9,6 +9,7 @@ import { useFixedYieldQuote } from "@/hooks/useFixedYieldQuote";
 import { useLongYieldQuote } from "@/hooks/useLongYieldQuote";
 import { useNetworkGuard } from "@/hooks/useNetworkGuard";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
+import { useNativeBalance } from "@/hooks/useNativeBalance";
 import { useTokenAllowance } from "@/hooks/useTokenAllowance";
 import { useApproveToken } from "@/hooks/useApproveToken";
 import { useOpenFixedPosition } from "@/hooks/useOpenFixedPosition";
@@ -38,6 +39,7 @@ import {
   QUOTE_UNAVAILABLE_TITLE,
   type QuoteUiState,
 } from "@/lib/markets/quote-state";
+import { blocksExecutionForNativeBalance } from "@/lib/markets/native-balance";
 import {
   applyBalanceShortcut,
   applyManualAmount,
@@ -74,6 +76,15 @@ export function TradePanel({
     market.underlyingDecimals,
     market.chainId,
   );
+  const nativeBalance = useNativeBalance(address, market.chainId);
+  const nativeBalanceState = {
+    isConnected,
+    isLoading: nativeBalance.isLoading,
+    hasBalance: nativeBalance.hasBalance,
+    balance: nativeBalance.balance,
+    error: nativeBalance.error,
+  };
+  const isNativeBalanceBlocking = blocksExecutionForNativeBalance(nativeBalanceState);
   const approvalSpender = getContractByName(market.chainId, "Pendle Router V2")?.address;
   const { allowance, refresh: refreshAllowance } = useTokenAllowance(
     address,
@@ -300,6 +311,12 @@ export function TradePanel({
           `Insufficient ${market.quoteAsset} balance for this trade.`
         );
       }
+      if (isNativeBalanceBlocking) {
+        if (nativeBalance.status === "resolved" && nativeBalance.balance === 0) {
+          throw new YieldDomainError("insufficient-eth-for-gas", "Insufficient ETH for network fees.");
+        }
+        throw new YieldDomainError("rpc-unavailable", "Unable to verify ETH for network fees.");
+      }
       if (isMarketUnavailable) {
         throw new YieldDomainError(
           marketStatus === "paused" ? "market-paused" : "market-expired",
@@ -441,6 +458,15 @@ export function TradePanel({
                     : formatTokenAmount(balance)}
             </span>
             <span className="text-muted-faint">{market.quoteAsset}</span>
+            <span className="text-muted-faint">
+              GAS: {!isConnected
+                ? "—"
+                : nativeBalance.status === "loading"
+                  ? "Loading…"
+                  : nativeBalance.status === "unavailable"
+                    ? "Unavailable"
+                    : formatTokenAmount(nativeBalance.balance ?? 0, 6)} ETH
+            </span>
           </div>
         </div>
 
@@ -510,6 +536,16 @@ export function TradePanel({
         {isInsufficientBalance && (
           <span role="alert" className="text-[12px] text-negative">
             Insufficient {market.quoteAsset} balance.
+          </span>
+        )}
+        {isConnected && !isWrongNetwork && nativeBalance.status === "resolved" && nativeBalance.balance === 0 && (
+          <span role="alert" className="text-[12px] text-negative">
+            Insufficient ETH for network fees.
+          </span>
+        )}
+        {isConnected && !isWrongNetwork && nativeBalance.status === "unavailable" && (
+          <span role="alert" className="text-[12px] text-negative">
+            Unable to verify ETH for network fees.
           </span>
         )}
       </div>
@@ -869,6 +905,7 @@ export function TradePanel({
               loadingLong ||
               isInvalidAmount ||
               isInsufficientBalance ||
+              isNativeBalanceBlocking ||
               !isQuoteReady
             }
             onClick={handleExecuteTrade}

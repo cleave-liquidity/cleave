@@ -12,6 +12,8 @@ export const queryKeys = {
     ["balance", dataMode(), adapter(), address?.toLowerCase() ?? "disconnected", chainId ?? "unknown"] as const,
   balance: (address: string | undefined, token: string, chainId?: number) =>
     ["balance", dataMode(), adapter(), address?.toLowerCase() ?? "disconnected", token, chainId ?? "unknown"] as const,
+  nativeBalance: (address: string | undefined, chainId?: number) =>
+    ["native-balance", dataMode(), adapter(), address?.toLowerCase() ?? "disconnected", chainId ?? "unknown"] as const,
   allowancePrefix: (address?: string, chainId?: number) =>
     ["allowance", dataMode(), adapter(), address?.toLowerCase() ?? "disconnected", chainId ?? "unknown"] as const,
   allowance: (address: string | undefined, token: string, spender: string, chainId?: number) =>

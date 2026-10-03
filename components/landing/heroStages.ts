@@ -108,7 +108,7 @@ export const FALLBACK_STAGES: StageInfo[] = [
     index: 3,
     tag: "03 / HOW IT WORKS",
     title: "One asset.",
-    accent: "Two ways to trade its yield.",
+    accent: "Two yields to trade.",
     description:
       "Every 1 USDG splits into two parts: a fixed-yield side (PT) and a future-yield side (YT). At maturity 1 PT redeems 1 USDG, and YT expires.",
     subTabs: ["01 The Split", "02 Always Adds Up", "03 At Maturity"],

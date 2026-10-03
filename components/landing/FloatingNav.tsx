@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { Fragment, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { XIcon } from "@/components/layout/XIcon";
+import { X_URL } from "@/lib/site-links";
 import { buildLensMapUrl, supportsBackdropLens } from "./liquidGlass";
 
 const HERO_ID = "top";
@@ -189,12 +191,24 @@ export function FloatingNav() {
             ))}
           </nav>
 
-          <Link
-            href="/markets"
-            className={`lg-cta inline-flex min-h-[38px] cursor-pointer items-center justify-center rounded-full px-4 text-[13px] font-semibold sm:px-5 ${FOCUS_RING}`}
-          >
-            <span className="relative z-10">Launch app</span>
-          </Link>
+          <div className="flex items-center gap-1.5">
+            <a
+              href={X_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="CLEAVE on X (opens in a new tab)"
+              className={`inline-flex h-[38px] w-[38px] shrink-0 cursor-pointer items-center justify-center rounded-full text-white/75 transition-colors hover:bg-white/10 hover:text-white ${FOCUS_RING}`}
+            >
+              <XIcon className="h-4 w-4" />
+            </a>
+
+            <Link
+              href="/markets"
+              className={`lg-cta inline-flex min-h-[38px] cursor-pointer items-center justify-center rounded-full px-4 text-[13px] font-semibold sm:px-5 ${FOCUS_RING}`}
+            >
+              <span className="relative z-10">Launch app</span>
+            </Link>
+          </div>
         </div>
       </header>
     </div>

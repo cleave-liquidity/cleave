@@ -769,3 +769,23 @@ input:focus-visible {
     animation: none;
   }
 }
+
+/* Idle float for the hero contract-address pill: a few pixels of lift, slow enough to read as "hovering". */
+.lg-float {
+  animation: lg-float 7s ease-in-out infinite;
+}
+@keyframes lg-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lg-float {
+    animation: none;
+  }
+}
+
