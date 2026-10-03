@@ -1,14 +1,16 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { ApplicationBackdrop } from "@/components/layout/ApplicationBackdrop";
 import { AssetIcon } from "@/components/markets/AssetIcon";
-import { TradePanel } from "@/components/trade/TradePanel";
-import { formatApy, formatUsd } from "@/lib/utils/formatters";
+import { TradePanel, type TradeQuoteContext } from "@/components/trade/TradePanel";
+import { formatApy, formatTokenAmount, formatUsd } from "@/lib/utils/formatters";
+import type { FixedYieldQuote, LongYieldQuote } from "@/types/quote";
+import type { QuoteUiState } from "@/lib/markets/quote-state";
 import { YieldMarket } from "@/types/market";
 import { ArrowLeft } from "lucide-react";
 import {
@@ -26,12 +28,19 @@ export function TradeWorkspaceClient({
   initialAmount?: string;
 }) {
   const router = useRouter();
+  const [quoteContext, setQuoteContext] = useState<TradeQuoteContext>(() =>
+    createEmptyQuoteContext(market.id, initialAmount),
+  );
   const assetSymbol = market.assetMetadata?.symbol || market.symbol;
   const assetName = market.assetMetadata?.name || market.name;
   const sourceName = market.sourceProtocol || market.protocolMetadata?.name || market.yieldSource;
   const isTradeable =
     (market.status === "active" || market.status === "maturing") &&
     market.daysRemaining > 0;
+
+  useEffect(() => {
+    setQuoteContext(createEmptyQuoteContext(market.id, initialAmount));
+  }, [initialAmount, market.id, strategy]);
 
   const handleStrategyChange = (nextStrategy: TradeStrategy) => {
     router.replace(buildTradeWorkspaceHref(market.id, nextStrategy), { scroll: false });
@@ -82,8 +91,8 @@ export function TradeWorkspaceClient({
             </div>
 
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <MarketMetric label="Fixed Yield" value={formatApy(market.impliedApy)} tone="ice" />
-              <MarketMetric label="Rate Now" value={formatApy(market.underlyingApy)} />
+              <MarketMetric label="Implied APY" value={formatApy(market.impliedApy)} tone="ice" />
+              <MarketMetric label="Underlying APY" value={formatApy(market.underlyingApy)} />
               <MarketMetric label="Maturity" value={market.maturity} />
               <MarketMetric label="Liquidity" value={formatUsd(market.liquidityUsd)} />
             </div>
@@ -124,13 +133,7 @@ export function TradeWorkspaceClient({
                   Long Yield
                 </button>
               </div>
-              <p className="text-[16px] leading-7 text-muted">
-                {strategy === "fixed"
-                  ? "Fixed Yield targets a predictable outcome at maturity. The live quote and wallet checks are handled below."
-                  : strategy === "long"
-                    ? "Long Yield gives exposure to future yield through maturity. The live quote and wallet checks are handled below."
-                    : "Choose Fixed Yield or Long Yield before entering an amount or opening a position."}
-              </p>
+              <StrategyContext strategy={strategy} market={market} quoteContext={quoteContext} />
             </div>
             <div className="w-full lg:sticky lg:top-28">
               {strategy && isTradeable ? (
@@ -139,6 +142,7 @@ export function TradeWorkspaceClient({
                   market={market}
                   strategy={strategy}
                   initialAmount={initialAmount}
+                  onQuoteContextChange={setQuoteContext}
                 />
               ) : strategy ? (
                 <div className="border border-white/16 rounded-[10px] bg-surface p-5 sm:p-7 text-center">
@@ -169,6 +173,176 @@ export function TradeWorkspaceClient({
       </div>
     </div>
   );
+}
+
+function createEmptyQuoteContext(marketId: string, initialAmount?: string): TradeQuoteContext {
+  const parsed = Number(initialAmount);
+  return {
+    marketId,
+    inputAmount: Number.isFinite(parsed) && parsed > 0 ? parsed : null,
+    quoteState: "idle",
+    fixedQuote: null,
+    longQuote: null,
+  };
+}
+
+function StrategyContext({
+  strategy,
+  market,
+  quoteContext,
+}: {
+  strategy?: TradeStrategy;
+  market: YieldMarket;
+  quoteContext: TradeQuoteContext;
+}) {
+  if (!strategy) {
+    return (
+      <p className="text-[16px] leading-7 text-muted">
+        Choose Fixed Yield or Long Yield to load the matching quote and execution flow.
+      </p>
+    );
+  }
+
+  const fixed = strategy === "fixed";
+  const contextMatchesMarket = quoteContext.marketId === market.id;
+  const quoteState: QuoteUiState = contextMatchesMarket ? quoteContext.quoteState : "idle";
+  const fixedQuote: FixedYieldQuote | null = contextMatchesMarket ? quoteContext.fixedQuote : null;
+  const longQuote: LongYieldQuote | null = contextMatchesMarket ? quoteContext.longQuote : null;
+  const inputAmount = contextMatchesMarket ? quoteContext.inputAmount : null;
+  const assetSymbol = market.assetMetadata?.symbol || market.symbol;
+  const assetName = market.assetMetadata?.name || market.name;
+  const sourceProtocol = market.sourceProtocol || market.protocolMetadata?.name;
+  const sourceLabel = sourceProtocol ? `${market.yieldSource} via ${sourceProtocol}` : market.yieldSource;
+  const timeRemaining = market.daysRemaining > 0 ? `${market.daysRemaining} days remaining` : "maturity reached";
+  const marketIsTradeable =
+    (market.status === "active" || market.status === "maturing") && market.daysRemaining > 0;
+
+  const positionContext = fixed
+    ? getFixedPositionContext({
+        market,
+        marketIsTradeable,
+        quoteState,
+        quote: fixedQuote,
+        inputAmount,
+      })
+    : getLongPositionContext({
+        market,
+        marketIsTradeable,
+        quoteState,
+        quote: longQuote,
+        inputAmount,
+      });
+
+  const points = fixed
+    ? [
+        ["How it works", "You receive PT exposure from the current quote."],
+        ["At maturity", "Eligible PT may be redeemed for underlying value."],
+        ["Before maturity", "The position may be exited at prevailing market pricing."],
+        ["Key risk", "Early exit can produce a different realized outcome from the quoted maturity outcome."],
+      ]
+    : [
+        ["How it works", "You receive YT exposure to the future yield stream."],
+        ["While active", "Eligible yield may be claimable while the position remains active."],
+        ["At maturity", "YT does not redeem principal; its exposure follows maturity behavior."],
+        ["Key risk", "The position may lose value if realized yield underperforms market expectations."],
+      ];
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div>
+        <h2 className={`text-[24px] font-normal ${fixed ? "text-ice" : "text-amber"}`}>
+          {fixed ? "Fixed Yield" : "Long Yield"}
+        </h2>
+        <p className="mt-2 text-[16px] leading-7 text-muted">
+          {fixed
+            ? "A predictable-outcome position held toward maturity."
+            : "Exposure to future yield until maturity."}
+        </p>
+      </div>
+
+      <div className="border-y border-white/10 py-3">
+        <div className="mono text-[10px] uppercase tracking-[0.14em] text-muted-dark">Market lens</div>
+        <p className="mt-2 text-[14px] leading-6 text-muted">
+          {assetName} ({assetSymbol}) · {sourceLabel}. The market is pricing {formatApy(market.impliedApy)} implied APY
+          against {formatApy(market.underlyingApy)} current underlying APY, with {timeRemaining} until {market.maturity}.
+        </p>
+        <p className="mt-2 text-[13px] leading-6 text-muted-dark">
+          {fixed
+            ? `PT behavior is maturity-oriented: redemption follows the market's maturity terms, while an early exit uses prevailing ${assetSymbol} pricing.`
+            : `YT behavior follows the future yield stream: claims depend on realized yield while active, and the exposure expires at ${market.maturity}.`}
+        </p>
+      </div>
+
+      <div className="border-b border-white/10 pb-3">
+        <div className="mono text-[10px] uppercase tracking-[0.14em] text-muted-dark">Position lens</div>
+        <p className="mt-2 text-[14px] leading-6 text-muted">{positionContext}</p>
+      </div>
+
+      <dl className="border-y border-white/10">
+        {points.map(([label, value]) => (
+          <div key={label} className="flex items-center justify-between gap-4 border-b border-white/10 py-2.5 last:border-b-0">
+            <dt className="text-[13px] text-muted-dark">{label}</dt>
+            <dd className="mono text-right text-[12px] text-foreground">{value}</dd>
+          </div>
+        ))}
+      </dl>
+
+    </div>
+  );
+}
+
+function getFixedPositionContext({
+  market,
+  marketIsTradeable,
+  quoteState,
+  quote,
+  inputAmount,
+}: {
+  market: YieldMarket;
+  marketIsTradeable: boolean;
+  quoteState: QuoteUiState;
+  quote: FixedYieldQuote | null;
+  inputAmount: number | null;
+}): string {
+  if (!marketIsTradeable) return "This market is not currently tradeable, so no position quote is shown.";
+  if (quoteState === "quoting") return `Fetching a live Fixed quote for ${inputAmount ?? "your"} ${market.quoteAsset}.`;
+  if (quoteState === "unavailable") return "No executable Fixed route is available for this amount. No position outputs are shown.";
+  if (quoteState === "error") return "The live Fixed quote could not be fetched. Retry before relying on position-specific values.";
+  if (quoteState !== "ready" || !quote || inputAmount === null) {
+    return `Enter an amount in the trade panel to preview PT received, Fixed APY, maturity value, impact, and fee for ${market.symbol}.`;
+  }
+
+  const fee = quote.networkFeeEstimate === undefined
+    ? "the network fee is shown before confirmation"
+    : `the estimated network fee is ~${formatTokenAmount(quote.networkFeeEstimate, 4)} ETH`;
+  return `For ${formatTokenAmount(inputAmount)} ${market.quoteAsset}, the quote returns ${formatTokenAmount(quote.ptReceived)} ${market.symbol} at ${formatApy(quote.quotedFixedApy)} Fixed APY. It estimates ${formatTokenAmount(quote.estimatedMaturityValue)} ${market.symbol} at maturity with ${quote.priceImpact}% price impact; ${fee}.`;
+}
+
+function getLongPositionContext({
+  market,
+  marketIsTradeable,
+  quoteState,
+  quote,
+  inputAmount,
+}: {
+  market: YieldMarket;
+  marketIsTradeable: boolean;
+  quoteState: QuoteUiState;
+  quote: LongYieldQuote | null;
+  inputAmount: number | null;
+}): string {
+  if (!marketIsTradeable) return "This market is not currently tradeable, so no position quote is shown.";
+  if (quoteState === "quoting") return `Fetching a live Long quote for ${inputAmount ?? "your"} ${market.quoteAsset}.`;
+  if (quoteState === "unavailable") return "No executable Long route is available for this amount. No position outputs are shown.";
+  if (quoteState === "error") return "The live Long quote could not be fetched. Retry before relying on position-specific values.";
+  if (quoteState !== "ready" || !quote || inputAmount === null) {
+    return `Enter an amount in the trade panel to preview YT received, break-even APY, yield exposure, impact, and fee for ${market.symbol}.`;
+  }
+
+  const fee = quote.networkFeeEstimate === undefined
+    ? "the network fee is shown before confirmation"
+    : `the estimated network fee is ~${formatTokenAmount(quote.networkFeeEstimate, 4)} ETH`;
+  return `For ${formatTokenAmount(inputAmount)} ${market.quoteAsset}, the quote returns ${formatTokenAmount(quote.ytReceived)} ${market.symbol} YT with a ${formatApy(quote.estimatedBreakEvenApy)} break-even APY and ${formatTokenAmount(quote.estimatedYieldExposure)} ${market.symbol} estimated yield exposure. Price impact is ${quote.priceImpact}%; ${fee}.`;
 }
 
 function MarketMetric({

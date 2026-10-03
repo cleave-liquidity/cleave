@@ -10,6 +10,16 @@ import type { YieldMarket } from "@/types/market";
  */
 const MAX_SANE_APY = 100; // %
 
+function isPreferredFeaturedMarket(market: YieldMarket): boolean {
+  const symbol = (market.assetMetadata?.symbol ?? market.symbol).trim().toUpperCase();
+  const name = (market.assetMetadata?.name ?? market.name).trim().toLowerCase();
+  return symbol === "USDG" || name === "global dollar";
+}
+
+function byStablePriority(a: YieldMarket, b: YieldMarket): number {
+  return b.liquidityUsd - a.liquidityUsd || a.id.localeCompare(b.id);
+}
+
 export function isFeaturable(m: YieldMarket): boolean {
   return (
     (m.status === "active" || m.status === "maturing") &&
@@ -25,15 +35,24 @@ export function isFeaturable(m: YieldMarket): boolean {
 }
 
 /**
- * The market that leads the landing page: a featurable market that actually yields something and is not
- * about to expire, in the adapter's own order (so the data side can still decide what comes first).
+ * The market that leads the landing page. A valid Global Dollar market is preferred for the product's
+ * primary story; otherwise the fallback is stable across adapter response ordering.
  */
 export function pickFeaturedMarket(markets: readonly YieldMarket[]): YieldMarket | null {
   const ok = markets.filter(isFeaturable);
+  const preferred = ok.filter(isPreferredFeaturedMarket).sort(byStablePriority)[0];
+  if (preferred) return preferred;
+
+  const activeWithYield = ok
+    .filter((market) => market.underlyingApy > 0 && market.status === "active")
+    .sort(byStablePriority);
+  if (activeWithYield[0]) return activeWithYield[0];
+
+  const active = ok.filter((market) => market.status === "active").sort(byStablePriority);
+  if (active[0]) return active[0];
+
   return (
-    ok.find((m) => m.underlyingApy > 0 && m.status === "active") ??
-    ok.find((m) => m.status === "active") ??
-    ok[0] ??
+    ok.sort(byStablePriority)[0] ??
     null
   );
 }
@@ -42,7 +61,7 @@ export function pickFeaturedMarket(markets: readonly YieldMarket[]): YieldMarket
 export function pickPreviewMarkets(markets: readonly YieldMarket[], count: number): YieldMarket[] {
   return markets
     .filter(isFeaturable)
-    .sort((a, b) => b.liquidityUsd - a.liquidityUsd)
+    .sort(byStablePriority)
     .slice(0, count);
 }
 

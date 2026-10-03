@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { YieldMarket } from "@/types/market";
+import type { FixedYieldQuote, LongYieldQuote } from "@/types/quote";
 import { useFixedYieldQuote } from "@/hooks/useFixedYieldQuote";
 import { useLongYieldQuote } from "@/hooks/useLongYieldQuote";
 import { useNetworkGuard } from "@/hooks/useNetworkGuard";
@@ -24,15 +25,36 @@ import {
   isQuoteEnabledForStrategy,
   type TradeStrategy,
 } from "@/lib/markets/trade-strategy";
+import {
+  getQuoteTechnicalMessage,
+  getQuoteUiState,
+  getQuoteUserMessage,
+  isQuoteExecutionReady,
+  isQuoteRouteUnavailableError,
+  QUOTE_ERROR_MESSAGE,
+  QUOTE_UNAVAILABLE_MESSAGE,
+  QUOTE_UNAVAILABLE_TITLE,
+  type QuoteUiState,
+} from "@/lib/markets/quote-state";
+
+export type TradeQuoteContext = {
+  marketId: string;
+  inputAmount: number | null;
+  quoteState: QuoteUiState;
+  fixedQuote: FixedYieldQuote | null;
+  longQuote: LongYieldQuote | null;
+};
 
 export function TradePanel({
   market,
   strategy,
   initialAmount,
+  onQuoteContextChange,
 }: {
   market: YieldMarket;
   strategy: TradeStrategy;
   initialAmount?: string;
+  onQuoteContextChange?: (context: TradeQuoteContext) => void;
 }) {
   const router = useRouter();
   const { address, chainId, isConnected, status: networkStatus, switchToRobinhood } = useNetworkGuard();
@@ -96,16 +118,48 @@ export function TradePanel({
   const isMarketUnavailable = market.status === "paused" || market.status === "matured";
   const activeQuote = isFixed ? fixedQuote : longQuote;
   const quoteError = isFixed ? fixedQuoteError : longQuoteError;
+  const activeQuoteLoading = isFixed ? loadingFixed : loadingLong;
   const isQuoteExpired = Boolean(activeQuote && activeQuote.quoteExpiry <= currentTime);
+  const quoteState = getQuoteUiState({
+    hasValidAmount: !isInvalidAmount,
+    isLoading: activeQuoteLoading,
+    quote: activeQuote,
+    error: quoteError,
+    isExpired: isQuoteExpired,
+  });
+  const isQuoteReady = isQuoteExecutionReady(quoteState);
+  const quoteForExecution = isQuoteReady ? activeQuote : null;
+  const fixedQuoteForDisplay = isQuoteReady ? fixedQuote : null;
+  const longQuoteForDisplay = isQuoteReady ? longQuote : null;
+
+  useEffect(() => {
+    onQuoteContextChange?.({
+      marketId: market.id,
+      inputAmount: isInvalidAmount ? null : inputAmount,
+      quoteState,
+      fixedQuote: fixedQuoteForDisplay,
+      longQuote: longQuoteForDisplay,
+    });
+  }, [
+    fixedQuoteForDisplay,
+    inputAmount,
+    isInvalidAmount,
+    longQuoteForDisplay,
+    market.id,
+    onQuoteContextChange,
+    quoteState,
+  ]);
+
   const isApprovalRequired = Boolean(
     yieldAdapter.mode === "live" &&
+      isQuoteReady &&
       isConnected &&
-      activeQuote?.approvalToken &&
-      activeQuote.approvalAmount &&
+      quoteForExecution?.approvalToken &&
+      quoteForExecution.approvalAmount &&
       market.underlyingTokenAddress &&
-      activeQuote.approvalToken.toLowerCase() === market.underlyingTokenAddress.toLowerCase() &&
+      quoteForExecution.approvalToken.toLowerCase() === market.underlyingTokenAddress.toLowerCase() &&
       allowance !== null &&
-      allowance < activeQuote.approvalAmount,
+      allowance < quoteForExecution.approvalAmount,
   );
 
   const formatScenarioChange = (change: number) =>
@@ -146,11 +200,14 @@ export function TradePanel({
 
   const handleRefreshQuote = async () => {
     try {
-      if (isFixed) await refreshFixed();
-      else await refreshLong();
+      const result = isFixed ? await refreshFixed() : await refreshLong();
+      if (result.error) {
+        toast.error(getQuoteUserMessage(result.error));
+        return;
+      }
       toast.success("Quote refreshed");
     } catch (error: unknown) {
-      toast.error(getYieldErrorMessage(error));
+      toast.error(getQuoteUserMessage(error));
     }
   };
 
@@ -185,7 +242,7 @@ export function TradePanel({
             : "This market has passed maturity."
         );
       }
-      if (isFixed ? !fixedQuote : !longQuote) {
+      if (!isQuoteReady || !quoteForExecution) {
         throw new YieldDomainError(
           "quote-expired",
           "This quote is unavailable. Wait for a fresh quote and try again."
@@ -204,20 +261,20 @@ export function TradePanel({
       if (isApprovalRequired) {
         if (
           !approvalSpender ||
-          !activeQuote?.approvalToken ||
-          !activeQuote.approvalAmount ||
+          !quoteForExecution.approvalToken ||
+          !quoteForExecution.approvalAmount ||
           !market.underlyingTokenAddress ||
-          activeQuote.approvalToken.toLowerCase() !== market.underlyingTokenAddress.toLowerCase()
+          quoteForExecution.approvalToken.toLowerCase() !== market.underlyingTokenAddress.toLowerCase()
         ) {
           throw new YieldDomainError("live-source-unavailable", "The live quote did not include verified approval data.");
         }
         setTxState({ step: "approval-required" });
         setTxState({ step: "approving" });
         await approveToken.mutateAsync({
-          tokenAddress: activeQuote.approvalToken,
+          tokenAddress: quoteForExecution.approvalToken,
           owner: address,
           spender: approvalSpender,
-          amount: activeQuote.approvalAmount,
+          amount: quoteForExecution.approvalAmount,
           chainId: market.chainId,
         });
         await refreshAllowance();
@@ -277,7 +334,9 @@ export function TradePanel({
         router.push("/portfolio");
       }, 1200);
     } catch (err: unknown) {
-      const message = getYieldErrorMessage(err);
+      const message = isQuoteRouteUnavailableError(err)
+        ? getQuoteUserMessage(err)
+        : getYieldErrorMessage(err);
       setTxState({
         step: "error",
         errorCode: err instanceof YieldDomainError ? err.code : "transaction-reverted",
@@ -297,9 +356,6 @@ export function TradePanel({
       <div className="flex justify-between items-center pb-2 border-b border-white/10">
         <span className="mono text-[13px] tracking-wider text-muted-dark uppercase">
           Trade Position
-        </span>
-        <span className="mono text-[12px] text-muted-dark">
-          {market.daysRemaining} DAYS REMAINING
         </span>
       </div>
 
@@ -368,54 +424,43 @@ export function TradePanel({
       </div>
 
       {/* Strategy-Specific Details */}
-      {isFixed ? (
+      {quoteState === "ready" ? (
+        isFixed ? (
         /* FIXED YIELD SECTION */
         <div className="flex flex-col gap-4 pt-2">
           <div className="flex flex-col gap-1 p-3.5 border border-ice/20 bg-ice/5 rounded-lg">
             <span className="text-[13px] text-muted-dark">
-              You&apos;ll receive on {market.maturity}
+              Estimated maturity value on {market.maturity}
             </span>
             <div className="mono text-[30px] sm:text-[34px] tracking-[-0.02em] text-foreground flex items-baseline gap-2">
-              <span>
-                {fixedQuote
-                  ? formatTokenAmount(fixedQuote.estimatedMaturityValue)
-                  : "0.00"}
+              <span className={!fixedQuote ? "text-[16px] text-muted" : undefined}>
+                {fixedQuote ? formatTokenAmount(fixedQuote.estimatedMaturityValue) : "Available after quote"}
               </span>
-              <span className="text-[16px] text-muted">{market.symbol}</span>
+              {fixedQuote && <span className="text-[16px] text-muted">{market.symbol}</span>}
             </div>
             <div className="mono text-[13px] text-ice">
               {fixedQuote
-                ? `+${(fixedQuote.estimatedMaturityValue - inputAmount).toFixed(2)} ${market.symbol} · locked ${fixedQuote.quotedFixedApy}% APY`
-                : "—"}
+                ? `+${(fixedQuote.estimatedMaturityValue - inputAmount).toFixed(2)} ${market.symbol} projected at maturity`
+                : "Quoted outcome available after amount and quote"}
             </div>
           </div>
 
           <div className="flex flex-col text-[14px]">
             <div className="flex justify-between py-2.5 border-b border-white/10">
               <span className="text-muted-dark">PT Received</span>
-              <span className="mono text-muted">{fixedQuote ? formatTokenAmount(fixedQuote.ptReceived) : "—"} {market.symbol}</span>
+              <span className="mono text-right text-muted">{fixedQuote ? `${formatTokenAmount(fixedQuote.ptReceived)} ${market.symbol}` : "Available after quote"}</span>
             </div>
             <div className="flex justify-between py-2.5 border-b border-white/10">
               <span className="text-muted-dark">Quoted Fixed APY</span>
               <span className="mono text-ice font-medium">
-                {fixedQuote ? formatApy(fixedQuote.quotedFixedApy) : "—"}
-              </span>
-            </div>
-            <div className="flex justify-between py-2.5 border-b border-white/10">
-              <span className="text-muted-dark">Market Implied APY</span>
-              <span className="mono text-muted">
-                {formatApy(market.impliedApy)}
+                {fixedQuote ? formatApy(fixedQuote.quotedFixedApy) : "Available after entering an amount"}
               </span>
             </div>
             <div className="flex justify-between py-2.5 border-b border-white/10">
               <span className="text-muted-dark">Price Impact</span>
               <span className="mono text-muted">
-                {fixedQuote ? `${fixedQuote.priceImpact}%` : "0.00%"}
+                {fixedQuote ? `${fixedQuote.priceImpact}%` : "Available after quote"}
               </span>
-            </div>
-            <div className="flex justify-between py-2.5 border-b border-white/10">
-              <span className="text-muted-dark">Maturity</span>
-              <span className="mono text-muted">{market.maturity}</span>
             </div>
             <div className="flex justify-between py-2.5 border-b border-white/10">
               <span className="text-muted-dark">Network Fee</span>
@@ -432,19 +477,16 @@ export function TradePanel({
         <div className="flex flex-col gap-4 pt-2">
           <div className="flex flex-col gap-1 p-3.5 border border-amber/20 bg-amber/5 rounded-lg">
             <span className="text-[13px] text-muted-dark">
-              You earn the yield on
+              Estimated Yield Exposure
             </span>
             <div className="mono text-[30px] sm:text-[34px] tracking-[-0.02em] text-foreground flex items-baseline gap-2">
-              <span>
-                {longQuote
-                  ? `~${formatTokenAmount(longQuote.estimatedYieldExposure, 0)}`
-                  : "0"}
+              <span className={!longQuote ? "text-[16px] text-muted" : undefined}>
+                {longQuote ? `~${formatTokenAmount(longQuote.estimatedYieldExposure, 0)}` : "Available after quote"}
               </span>
-              <span className="text-[16px] text-muted">{market.symbol}</span>
-            </div>
+              {longQuote && <span className="text-[16px] text-muted">{market.symbol}</span>}
+          </div>
             <div className="mono text-[13px] text-amber">
-              until {market.maturity} · break-even{" "}
-              {longQuote?.estimatedBreakEvenApy}%
+              {longQuote ? "Current quote estimate" : "Break-even available after quote"}
             </div>
           </div>
 
@@ -511,35 +553,19 @@ export function TradePanel({
           <div className="flex flex-col text-[14px]">
             <div className="flex justify-between py-2 border-b border-white/10">
               <span className="text-muted-dark">YT Received</span>
-              <span className="mono text-muted">{longQuote ? formatTokenAmount(longQuote.ytReceived) : "—"} {market.symbol}</span>
-            </div>
-            <div className="flex justify-between py-2 border-b border-white/10">
-              <span className="text-muted-dark">Underlying APY</span>
-              <span className="mono text-amber">{longQuote ? `${longQuote.underlyingApy}%` : "—"}</span>
-            </div>
-            <div className="flex justify-between py-2 border-b border-white/10">
-              <span className="text-muted-dark">Implied APY</span>
-              <span className="mono text-muted">{longQuote ? `${longQuote.impliedApy}%` : "—"}</span>
-            </div>
-            <div className="flex justify-between py-2 border-b border-white/10">
-              <span className="text-muted-dark">Estimated Yield Exposure</span>
-              <span className="mono text-amber">{longQuote ? formatTokenAmount(longQuote.estimatedYieldExposure) : "—"} {market.symbol}</span>
+              <span className="mono text-right text-muted">{longQuote ? `${formatTokenAmount(longQuote.ytReceived)} ${market.symbol}` : "Available after quote"}</span>
             </div>
             <div className="flex justify-between py-2 border-b border-white/10">
               <span className="text-muted-dark">Break-Even APY</span>
               <span className="mono text-muted">
-                {longQuote ? `${longQuote.estimatedBreakEvenApy}%` : "—"}
+                {longQuote ? `${longQuote.estimatedBreakEvenApy}%` : "Available after quote"}
               </span>
             </div>
             <div className="flex justify-between py-2 border-b border-white/10">
               <span className="text-muted-dark">Price Impact</span>
               <span className="mono text-muted">
-                {longQuote ? `${longQuote.priceImpact}%` : "0.00%"}
+                {longQuote ? `${longQuote.priceImpact}%` : "Available after quote"}
               </span>
-            </div>
-            <div className="flex justify-between py-2 border-b border-white/10">
-              <span className="text-muted-dark">Maturity</span>
-              <span className="mono text-muted">{market.maturity}</span>
             </div>
             <div className="flex justify-between py-2 border-b border-white/10">
               <span className="text-muted-dark">Network Fee</span>
@@ -551,14 +577,12 @@ export function TradePanel({
             </div>
           </div>
         </div>
-      )}
+          )
+        ) : (
+          <QuoteStateNotice state={quoteState} isExpired={isQuoteExpired} />
+        )}
 
       {/* Advanced Details Toggle */}
-      {quoteError && !activeQuote && (
-        <div role="alert" className="text-[12px] text-negative">
-          {getYieldErrorMessage(quoteError)}
-        </div>
-      )}
 
       <div className="border-t border-white/10 pt-2">
         <button
@@ -582,7 +606,7 @@ export function TradePanel({
                 </div>
                 <div className="flex justify-between">
                   <span>PT Price</span>
-                  <span>{fixedQuote ? `${fixedQuote.ptPrice} ${market.symbol}` : "—"}</span>
+                  <span>{fixedQuoteForDisplay ? `${fixedQuoteForDisplay.ptPrice} ${market.symbol}` : "—"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Contract Address</span>
@@ -597,13 +621,27 @@ export function TradePanel({
                 </div>
                 <div className="flex justify-between">
                   <span>YT Price</span>
-                  <span>{longQuote ? `${longQuote.ytPrice} ${market.symbol}` : "—"}</span>
+                  <span>{longQuoteForDisplay ? `${longQuoteForDisplay.ytPrice} ${market.symbol}` : "—"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Contract Address</span>
                   <span className="text-muted-dark">{market.ytAddress || "Unavailable"}</span>
                 </div>
               </>
+            )}
+            <div className="flex justify-between gap-4">
+              <span>Quote Source</span>
+              <span className="text-right text-muted">
+                {quoteForExecution?.source || (yieldAdapter.mode === "live" ? "Pendle Convert API" : "Mock quote engine")}
+              </span>
+            </div>
+            {quoteError && (
+              <div className="flex justify-between gap-4">
+                <span>Raw Quote Error</span>
+                <span className="max-w-[70%] text-right text-muted">
+                  {getQuoteTechnicalMessage(quoteError)}
+                </span>
+              </div>
             )}
           </div>
         )}
@@ -635,6 +673,30 @@ export function TradePanel({
           );
         }
 
+        if (isQuoteExpired) {
+          return (
+            <button
+              type="button"
+              onClick={handleRefreshQuote}
+              className="min-h-[52px] border border-white/20 rounded-lg bg-surface text-foreground text-[15px] font-medium flex items-center justify-center cursor-pointer"
+            >
+              Refresh Quote
+            </button>
+          );
+        }
+
+        if (quoteState === "unavailable" || quoteState === "error") {
+          return (
+            <button
+              type="button"
+              onClick={handleRefreshQuote}
+              className="min-h-[52px] border border-white/20 rounded-lg bg-surface text-foreground text-[15px] font-medium flex items-center justify-center cursor-pointer"
+            >
+              Quote Unavailable — Retry
+            </button>
+          );
+        }
+
         if (!isConnected) {
           return (
             <button
@@ -655,30 +717,6 @@ export function TradePanel({
               className="min-h-[52px] border-0 rounded-lg bg-negative text-white text-[15px] font-medium flex items-center justify-center hover:brightness-105 transition-all cursor-pointer"
             >
               Switch to Robinhood Chain
-            </button>
-          );
-        }
-
-        if (isQuoteExpired) {
-          return (
-            <button
-              type="button"
-              onClick={handleRefreshQuote}
-              className="min-h-[52px] border border-white/20 rounded-lg bg-surface text-foreground text-[15px] font-medium flex items-center justify-center cursor-pointer"
-            >
-              Refresh Quote
-            </button>
-          );
-        }
-
-        if (quoteError && !activeQuote) {
-          return (
-            <button
-              type="button"
-              onClick={handleRefreshQuote}
-              className="min-h-[52px] border border-white/20 rounded-lg bg-surface text-foreground text-[15px] font-medium flex items-center justify-center cursor-pointer"
-            >
-              Quote Unavailable — Retry
             </button>
           );
         }
@@ -711,7 +749,8 @@ export function TradePanel({
               loadingFixed ||
               loadingLong ||
               isInvalidAmount ||
-              isInsufficientBalance
+              isInsufficientBalance ||
+              !isQuoteReady
             }
             onClick={handleExecuteTrade}
             className={`min-h-[52px] border-0 rounded-lg text-[#0A0B0C] text-[15px] font-medium flex items-center justify-center gap-2 transition-all cursor-pointer ${
@@ -738,6 +777,40 @@ export function TradePanel({
           </button>
         );
       })()}
+    </div>
+  );
+}
+
+function QuoteStateNotice({
+  state,
+  isExpired,
+}: {
+  state: QuoteUiState;
+  isExpired: boolean;
+}) {
+  const content =
+    state === "quoting"
+      ? {
+          title: "Fetching live quote...",
+          message: "The live position details will appear when the quote is ready.",
+        }
+      : state === "unavailable"
+        ? { title: QUOTE_UNAVAILABLE_TITLE, message: QUOTE_UNAVAILABLE_MESSAGE }
+        : state === "error" && isExpired
+          ? { title: "Quote expired", message: "Refresh the quote before confirming this position." }
+          : state === "error"
+            ? { title: "Unable to fetch quote", message: QUOTE_ERROR_MESSAGE }
+            : {
+                title: "Preview your live position",
+                message: "Enter an amount to preview your live position.",
+              };
+
+  return (
+    <div className="border border-white/12 bg-surface-raised/40 p-5 text-center">
+      <div className="mono text-[11px] uppercase tracking-[0.14em] text-muted-dark">
+        {content.title}
+      </div>
+      <p className="mt-3 text-[14px] leading-6 text-muted">{content.message}</p>
     </div>
   );
 }

@@ -31,4 +31,13 @@ describe("query key isolation", () => {
       else process.env.NEXT_PUBLIC_CLEAVE_DATA_MODE = previous;
     }
   });
+
+  it("creates a fresh quote query when the amount changes", () => {
+    expect(queryKeys.fixedQuote("market-a", 100, 4663)).not.toEqual(
+      queryKeys.fixedQuote("market-a", 125, 4663),
+    );
+    expect(queryKeys.longQuote("market-a", 100, 4663)).not.toEqual(
+      queryKeys.longQuote("market-a", 125, 4663),
+    );
+  });
 });

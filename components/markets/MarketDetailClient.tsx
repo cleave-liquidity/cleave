@@ -176,14 +176,14 @@ export function MarketDetailClient({
                 <div className="flex items-center justify-between gap-4 py-4">
                   <div>
                     <div className="text-[14px] font-medium text-ice">Fixed Yield</div>
-                    <div className="mt-1 text-[12px] text-muted-dark">Predictable outcome</div>
+                    <div className="mt-1 text-[12px] text-muted-dark">Market implied APY · not a quote</div>
                   </div>
                   <span className="mono text-[16px] text-ice">{formatApy(market.impliedApy)}</span>
                 </div>
                 <div className="flex items-center justify-between gap-4 py-4">
                   <div>
                     <div className="text-[14px] font-medium text-amber">Long Yield</div>
-                    <div className="mt-1 text-[12px] text-muted-dark">Future yield exposure</div>
+                    <div className="mt-1 text-[12px] text-muted-dark">Underlying APY exposure</div>
                   </div>
                   <span className="mono text-[16px] text-amber">{formatApy(market.underlyingApy)}</span>
                 </div>

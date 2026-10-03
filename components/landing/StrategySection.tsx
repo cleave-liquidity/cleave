@@ -8,10 +8,6 @@ import { useMarkets } from "@/hooks/useMarkets";
 import { formatApy } from "@/lib/utils/formatters";
 import { DEFAULT_TICKET, marketHref, pickFeaturedMarket } from "./featuredMarket";
 
-// Shown only while no market is available (loading / unreachable). With a market, every figure below
-// comes from it and from its quotes.
-const NO_MARKET = { symbol: "USDG", maturity: "—", daysRemaining: 175, impliedApy: 6.42, underlyingApy: 7.1 };
-
 export function StrategySection() {
   // ─── Data: featured market + shared quotes through the existing hooks ───
   const { markets } = useMarkets();
@@ -19,22 +15,28 @@ export function StrategySection() {
   const { quote: fixedQuote } = useFixedYieldQuote(market?.id ?? "", DEFAULT_TICKET);
   const { quote: longQuote } = useLongYieldQuote(market?.id ?? "", DEFAULT_TICKET);
 
-  const symbol = market?.symbol ?? NO_MARKET.symbol;
-  const maturity = market?.maturity ?? NO_MARKET.maturity;
-  const impliedApy = market?.impliedApy ?? NO_MARKET.impliedApy;
-  const underlyingApy = market?.underlyingApy ?? NO_MARKET.underlyingApy;
-  const YEAR_FRAC = Math.max(market?.daysRemaining ?? NO_MARKET.daysRemaining, 1) / 365;
-  const FIXED_APY = fixedQuote?.quotedFixedApy ?? impliedApy;
-  const BREAK_EVEN_RATE = longQuote?.estimatedBreakEvenApy ?? impliedApy;
+  const symbol = market?.symbol ?? "—";
+  const maturity = market?.maturity ?? "—";
+  const impliedApy = market?.impliedApy ?? 0;
+  const underlyingApy = market?.underlyingApy ?? 0;
+  const YEAR_FRAC = market ? Math.max(market.daysRemaining, 1) / 365 : 0;
+  const FIXED_APY = fixedQuote?.quotedFixedApy ?? (market ? impliedApy : 0);
+  const BREAK_EVEN_RATE = longQuote?.estimatedBreakEvenApy ?? (market ? impliedApy : 0);
   // Exposure bought per unit paid for YT. From the quote when there is one; otherwise estimated from the
   // implied rate the same way the quote engine prices it.
   const ytPrice =
-    longQuote && longQuote.ytPrice > 0 ? longQuote.ytPrice : 1 - 1 / (1 + (impliedApy / 100) * YEAR_FRAC);
+    longQuote && longQuote.ytPrice > 0
+      ? longQuote.ytPrice
+      : market
+        ? 1 - 1 / (1 + (impliedApy / 100) * YEAR_FRAC)
+        : 0;
   const LEVERAGE = ytPrice > 0 ? 1 / ytPrice : 0;
-  const ptPriceLabel = (fixedQuote?.ptPrice ?? 1 / (1 + (impliedApy / 100) * YEAR_FRAC)).toFixed(3);
+  const ptPriceLabel = market
+    ? (fixedQuote?.ptPrice ?? 1 / (1 + (impliedApy / 100) * YEAR_FRAC)).toFixed(3)
+    : "—";
 
   // The simulated rate starts at the market's current rate until the slider is touched.
-  const centre = underlyingApy > 0 ? underlyingApy : impliedApy;
+  const centre = market ? (underlyingApy > 0 ? underlyingApy : impliedApy) : 0;
   const sliderMax = Math.max(15, Math.ceil(centre * 2));
   const SCENARIOS = [
     { label: `Rate Drop (${(centre * 0.55).toFixed(1)}%)`, rate: Number((centre * 0.55).toFixed(1)) },
@@ -84,6 +86,28 @@ export function StrategySection() {
     }
     return points.join(" ");
   }, [simulatedRate, BREAK_EVEN_RATE, sliderMax]);
+
+  if (!market) {
+    return (
+      <section
+        id="strategy"
+        className="relative mx-auto max-w-[1240px] px-4 pt-24 sm:px-6 sm:pt-32 lg:px-10 lg:pt-40"
+      >
+        <div className="border-y border-white/10 py-8">
+          <div className="mono flex items-center gap-2 text-[11px] tracking-[0.22em] text-muted uppercase">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber" />
+            02 — INTERACTIVE SIMULATOR
+          </div>
+          <p className="mt-4 max-w-[620px] text-[15px] leading-7 text-muted">
+            Live market data is unavailable right now. Browse Markets to choose a current yield market.
+          </p>
+          <Link href="/markets" className="mt-4 inline-flex text-[14px] text-ice hover:text-white">
+            Browse Markets →
+          </Link>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section

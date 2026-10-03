@@ -14,11 +14,10 @@ import { YieldMarket } from "@/types/market";
 import { yieldAdapter } from "@/lib/adapters/mock-adapter";
 import {
   buildTradeWorkspaceHref,
-  type TradeStrategy,
 } from "@/lib/markets/trade-strategy";
 import { getConfiguredChainId, getNetworkShortLabel } from "@/lib/web3/environment";
 
-export function TradeMarketHub({ strategy }: { strategy?: TradeStrategy }) {
+export function TradeMarketHub() {
   const { markets, isLoading, error } = useMarkets();
   const networkShortLabel = getNetworkShortLabel(getConfiguredChainId(), false);
   const tradeableMarkets = markets.filter(
@@ -39,30 +38,11 @@ export function TradeMarketHub({ strategy }: { strategy?: TradeStrategy }) {
               Trade Yield · Robinhood Chain
             </div>
             <h1 className="mt-2 text-[36px] sm:text-[48px] font-normal tracking-[-0.04em] text-foreground">
-              What kind of yield exposure do you want?
+              Trade Yield
             </h1>
             <p className="mt-4 max-w-[640px] text-[16px] leading-7 text-muted font-light">
-              Choose a predictable yield outcome or exposure to future yield, then select a live market to open the position workspace.
+              Choose a live market, then select Fixed Yield or Long Yield to open the position workspace.
             </p>
-          </div>
-
-          <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2">
-            <StrategyIntro
-              strategy="fixed"
-              selected={strategy === "fixed"}
-              title="Fixed Yield"
-              summary="Predictable outcome"
-              description="Lock in a quoted rate and see the expected maturity outcome before you open the position."
-              tone="ice"
-            />
-            <StrategyIntro
-              strategy="long"
-              selected={strategy === "long"}
-              title="Long Yield"
-              summary="Future yield exposure"
-              description="Receive exposure to the underlying yield through maturity, with outcomes that move with realized rates."
-              tone="amber"
-            />
           </div>
 
           <div className="mt-12 flex flex-col gap-2 border-b border-white/12 pb-5 sm:flex-row sm:items-end sm:justify-between">
@@ -71,7 +51,7 @@ export function TradeMarketHub({ strategy }: { strategy?: TradeStrategy }) {
                 Live tradeable opportunities
               </div>
               <h2 className="mt-1 text-[24px] font-normal tracking-[-0.02em] text-foreground">
-                {strategy ? `${strategy === "fixed" ? "Fixed Yield" : "Long Yield"} markets` : "Choose a strategy first"}
+                Choose a market
               </h2>
             </div>
             <div className="mono text-[11px] text-muted-dark">
@@ -80,11 +60,7 @@ export function TradeMarketHub({ strategy }: { strategy?: TradeStrategy }) {
           </div>
 
           <div className="mt-6">
-            {!strategy ? (
-              <div className="border border-white/12 bg-surface/60 py-20 text-center text-muted font-mono text-[13px]">
-                Select Fixed Yield or Long Yield above to see currently tradeable markets.
-              </div>
-            ) : isLoading ? (
+            {isLoading ? (
               <div className="py-24 text-center text-muted font-mono">
                 Loading live trade opportunities...
               </div>
@@ -99,7 +75,7 @@ export function TradeMarketHub({ strategy }: { strategy?: TradeStrategy }) {
             ) : (
               <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
                 {tradeableMarkets.map((market) => (
-                  <TradeOpportunityCard key={market.id} market={market} strategy={strategy} />
+                  <TradeOpportunityCard key={market.id} market={market} />
                 ))}
               </div>
             )}
@@ -112,44 +88,7 @@ export function TradeMarketHub({ strategy }: { strategy?: TradeStrategy }) {
   );
 }
 
-function StrategyIntro({
-  strategy,
-  selected,
-  title,
-  summary,
-  description,
-  tone,
-}: {
-  strategy: TradeStrategy;
-  selected: boolean;
-  title: string;
-  summary: string;
-  description: string;
-  tone: "ice" | "amber";
-}) {
-  return (
-    <Link
-      href={`/trade?strategy=${strategy}`}
-      aria-current={selected ? "page" : undefined}
-      className={`block border p-5 sm:p-6 transition-colors ${tone === "ice" ? "border-ice/25 bg-ice/5 hover:border-ice/50 hover:bg-ice/10" : "border-amber/25 bg-amber/5 hover:border-amber/50 hover:bg-amber/10"} ${selected ? "ring-1 ring-white/25" : ""}`}
-    >
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className={`text-[22px] font-medium ${tone === "ice" ? "text-ice" : "text-amber"}`}>
-            {title}
-          </h2>
-          <div className="mono mt-1 text-[11px] uppercase tracking-[0.14em] text-muted-dark">
-            {summary}
-          </div>
-        </div>
-        <span className={`mt-1 h-2 w-2 rounded-full ${tone === "ice" ? "bg-ice shadow-[0_0_10px_#A9C8EE]" : "bg-amber shadow-[0_0_10px_#F0A85C]"}`} />
-      </div>
-      <p className="mt-5 max-w-[480px] text-[14px] leading-6 text-muted">{description}</p>
-    </Link>
-  );
-}
-
-function TradeOpportunityCard({ market, strategy }: { market: YieldMarket; strategy: TradeStrategy }) {
+function TradeOpportunityCard({ market }: { market: YieldMarket }) {
   const symbol = market.assetMetadata?.symbol || market.symbol;
   const name = market.assetMetadata?.name || market.name;
   const source = market.sourceProtocol || market.protocolMetadata?.name || market.yieldSource;
@@ -181,25 +120,24 @@ function TradeOpportunityCard({ market, strategy }: { market: YieldMarket; strat
       </div>
 
       <div className="pt-5">
-        {strategy === "fixed" ? (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <StrategyAction
-            href={buildTradeWorkspaceHref(market.id, strategy)}
+            href={buildTradeWorkspaceHref(market.id, "fixed")}
             title="Fixed Yield"
             value={formatApy(market.impliedApy)}
             detail="Market implied APY"
             action="Trade Fixed"
             tone="ice"
           />
-        ) : (
           <StrategyAction
-            href={buildTradeWorkspaceHref(market.id, strategy)}
+            href={buildTradeWorkspaceHref(market.id, "long")}
             title="Long Yield"
             value={formatApy(market.underlyingApy)}
-            detail="Current yield exposure"
+            detail="Underlying APY"
             action="Trade Long"
             tone="amber"
           />
-        )}
+        </div>
       </div>
     </article>
   );
