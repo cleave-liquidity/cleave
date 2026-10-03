@@ -1,52 +1,27 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import Link from "next/link";
-import { formatUsd } from "@/lib/utils/formatters";
+import { DataModeBadge } from "@/components/layout/DataModeBadge";
+import { AssetIcon } from "@/components/markets/AssetIcon";
+import { useMarkets } from "@/hooks/useMarkets";
+import { formatApy, formatUsd } from "@/lib/utils/formatters";
+import type { YieldMarket } from "@/types/market";
+import { pickPreviewMarkets } from "./featuredMarket";
 
-const SAMPLE_ROWS = [
-  {
-    id: "usdg-morpho-26mar27",
-    symbol: "USDG",
-    name: "Paxos dollar",
-    source: "Morpho lending vault",
-    fixedRate: "6.42%",
-    rateNow: "7.10%",
-    maturity: "26 Mar 2027",
-    days: "175 DAYS",
-    liquidity: 4_200_000,
-    status: "Active",
-    statusColor: "#A9C8EE",
-  },
-  {
-    id: "susde-ethena-24jun27",
-    symbol: "sUSDe",
-    name: "Staked USDe",
-    source: "Ethena staking",
-    fixedRate: "8.90%",
-    rateNow: "9.85%",
-    maturity: "24 Jun 2027",
-    days: "265 DAYS",
-    liquidity: 2_700_000,
-    status: "Active",
-    statusColor: "#A9C8EE",
-  },
-  {
-    id: "snet-netnet-17dec26",
-    symbol: "sNET",
-    name: "Staked NET",
-    source: "NetNet staking",
-    fixedRate: "5.95%",
-    rateNow: "5.40%",
-    maturity: "17 Dec 2026",
-    days: "76 DAYS",
-    liquidity: 900_000,
-    status: "Maturing soon",
-    statusColor: "#F0A85C",
-  },
-];
+const ROWS = 3;
+const COLS = "grid-cols-[2.1fr_1.5fr_1fr_1fr_1.25fr_1fr_1.1fr]";
 
+// Status dot colours match the markets page.
+const statusColor = (m: YieldMarket) => (m.status === "maturing" ? "#F0A85C" : "#A9C8EE");
+const statusLabel = (m: YieldMarket) => (m.status === "maturing" ? "Maturing soon" : "Active");
+
+/** Market rows come from the normalized market list (mock or live) — nothing here is hardcoded. */
 export function MarketsPreview() {
+  const { markets, isLoading, error } = useMarkets();
+  const rows = useMemo(() => pickPreviewMarkets(markets, ROWS), [markets]);
+  const dataMode = markets[0]?.dataMode;
+
   return (
     <section
       id="markets"
@@ -64,9 +39,13 @@ export function MarketsPreview() {
           </h2>
         </div>
         <div className="flex items-center gap-4 flex-wrap pb-2">
-          <span className="mono text-[11px] tracking-[0.12em] text-muted border border-white/15 px-2.5 py-1.5">
-            SAMPLE DATA · NOT LIVE
-          </span>
+          {dataMode ? (
+            <DataModeBadge mode={dataMode} />
+          ) : (
+            <span className="mono text-[11px] tracking-[0.12em] text-muted border border-white/15 px-2.5 py-1.5">
+              {isLoading ? "LOADING MARKETS" : "MARKETS UNAVAILABLE"}
+            </span>
+          )}
           <Link
             href="/markets"
             className="mono text-[13px] tracking-[0.1em] inline-flex gap-2 items-center min-h-[40px] text-foreground hover:text-white transition-colors"
@@ -80,68 +59,80 @@ export function MarketsPreview() {
       <div data-reveal="1" className="mt-10 overflow-x-auto">
         <div className="min-w-[900px]">
           {/* Header */}
-          <div className="mono grid grid-cols-[2.1fr_1.5fr_1fr_1fr_1.25fr_1fr_1.1fr] gap-4 px-5 pb-3.5 text-[11px] tracking-[0.14em] text-muted-dark border-b border-white/10">
+          <div className={`mono grid ${COLS} gap-4 px-5 pb-3.5 text-[11px] tracking-[0.14em] text-muted-dark border-b border-white/10`}>
             <span>ASSET</span>
             <span>YIELD SOURCE</span>
-            <span className="text-right">FIXED RATE</span>
+            <span className="text-right">IMPLIED APY</span>
             <span className="text-right">RATE NOW</span>
             <span className="text-right">MATURES</span>
             <span className="text-right">LIQUIDITY</span>
             <span className="text-right">STATUS</span>
           </div>
 
-          {SAMPLE_ROWS.map((row) => (
+          {rows.map((row) => (
             <Link
               key={row.id}
               href={`/markets/${row.id}`}
-              className="grid grid-cols-[2.1fr_1.5fr_1fr_1fr_1.25fr_1fr_1.1fr] gap-4 items-center px-5 py-5 sm:py-6 border-b border-white/8 text-foreground hover:bg-white/[0.025] transition-colors group"
+              className={`grid ${COLS} gap-4 items-center px-5 py-5 sm:py-6 border-b border-white/10 text-foreground hover:bg-white/[0.025] transition-colors group`}
             >
-              <span className="flex items-center gap-3.5">
-                <span className="mono w-9 h-9 border border-white/20 flex items-center justify-center text-[9px] text-muted group-hover:border-white/40 transition-colors shrink-0">
-                  {row.symbol.slice(0, 4)}
-                </span>
-                <span className="flex flex-col gap-0.5">
-                  <span className="text-[17px] group-hover:text-white transition-colors">
-                    {row.symbol}
+              <span className="flex items-center gap-3.5 min-w-0">
+                <AssetIcon
+                  symbol={row.assetMetadata?.symbol ?? row.symbol}
+                  name={row.assetMetadata?.name ?? row.name}
+                  iconUrl={row.assetMetadata?.iconUrl}
+                  size="md"
+                />
+                <span className="flex flex-col gap-0.5 min-w-0">
+                  <span className="text-[17px] group-hover:text-white transition-colors truncate">
+                    {row.assetMetadata?.symbol ?? row.symbol}
                   </span>
-                  <span className="mono text-[12px] text-muted-dark">{row.name}</span>
+                  <span className="mono text-[12px] text-muted-dark truncate">{row.assetMetadata?.name ?? row.name}</span>
                 </span>
               </span>
 
-              <span className="text-[14px] text-muted">{row.source}</span>
+              <span className="text-[14px] text-muted truncate">{row.protocolMetadata?.name ?? row.sourceProtocol ?? row.yieldSource}</span>
 
-              <span className="mono text-right text-[17px] text-ice">
-                {row.fixedRate}
-              </span>
+              <span className="mono text-right text-[17px] text-ice">{formatApy(row.impliedApy)}</span>
 
-              <span className="mono text-right text-[15px] text-muted">
-                {row.rateNow}
-              </span>
+              <span className="mono text-right text-[15px] text-muted">{formatApy(row.underlyingApy)}</span>
 
               <span className="text-right flex flex-col gap-0.5">
                 <span className="text-[14px]">{row.maturity}</span>
-                <span className="mono text-[11px] text-muted-dark">{row.days}</span>
+                <span className="mono text-[11px] text-muted-dark">{row.daysRemaining} DAYS</span>
               </span>
 
-              <span className="mono text-right text-[14px] text-muted">
-                {formatUsd(row.liquidity)}
-              </span>
+              <span className="mono text-right text-[14px] text-muted">{formatUsd(row.liquidityUsd)}</span>
 
               <span className="text-right flex justify-end items-center gap-2 text-[13px] text-muted-light">
-                <span
-                  className="w-[6px] h-[6px] rounded-full shrink-0"
-                  style={{ background: row.statusColor }}
-                />
-                {row.status}
+                <span className="w-[6px] h-[6px] rounded-full shrink-0" style={{ background: statusColor(row) }} />
+                {statusLabel(row)}
               </span>
             </Link>
           ))}
+
+          {rows.length === 0 && (
+            <div
+              role="status"
+              className="flex flex-col items-start gap-3 border-b border-white/10 px-5 py-10 text-[14px] text-muted"
+            >
+              {isLoading ? (
+                <span aria-busy="true">Loading markets…</span>
+              ) : (
+                <>
+                  <span>{error ? "Market data is unavailable right now." : "No open markets yet."}</span>
+                  <Link href="/markets" className="mono text-[12px] tracking-[0.08em] text-ice hover:text-white">
+                    VIEW ALL MARKETS →
+                  </Link>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
       <p data-reveal="2" className="mono m-0 mt-4 text-[11px] tracking-[0.06em] text-muted-dark">
-        Fixed rate is the market rate before price impact. Rate now is today&apos;s
-        variable rate. Positions are illustrative.
+        Implied APY is the rate the market prices today, before price impact. Rate now is the underlying&apos;s current
+        variable rate.
       </p>
     </section>
   );

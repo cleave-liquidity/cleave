@@ -78,3 +78,22 @@ UI only again; no logic file was touched. Everything below reads market data thr
 
 ### Verification (end of day)
 `tsc --noEmit`, `eslint .`, `bun test` (28 pass) and `next build --webpack` pass. Checked in headless Chrome: drag, keyboard slider, zipped state, reduced motion, 1920 / 1470 / 1280 / 1024 / 390 widths. Working-tree changes under `hooks/` and `lib/adapters/` at the time of writing belong to the logic work, not this pass.
+
+---
+
+## Update — live-data wiring audit (same day)
+
+Verified against the real Pendle list on chain 4663 and the Alchemy RPCs (`eth_chainId` OK on both; both builds, mock and live, render with no console errors).
+
+**Landing now reads normalized data everywhere it shows a market** (via `useMarkets` / quote hooks; nothing hardcoded): Hero stage stats / copy / CTA links (`heroStages.ts`), Markets table (`MarketsPreview.tsx`, icons through `AssetIcon`, `DataModeBadge`), strategy simulator (`StrategySection.tsx`), split engine, walkthrough, final CTA. Shared selection lives in `featuredMarket.ts`:
+- `isFeaturable`: tradable, `daysRemaining > 0`, implied / underlying APY within 0–100 %, liquidity > 0 (the live list contains matured markets and raw values such as an implied APY of 3,916 %).
+- `pickFeaturedMarket`: active + yielding first, then adapter order. `pickPreviewMarkets`: most liquid featurable.
+- `DEFAULT_TICKET`: 1,000 in mock, **100 in live** — quotes are in token units and a thin book rejects 1,000 of a ~$100 token (`Multi-routing: No routes available`).
+- Landing prices are shown in the market's own asset (`0.984 USDG`), not `$`.
+
+**For the logic side (not changed here):**
+1. Live `getMarkets()` returns matured and absurd markets; filtering is done in the UI only. Consider flagging/filtering in the adapter.
+2. Long quotes fail on some markets even at small tickets (NVDA: `No routes available` for YT); the UI shows `—`.
+3. The live adapter is mainnet-only: `NEXT_PUBLIC_ROBINHOOD_CHAIN_ENV=testnet` + `live` yields no markets.
+4. The Alchemy RPC key is a `NEXT_PUBLIC_*` variable, so it ships to the browser. Restrict it by allowed domains in the Alchemy dashboard. Vercel needs both RPC URLs, `…_CHAIN_ENV` and `…_DATA_MODE` set, then a redeploy.
+5. Still static by design: `MaturityPreview` (illustrative portfolio simulation) and the Hero headline "10x Yield Exposure." (live leverage differs by market).

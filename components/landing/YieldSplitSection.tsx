@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AssetIcon } from "@/components/markets/AssetIcon";
 import { useFixedYieldQuote } from "@/hooks/useFixedYieldQuote";
 import { useMarkets } from "@/hooks/useMarkets";
@@ -52,6 +52,16 @@ const DWELL = 0.06;
 /** Timeline progress at which each summary card appears (pinned layout). */
 const CARD_AT = [0, 0.3, 0.7] as const;
 
+// Vault module: it sizes itself to its content, between these bounds (SVG units). The right edge must
+// stay clear of the split node, which rests at START_X.
+const VAULT_X = 36;
+const VAULT_MIN_W = 262;
+const VAULT_MAX_W = 340;
+const VAULT_PAD = 18; // inner padding
+const VAULT_TEXT_X = 72; // text starts after the icon
+const NAME_FS = 19;
+const NAME_FS_MIN = 14;
+
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 const prefersReducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -66,6 +76,9 @@ export function YieldSplitSection() {
   const [entered, setEntered] = useState<boolean | null>(null); // null = not observed yet → everything visible
   const sectionRef = useRef<HTMLElement>(null); // the runway
   const pinRef = useRef<HTMLDivElement>(null); // the pinned frame
+  const nameMeasureRef = useRef<SVGTextElement>(null);
+  const protoMeasureRef = useRef<SVGTextElement>(null);
+  const [textW, setTextW] = useState<{ name: number; proto: number } | null>(null); // natural text widths
   const svgRef = useRef<SVGSVGElement>(null);
 
   // ─── Data: normalized market + shared quote through the existing hooks ───
@@ -95,10 +108,13 @@ export function YieldSplitSection() {
     };
   }, [market, fixedQuote]);
 
-  const milestones = useMemo(
-    () => getTimelineMilestones(splitMarket).map((m, i) => ({ ...m, x: MILESTONE_X[i] })),
-    [splitMarket],
-  );
+  const milestones = useMemo(() => {
+    const list = getTimelineMilestones(splitMarket).map((m, i) => ({ ...m, x: MILESTONE_X[i] }));
+    // Short markets repeat the same month on every tick; label those ticks with the day instead.
+    const months = list.slice(1, -1).map((m) => m.label);
+    if (new Set(months).size === months.length) return list;
+    return list.map((m, i) => (i === 0 || i === list.length - 1 ? m : { ...m, label: m.date.slice(0, 6).toUpperCase() }));
+  }, [splitMarket]);
   const maturityMilestone = milestones[milestones.length - 1];
 
   // Normalized progress: 0.0 = Today (fully split) -> 1.0 = Maturity (fully zipped / unified)
@@ -118,6 +134,43 @@ export function YieldSplitSection() {
   const assetName = market?.assetMetadata?.name ?? market?.name ?? "Lending vault";
   const protocol = market?.protocolMetadata?.name ?? market?.sourceProtocol;
   const dash = "—";
+  // Prices are in the market's own asset (USDG, NVDA, …), not dollars: say which.
+  const amt = (v: number) => `${v.toFixed(3)} ${symbol}`.trim();
+
+  // ─── Vault module sizing: measure the real text, then fit the card to it ──
+  const vaultLine = `LENDING VAULT${protocol ? ` · ${protocol.toUpperCase()}` : ""}`;
+  useLayoutEffect(() => {
+    const measure = () => {
+      const name = nameMeasureRef.current?.getComputedTextLength();
+      const proto = protoMeasureRef.current?.getComputedTextLength();
+      if (name === undefined || proto === undefined) return;
+      setTextW((prev) =>
+        prev && Math.abs(prev.name - name) < 0.5 && Math.abs(prev.proto - proto) < 0.5 ? prev : { name, proto },
+      );
+    };
+    measure();
+    // The mono / Geist faces load after first paint and change the widths.
+    if (document.fonts?.ready) document.fonts.ready.then(measure).catch(() => {});
+  }, [assetName, vaultLine]);
+
+  const vault = useMemo(() => {
+    const inner = VAULT_PAD + (VAULT_TEXT_X - VAULT_PAD) + VAULT_PAD; // left pad + icon column + right pad
+    const natural = textW ? Math.max(textW.name, textW.proto) + inner : VAULT_MIN_W;
+    const w = clamp(Math.ceil(natural), VAULT_MIN_W, VAULT_MAX_W);
+    const avail = w - VAULT_TEXT_X - VAULT_PAD;
+    let fs = NAME_FS;
+    let label = assetName;
+    if (textW && textW.name > avail) {
+      fs = Math.max(NAME_FS_MIN, (NAME_FS * avail) / textW.name);
+      const lenAtMin = (textW.name * fs) / NAME_FS;
+      if (lenAtMin > avail) {
+        // Even the smallest size does not fit: cut the name and say so.
+        const keep = Math.max(4, Math.floor(assetName.length * (avail / lenAtMin)) - 1);
+        label = `${assetName.slice(0, keep).trimEnd()}…`;
+      }
+    }
+    return { w, fs, label };
+  }, [textW, assetName]);
 
   // ─── Entrance: play when the frame is in view, reset when it has left ────
   useEffect(() => {
@@ -400,10 +453,10 @@ export function YieldSplitSection() {
             REMAINING: <span className="font-medium text-ice">{daysLeft}d</span>
           </div>
           <div>
-            PT VALUE: <span className="font-medium text-ice">{ptReady ? `$${currentPtPrice.toFixed(3)}` : dash}</span>
+            PT VALUE: <span className="font-medium text-ice">{ptReady ? amt(currentPtPrice) : dash}</span>
           </div>
           <div>
-            STREAMED: <span className="font-medium text-amber">{ptReady ? `$${yieldStreamed.toFixed(3)}` : dash}</span>
+            STREAMED: <span className="font-medium text-amber">{ptReady ? amt(yieldStreamed) : dash}</span>
           </div>
         </div>
       </div>
@@ -550,12 +603,12 @@ export function YieldSplitSection() {
             {/* Flow dots on unified line */}
             <path d={pathUnified} stroke="#ECEDEA" strokeWidth="3.5" fill="none" strokeLinecap="round" className="zs-flow slow" style={at(2.4)} />
 
-            {/* Vault module: where the asset sits before the split */}
-            <g transform={`translate(36 ${BASE_Y - 62})`}>
+            {/* Vault module: where the asset sits before the split. Its width follows its content. */}
+            <g transform={`translate(${VAULT_X} ${BASE_Y - 62})`}>
               <g className="zs-slide" style={at(0.2)}>
-                <rect width="262" height="124" rx="14" fill="#07090D" stroke="rgba(236,237,234,0.16)" />
-                <path d="M 18 0.5 H 244" stroke="url(#vaultEdge)" strokeWidth="1" />
-                <foreignObject x="18" y="16" width="40" height="40">
+                <rect width={vault.w} height="124" rx="14" fill="#07090D" stroke="rgba(236,237,234,0.16)" />
+                <path d={`M ${VAULT_PAD} 0.5 H ${vault.w - VAULT_PAD}`} stroke="url(#vaultEdge)" strokeWidth="1" />
+                <foreignObject x={VAULT_PAD} y="16" width="40" height="40">
                   <AssetIcon
                     symbol={market?.assetMetadata?.symbol ?? (symbol || "—")}
                     name={assetName}
@@ -563,28 +616,38 @@ export function YieldSplitSection() {
                     size="md"
                   />
                 </foreignObject>
-                <text className="mono" x="72" y="29" fontSize="10" letterSpacing="0.14em" fill="#8E9390">
-                  {`LENDING VAULT${protocol ? ` · ${protocol.toUpperCase()}` : ""}`}
+                <text className="mono" x={VAULT_TEXT_X} y="29" fontSize="10" letterSpacing="0.14em" fill="#8E9390">
+                  {vaultLine}
                 </text>
-                <text x="72" y="52" fontSize="19" fill="#ECEDEA" letterSpacing="-0.01em">
-                  {assetName}
+                <text x={VAULT_TEXT_X} y="52" fontSize={vault.fs} fill="#ECEDEA" letterSpacing="-0.01em">
+                  {vault.label}
                 </text>
-                <path d="M 18 72 H 244" stroke="rgba(236,237,234,0.1)" />
+                <path d={`M ${VAULT_PAD} 72 H ${vault.w - VAULT_PAD}`} stroke="rgba(236,237,234,0.1)" />
                 <g className="mono" fontSize="11" letterSpacing="0.1em">
-                  <text x="18" y="94" fill="#8E9390">
+                  <text x={VAULT_PAD} y="94" fill="#8E9390">
                     UNDERLYING APY
                   </text>
-                  <text x="244" y="94" textAnchor="end" fill="#A9C8EE">
+                  <text x={vault.w - VAULT_PAD} y="94" textAnchor="end" fill="#A9C8EE">
                     {market ? formatApy(market.underlyingApy) : dash}
                   </text>
-                  <text x="18" y="112" fill="#8E9390">
+                  <text x={VAULT_PAD} y="112" fill="#8E9390">
                     COLLATERAL
                   </text>
-                  <text x="244" y="112" textAnchor="end" fill="#ECEDEA">
+                  <text x={vault.w - VAULT_PAD} y="112" textAnchor="end" fill="#ECEDEA">
                     {splitMarket.underlyingAmount.toFixed(2)} {symbol}
                   </text>
                 </g>
               </g>
+            </g>
+
+            {/* Hidden twins used only to measure the natural text widths above */}
+            <g visibility="hidden" aria-hidden="true">
+              <text ref={protoMeasureRef} className="mono" fontSize="10" letterSpacing="0.14em">
+                {vaultLine}
+              </text>
+              <text ref={nameMeasureRef} fontSize={NAME_FS} letterSpacing="-0.01em">
+                {assetName}
+              </text>
             </g>
 
             {/* 2. Fixed Yield branch (ice): steady. Always mounted so the entrance never replays on re-split. */}
@@ -599,7 +662,7 @@ export function YieldSplitSection() {
                     FIXED YIELD · APY {formatApy(splitMarket.impliedApy)}
                   </text>
                   <text x={labelX} y="214" fill="#8E9390" fontSize="10">
-                    {ptReady ? `PT $${currentPtPrice.toFixed(3)} → 1.00 ${symbol}` : `PT → 1.00 ${symbol}`}
+                    {ptReady ? `PT ${amt(currentPtPrice)} → 1.00 ${symbol}` : `PT → 1.00 ${symbol}`}
                   </text>
                 </g>
               </g>
@@ -761,7 +824,7 @@ export function YieldSplitSection() {
               <span className="h-2 w-2 shrink-0 rounded-full bg-ice" />
               <span className="text-[16px] font-medium text-ice">Fixed Yield (PT)</span>
             </div>
-            <span className="mono text-[13px] text-ice">{ptReady ? `$${currentPtPrice.toFixed(3)}` : dash}</span>
+            <span className="mono text-[13px] text-ice">{ptReady ? amt(currentPtPrice) : dash}</span>
           </div>
           <span className="text-[13px] font-light leading-[1.5] text-muted">
             Worth exactly {splitMarket.underlyingAmount.toFixed(0)} {symbol} at maturity, bought below 1 today. The gap is your locked
@@ -790,7 +853,7 @@ export function YieldSplitSection() {
             Collects streaming yield until maturity, then ends at zero. You win if the variable rate stays above break-even.
           </span>
           <div className="mono flex justify-between text-[10px] tracking-[0.1em] text-muted-dark">
-            <span>CLAIMED: {ptReady ? `$${yieldStreamed.toFixed(3)}` : dash}</span>
+            <span>CLAIMED: {ptReady ? amt(yieldStreamed) : dash}</span>
             <span>LEVERAGE: {ptReady ? `~${leverage.toFixed(1)}x` : dash}</span>
           </div>
         </div>

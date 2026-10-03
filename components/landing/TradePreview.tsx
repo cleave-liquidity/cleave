@@ -158,7 +158,14 @@ export function TradePreview() {
   const { markets, isLoading: marketsLoading, error: marketsError } = useMarkets();
   const market = useMemo(() => pickFeaturedMarket(markets), [markets]);
   const { address, isConnected } = useNetworkGuard();
-  const { balance, error: balanceError } = useTokenBalance(address, market?.quoteAsset ?? "");
+  // Live balances are read on-chain from the token itself, so the hook needs its address, decimals and chain.
+  const { balance, error: balanceError } = useTokenBalance(
+    address,
+    market?.quoteAsset ?? "",
+    market?.underlyingTokenAddress,
+    market?.underlyingDecimals,
+    market?.chainId,
+  );
 
   const amount = Number(amountStr);
   const amountValid = amountStr.trim() !== "" && Number.isFinite(amount) && amount > 0 && amount <= MAX_AMOUNT;

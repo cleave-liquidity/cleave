@@ -2,41 +2,66 @@
 
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
+import { useFixedYieldQuote } from "@/hooks/useFixedYieldQuote";
+import { useLongYieldQuote } from "@/hooks/useLongYieldQuote";
+import { useMarkets } from "@/hooks/useMarkets";
+import { formatApy } from "@/lib/utils/formatters";
+import { DEFAULT_TICKET, marketHref, pickFeaturedMarket } from "./featuredMarket";
 
-const SCENARIOS = [
-  { label: "Rate Drop (4.0%)", rate: 4.0 },
-  { label: "Current (7.1%)", rate: 7.1 },
-  { label: "Rate Surge (12.0%)", rate: 12.0 },
-];
-
-// Constants for 175-day maturity (from 02 Oct 2026 to 26 Mar 2027)
-const FIXED_APY = 6.42;
-const BREAK_EVEN_RATE = 6.23;
-const YEAR_FRAC = 175 / 365; // ~0.4795
+// Shown only while no market is available (loading / unreachable). With a market, every figure below
+// comes from it and from its quotes.
+const NO_MARKET = { symbol: "USDG", maturity: "—", daysRemaining: 175, impliedApy: 6.42, underlyingApy: 7.1 };
 
 export function StrategySection() {
-  // Simulated lending rate in percentage (3.0% to 15.0%)
-  const [simulatedRate, setSimulatedRate] = useState<number>(7.1);
-  // Reference deposit amount in USDG
+  // ─── Data: featured market + shared quotes through the existing hooks ───
+  const { markets } = useMarkets();
+  const market = useMemo(() => pickFeaturedMarket(markets), [markets]);
+  const { quote: fixedQuote } = useFixedYieldQuote(market?.id ?? "", DEFAULT_TICKET);
+  const { quote: longQuote } = useLongYieldQuote(market?.id ?? "", DEFAULT_TICKET);
+
+  const symbol = market?.symbol ?? NO_MARKET.symbol;
+  const maturity = market?.maturity ?? NO_MARKET.maturity;
+  const impliedApy = market?.impliedApy ?? NO_MARKET.impliedApy;
+  const underlyingApy = market?.underlyingApy ?? NO_MARKET.underlyingApy;
+  const YEAR_FRAC = Math.max(market?.daysRemaining ?? NO_MARKET.daysRemaining, 1) / 365;
+  const FIXED_APY = fixedQuote?.quotedFixedApy ?? impliedApy;
+  const BREAK_EVEN_RATE = longQuote?.estimatedBreakEvenApy ?? impliedApy;
+  // Exposure bought per unit paid for YT. From the quote when there is one; otherwise estimated from the
+  // implied rate the same way the quote engine prices it.
+  const ytPrice =
+    longQuote && longQuote.ytPrice > 0 ? longQuote.ytPrice : 1 - 1 / (1 + (impliedApy / 100) * YEAR_FRAC);
+  const LEVERAGE = ytPrice > 0 ? 1 / ytPrice : 0;
+  const ptPriceLabel = (fixedQuote?.ptPrice ?? 1 / (1 + (impliedApy / 100) * YEAR_FRAC)).toFixed(3);
+
+  // The simulated rate starts at the market's current rate until the slider is touched.
+  const centre = underlyingApy > 0 ? underlyingApy : impliedApy;
+  const sliderMax = Math.max(15, Math.ceil(centre * 2));
+  const SCENARIOS = [
+    { label: `Rate Drop (${(centre * 0.55).toFixed(1)}%)`, rate: Number((centre * 0.55).toFixed(1)) },
+    { label: `Current (${centre.toFixed(1)}%)`, rate: Number(centre.toFixed(1)) },
+    { label: `Rate Surge (${(centre * 1.7).toFixed(1)}%)`, rate: Number(Math.min(sliderMax, centre * 1.7).toFixed(1)) },
+  ];
+  const [rateOverride, setSimulatedRate] = useState<number | null>(null);
+  const simulatedRate = rateOverride ?? Number(centre.toFixed(1));
+  // Reference deposit amount (simulated capital, in dollars)
   const [depositAmount, setDepositAmount] = useState<number>(1000);
 
   // Calculations for Fixed Yield (PT):
   // Buy at discount, redeem at 1.0. Fixed return is locked regardless of rate!
   const fixedGrossReturn = useMemo(() => {
-    // 1 USDG bought at ~0.9708 -> pays $1,030.08 per 1,000
     const lockedYield = depositAmount * (FIXED_APY / 100) * YEAR_FRAC;
     return depositAmount + lockedYield;
-  }, [depositAmount]);
+  }, [depositAmount, FIXED_APY, YEAR_FRAC]);
 
   const fixedNetProfit = fixedGrossReturn - depositAmount;
   const fixedRoiPct = (fixedNetProfit / depositAmount) * 100;
 
   // Calculations for Long Yield (YT):
-  // YT price is ~$0.059 per YT. $1,000 buys ~16,949 YT (exposure to $16,949 USDG vault!)
-  const longEffectiveNotional = depositAmount * 16.9; // 16.9x exposure
+  // YT costs a fraction of the underlying, so each unit paid buys 1 / ytPrice of yield-bearing exposure.
+  const longEffectiveNotional = depositAmount * LEVERAGE;
   const longGrossYield = useMemo(() => {
     return longEffectiveNotional * (simulatedRate / 100) * YEAR_FRAC;
-  }, [longEffectiveNotional, simulatedRate]);
+  }, [longEffectiveNotional, simulatedRate, YEAR_FRAC]);
 
   const longNetProfit = longGrossYield - depositAmount;
   const longRoiPct = (longNetProfit / depositAmount) * 100;
@@ -45,7 +70,7 @@ export function StrategySection() {
   // Dynamic SVG path for Long Yield wave that reacts to simulatedRate
   const dynamicLongWave = useMemo(() => {
     // Amplitude scales with rate (higher rate = higher oscillation & higher center)
-    const baseAmp = 12 + (simulatedRate / 15) * 24;
+    const baseAmp = 12 + (simulatedRate / sliderMax) * 24;
     const centerOffset = ((simulatedRate - BREAK_EVEN_RATE) / 10) * 28;
     const centerY = 65 - centerOffset;
 
@@ -58,7 +83,7 @@ export function StrategySection() {
       points.push(`${x === 10 ? "M" : "L"} ${x} ${y.toFixed(1)}`);
     }
     return points.join(" ");
-  }, [simulatedRate]);
+  }, [simulatedRate, BREAK_EVEN_RATE, sliderMax]);
 
   return (
     <section
@@ -119,7 +144,7 @@ export function StrategySection() {
           </div>
           <span className="mono text-[11px] text-muted-dark">
             Break-even threshold for Long Yield:{" "}
-            <span className="text-amber">6.23%</span>
+            <span className="text-amber">{formatApy(BREAK_EVEN_RATE)}</span>
           </span>
         </div>
 
@@ -127,8 +152,8 @@ export function StrategySection() {
         <div className="flex-1 w-full max-w-[480px] flex flex-col gap-2">
           <input
             type="range"
-            min="3.0"
-            max="15.0"
+            min="0"
+            max={sliderMax}
             step="0.1"
             value={simulatedRate}
             onChange={(e) => setSimulatedRate(parseFloat(e.target.value))}
@@ -136,9 +161,9 @@ export function StrategySection() {
             aria-label="Simulate Lending Rate"
           />
           <div className="flex justify-between mono text-[10px] text-muted-dark">
-            <span>3.0% (Bear)</span>
-            <span>6.23% (Break-even)</span>
-            <span>15.0% (Surge)</span>
+            <span>0.0% (Bear)</span>
+            <span>{formatApy(BREAK_EVEN_RATE)} (Break-even)</span>
+            <span>{sliderMax.toFixed(1)}% (Surge)</span>
           </div>
         </div>
 
@@ -173,14 +198,14 @@ export function StrategySection() {
                 </h3>
               </div>
               <span className="mono text-[11px] tracking-[0.14em] text-ice border border-ice/30 px-2.5 py-0.5 rounded">
-                6.42% APY LOCKED
+                {formatApy(FIXED_APY)} APY LOCKED
               </span>
             </div>
 
             {/* Dynamic Return readout */}
             <div className="flex flex-col gap-1 pt-2 pb-1 border-b border-white/10">
               <span className="mono text-[11px] tracking-[0.14em] text-muted-dark uppercase">
-                Guaranteed Payout on 26 Mar 2027
+                Guaranteed Payout on {maturity}
               </span>
               <div className="flex items-baseline gap-3">
                 <span className="mono text-[32px] sm:text-[36px] font-medium text-foreground">
@@ -237,7 +262,7 @@ export function StrategySection() {
                   fill="#A9C8EE"
                   fontWeight="500"
                 >
-                  $1.00 USDG
+                  1.00 {symbol}
                 </text>
                 <text
                   className="mono"
@@ -246,7 +271,7 @@ export function StrategySection() {
                   fontSize="11"
                   fill="#8E9390"
                 >
-                  $0.941
+                  {ptPriceLabel}
                 </text>
                 <text
                   className="mono"
@@ -263,7 +288,7 @@ export function StrategySection() {
 
             <p className="m-0 text-[14px] sm:text-[15px] leading-[1.6] text-muted font-light">
               Your effective return is locked the moment you enter. Whether
-              borrow demand collapses or skyrockets, you redeem 1:1 in USDG at
+              borrow demand collapses or skyrockets, you redeem 1:1 in {symbol} at
               maturity.
             </p>
           </div>
@@ -282,7 +307,7 @@ export function StrategySection() {
               </span>
             </div>
             <Link
-              href={`/markets/usdg-morpho-26mar27?strategy=fixed&amount=${depositAmount}`}
+              href={market ? marketHref(market.id, "fixed") : "/markets"}
               className="mt-2 min-h-[44px] bg-ice text-[#0A0C10] font-medium text-[13px] flex items-center justify-center hover:bg-white transition-all shadow-[0_0_20px_rgba(169,200,238,0.2)]"
             >
               Lock Fixed Rate (PT) &rarr;
@@ -301,7 +326,7 @@ export function StrategySection() {
                 </h3>
               </div>
               <span className="mono text-[11px] tracking-[0.14em] text-amber border border-amber/30 px-2.5 py-0.5 rounded">
-                ~16.9x LEVERAGE
+                ~{LEVERAGE.toFixed(1)}x LEVERAGE
               </span>
             </div>
 
@@ -333,7 +358,7 @@ export function StrategySection() {
                 <span className="text-foreground">
                   ${longEffectiveNotional.toLocaleString()}
                 </span>{" "}
-                USDG vault interest
+                {symbol} vault interest
               </span>
             </div>
 
@@ -363,7 +388,7 @@ export function StrategySection() {
                   fontSize="10"
                   fill="#8E9390"
                 >
-                  BREAK-EVEN 6.23%
+                  BREAK-EVEN {formatApy(BREAK_EVEN_RATE)}
                 </text>
                 {/* Reactive wave */}
                 <path
@@ -389,7 +414,7 @@ export function StrategySection() {
             </div>
 
             <p className="m-0 text-[14px] sm:text-[15px] leading-[1.6] text-muted font-light">
-              Because YT costs ~$0.059 per token, you gain ~16.9x capital
+              Because YT costs ~{ytPrice.toFixed(3)} {symbol} per token, you gain ~{LEVERAGE.toFixed(1)}x capital
               efficiency. When lending demand surges, your yield claimable
               multiplies dramatically.
             </p>
@@ -405,11 +430,11 @@ export function StrategySection() {
             <div className="flex justify-between text-[13px]">
               <span className="text-muted">Payout mechanism</span>
               <span className="text-foreground">
-                Claim streaming USDG continuously
+                Claim streaming {symbol} continuously
               </span>
             </div>
             <Link
-              href={`/markets/usdg-morpho-26mar27?strategy=long&amount=${depositAmount}`}
+              href={market ? marketHref(market.id, "long") : "/markets"}
               className="mt-2 min-h-[44px] bg-amber text-[#0A0C10] font-medium text-[13px] flex items-center justify-center hover:bg-white transition-all shadow-[0_0_20px_rgba(240,168,92,0.2)]"
             >
               Trade Long Yield (YT) &rarr;

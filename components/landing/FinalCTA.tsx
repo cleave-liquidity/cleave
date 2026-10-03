@@ -2,8 +2,13 @@
 
 import React from "react";
 import Link from "next/link";
+import { useMarkets } from "@/hooks/useMarkets";
+import { marketHref, pickFeaturedMarket } from "./featuredMarket";
 
 export function FinalCTA() {
+  const { markets } = useMarkets();
+  const market = pickFeaturedMarket(markets);
+  const live = market?.dataMode === "live";
   return (
     <div className="relative flex-1 flex flex-col items-center justify-center text-center px-4 sm:px-6 lg:px-10 py-8 overflow-hidden">
       {/* Ambient background glow */}
@@ -78,7 +83,7 @@ export function FinalCTA() {
           <span className="text-foreground">hold yield.</span>
         </h2>
         <p className="m-0 text-[14px] sm:text-[16px] leading-[1.6] text-muted font-light max-w-[440px] mx-auto">
-          Lock a fixed rate or go long on where yield is heading — all in USDG, settled
+          Lock a fixed rate or go long on where yield is heading — all in {market ? market.symbol : "one asset"}, settled
           on Robinhood Chain.
         </p>
       </div>
@@ -92,7 +97,7 @@ export function FinalCTA() {
           Explore markets &rarr;
         </Link>
         <Link
-          href="/markets/usdg-morpho-26mar27"
+          href={market ? marketHref(market.id) : "/markets"}
           className="inline-flex items-center gap-2 min-h-[48px] sm:min-h-[52px] px-6 border border-white/20 text-[14px] sm:text-[15px] hover:border-white/40 transition-colors"
         >
           Open a position
@@ -101,7 +106,7 @@ export function FinalCTA() {
 
       {/* Footnote */}
       <p className="relative z-10 mono text-[10px] sm:text-[11px] tracking-[0.08em] text-muted-dark max-w-[400px] mx-auto mt-4">
-        Sample data shown throughout. Built on Robinhood Chain.
+        {live ? "Live data from Pendle." : "Sample data shown throughout."} Built on Robinhood Chain.
       </p>
     </div>
   );
