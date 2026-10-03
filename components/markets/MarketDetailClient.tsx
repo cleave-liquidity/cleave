@@ -7,7 +7,6 @@ import { Footer } from "@/components/layout/Footer";
 import { ApplicationBackdrop } from "@/components/layout/ApplicationBackdrop";
 import { DataModeBadge } from "@/components/layout/DataModeBadge";
 import { YieldChart } from "@/components/trade/YieldChart";
-import { TradePanel } from "@/components/trade/TradePanel";
 import { AssetIcon } from "@/components/markets/AssetIcon";
 import { formatApy, formatUsd } from "@/lib/utils/formatters";
 import { ROBINHOOD_CHAIN_ID } from "@/lib/web3/chains";
@@ -16,14 +15,11 @@ import { ArrowLeft, ShieldCheck } from "lucide-react";
 
 export function MarketDetailClient({
   market,
-  initialStrategy,
-  initialAmount,
 }: {
   market: YieldMarket;
-  /** Preselected strategy, e.g. when arriving from a landing-page CTA. */
-  initialStrategy?: "fixed" | "long";
-  initialAmount?: string;
 }) {
+  const isTradeable = market.status === "active" || market.status === "maturing";
+
   return (
     <div className="relative min-h-screen overflow-x-clip bg-background text-foreground">
       <ApplicationBackdrop />
@@ -169,13 +165,42 @@ export function MarketDetailClient({
           </div>
 
           <div className="w-full lg:sticky lg:top-28">
-            <Link
-              href={`/trade/${market.id}`}
-              className="mb-3 flex min-h-[44px] items-center justify-center border border-ice/50 bg-ice/10 px-4 text-[14px] text-ice transition-colors hover:bg-ice/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice"
-            >
-              Open Trade Workspace →
-            </Link>
-            <TradePanel market={market} initialStrategy={initialStrategy} initialAmount={initialAmount} />
+            <div className="border border-white/14 bg-surface/70 p-5 sm:p-6">
+              <div className="mono text-[11px] uppercase tracking-[0.14em] text-muted-dark">
+                Strategy overview
+              </div>
+              <h2 className="mt-2 text-[21px] font-normal text-foreground">
+                Choose your yield exposure
+              </h2>
+              <div className="mt-5 flex flex-col divide-y divide-white/10 border-y border-white/10">
+                <div className="flex items-center justify-between gap-4 py-4">
+                  <div>
+                    <div className="text-[14px] font-medium text-ice">Fixed Yield</div>
+                    <div className="mt-1 text-[12px] text-muted-dark">Predictable outcome</div>
+                  </div>
+                  <span className="mono text-[16px] text-ice">{formatApy(market.impliedApy)}</span>
+                </div>
+                <div className="flex items-center justify-between gap-4 py-4">
+                  <div>
+                    <div className="text-[14px] font-medium text-amber">Long Yield</div>
+                    <div className="mt-1 text-[12px] text-muted-dark">Future yield exposure</div>
+                  </div>
+                  <span className="mono text-[16px] text-amber">{formatApy(market.underlyingApy)}</span>
+                </div>
+              </div>
+              {isTradeable ? (
+                <Link
+                  href={`/trade/${market.id}`}
+                  className="mt-5 flex min-h-[48px] items-center justify-center bg-amber px-4 text-[14px] font-medium text-[#0A0B0C] transition-all hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice"
+                >
+                  Trade Yield →
+                </Link>
+              ) : (
+                <div className="mt-5 border border-white/15 bg-surface px-4 py-3 text-center text-[13px] text-muted-dark">
+                  {market.status === "paused" ? "Trading is currently paused." : "This market has passed maturity."}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </main>

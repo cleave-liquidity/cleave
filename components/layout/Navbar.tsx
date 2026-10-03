@@ -9,8 +9,10 @@ export function Navbar({ isLanding = false }: { isLanding?: boolean }) {
   const pathname = usePathname();
 
   const isMarkets = pathname?.startsWith("/markets");
+  const isTrade = pathname?.startsWith("/trade");
   const isPortfolio = pathname === "/portfolio";
-  const isContracts = pathname === "/contracts";
+  const isDocs = pathname?.startsWith("/docs");
+  const isContracts = pathname?.startsWith("/contracts");
 
   return (
     <header className={`${isLanding ? "absolute top-0 left-0 right-0 z-30" : "sticky top-0 z-30 bg-background/90 backdrop-blur-md border-b border-white/10"}`}>
@@ -61,7 +63,11 @@ export function Navbar({ isLanding = false }: { isLanding?: boolean }) {
           >
             Markets
           </Link>
-          <Link href="/trade" className="text-muted hover:text-foreground transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ice">
+          <Link
+            href="/trade"
+            aria-current={isTrade ? "page" : undefined}
+            className={`transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ice ${isTrade ? "text-foreground font-medium" : "text-muted hover:text-foreground"}`}
+          >
             Trade Yield
           </Link>
           <Link
@@ -73,8 +79,8 @@ export function Navbar({ isLanding = false }: { isLanding?: boolean }) {
           </Link>
           <Link
             href="/docs"
-            aria-current={pathname === "/docs" ? "page" : undefined}
-            className="text-muted hover:text-foreground transition-colors hidden sm:inline-block focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ice"
+            aria-current={isDocs ? "page" : undefined}
+            className={`transition-colors hidden sm:inline-block focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ice ${isDocs ? "text-foreground font-medium" : "text-muted hover:text-foreground"}`}
           >
             Docs
           </Link>

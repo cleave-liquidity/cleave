@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { ApplicationBackdrop } from "@/components/layout/ApplicationBackdrop";
@@ -10,19 +11,31 @@ import { TradePanel } from "@/components/trade/TradePanel";
 import { formatApy, formatUsd } from "@/lib/utils/formatters";
 import { YieldMarket } from "@/types/market";
 import { ArrowLeft } from "lucide-react";
+import {
+  buildTradeWorkspaceHref,
+  type TradeStrategy,
+} from "@/lib/markets/trade-strategy";
 
 export function TradeWorkspaceClient({
   market,
-  initialStrategy,
+  strategy,
   initialAmount,
 }: {
   market: YieldMarket;
-  initialStrategy?: "fixed" | "long";
+  strategy?: TradeStrategy;
   initialAmount?: string;
 }) {
+  const router = useRouter();
   const assetSymbol = market.assetMetadata?.symbol || market.symbol;
   const assetName = market.assetMetadata?.name || market.name;
   const sourceName = market.sourceProtocol || market.protocolMetadata?.name || market.yieldSource;
+  const isTradeable =
+    (market.status === "active" || market.status === "maturing") &&
+    market.daysRemaining > 0;
+
+  const handleStrategyChange = (nextStrategy: TradeStrategy) => {
+    router.replace(buildTradeWorkspaceHref(market.id, nextStrategy), { scroll: false });
+  };
 
   return (
     <div className="relative min-h-screen overflow-x-clip bg-background text-foreground">
@@ -81,16 +94,73 @@ export function TradeWorkspaceClient({
               <div className="mono text-[11px] tracking-[0.14em] text-muted-dark uppercase">
                 Select your yield exposure
               </div>
+              <div
+                role="group"
+                aria-label="Yield strategy"
+                className="grid grid-cols-2 border border-white/18 rounded-lg overflow-hidden"
+              >
+                <button
+                  type="button"
+                  aria-pressed={strategy === "fixed"}
+                  onClick={() => handleStrategyChange("fixed")}
+                  className={`min-h-[52px] border-0 text-[14px] font-medium transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ice ${
+                    strategy === "fixed"
+                      ? "border-b-2 border-ice bg-ice/10 text-ice"
+                      : "bg-transparent text-muted hover:text-white"
+                  }`}
+                >
+                  Fixed Yield
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={strategy === "long"}
+                  onClick={() => handleStrategyChange("long")}
+                  className={`min-h-[52px] border-0 text-[14px] font-medium transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-amber ${
+                    strategy === "long"
+                      ? "border-b-2 border-amber bg-amber/10 text-amber"
+                      : "bg-transparent text-muted hover:text-white"
+                  }`}
+                >
+                  Long Yield
+                </button>
+              </div>
               <p className="text-[16px] leading-7 text-muted">
-                Choose Fixed Yield for a defined outcome at maturity or Long Yield for floating rate exposure. The live quote and wallet checks are handled in the trade panel.
+                {strategy === "fixed"
+                  ? "Fixed Yield targets a predictable outcome at maturity. The live quote and wallet checks are handled below."
+                  : strategy === "long"
+                    ? "Long Yield gives exposure to future yield through maturity. The live quote and wallet checks are handled below."
+                    : "Choose Fixed Yield or Long Yield before entering an amount or opening a position."}
               </p>
             </div>
             <div className="w-full lg:sticky lg:top-28">
-              <TradePanel
-                market={market}
-                initialStrategy={initialStrategy}
-                initialAmount={initialAmount}
-              />
+              {strategy && isTradeable ? (
+                <TradePanel
+                  key={strategy}
+                  market={market}
+                  strategy={strategy}
+                  initialAmount={initialAmount}
+                />
+              ) : strategy ? (
+                <div className="border border-white/16 rounded-[10px] bg-surface p-5 sm:p-7 text-center">
+                  <div className="mono text-[11px] uppercase tracking-[0.14em] text-muted-dark">
+                    Execution unavailable
+                  </div>
+                  <p className="mt-3 text-[14px] leading-6 text-muted">
+                    {market.status === "paused"
+                      ? "This market is currently paused and cannot be traded."
+                      : "This market has passed maturity and cannot be traded."}
+                  </p>
+                </div>
+              ) : (
+                <div className="border border-white/16 rounded-[10px] bg-surface p-5 sm:p-7 text-center">
+                  <div className="mono text-[11px] uppercase tracking-[0.14em] text-muted-dark">
+                    Strategy required
+                  </div>
+                  <p className="mt-3 text-[14px] leading-6 text-muted">
+                    Select Fixed Yield or Long Yield to load the matching quote and execution flow.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </main>

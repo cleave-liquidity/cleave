@@ -19,14 +19,19 @@ import { YieldDomainError, getYieldErrorMessage } from "@/types/errors";
 import { AlertCircle, CheckCircle2, ChevronDown, Loader2 } from "lucide-react";
 import { yieldAdapter } from "@/lib/adapters/mock-adapter";
 import { getContractByName } from "@/lib/contracts/deployments";
+import {
+  getTradeResetState,
+  isQuoteEnabledForStrategy,
+  type TradeStrategy,
+} from "@/lib/markets/trade-strategy";
 
 export function TradePanel({
   market,
-  initialStrategy = "fixed",
+  strategy,
   initialAmount,
 }: {
   market: YieldMarket;
-  initialStrategy?: "fixed" | "long";
+  strategy: TradeStrategy;
   initialAmount?: string;
 }) {
   const router = useRouter();
@@ -50,12 +55,9 @@ export function TradePanel({
   const openLongPosition = useOpenLongPosition();
   const { openConnectModal } = useConnectModal();
 
-  const [strategy, setStrategy] = useState<"fixed" | "long">(initialStrategy);
-  // Long Yield opens with a smaller default ticket than Fixed (see the strategy toggle below).
-  const [inputAmountStr, setInputAmountStr] = useState<string>(
-    initialAmount ?? (initialStrategy === "long" ? "100" : "1000"),
-  );
-  const [txState, setTxState] = useState<TransactionState>({ step: "idle" });
+  const initialTradeState = getTradeResetState(strategy, initialAmount);
+  const [inputAmountStr, setInputAmountStr] = useState<string>(initialTradeState.inputAmount);
+  const [txState, setTxState] = useState<TransactionState>(initialTradeState.transactionState);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [currentTime, setCurrentTime] = useState(() => Date.now());
 
@@ -64,16 +66,25 @@ export function TradePanel({
     return () => window.clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    const resetState = getTradeResetState(strategy, initialAmount);
+    setInputAmountStr(resetState.inputAmount);
+    setShowAdvanced(resetState.showAdvanced);
+    setTxState(resetState.transactionState);
+  }, [strategy, initialAmount]);
+
   const inputAmount = Number(inputAmountStr);
   const hasNumericAmount = inputAmountStr.trim() !== "" && Number.isFinite(inputAmount);
 
   const { quote: fixedQuote, isLoading: loadingFixed, error: fixedQuoteError, refresh: refreshFixed } = useFixedYieldQuote(
     market.id,
-    inputAmount
+    inputAmount,
+    { enabled: isQuoteEnabledForStrategy(strategy, "fixed") },
   );
   const { quote: longQuote, isLoading: loadingLong, error: longQuoteError, refresh: refreshLong } = useLongYieldQuote(
     market.id,
-    inputAmount
+    inputAmount,
+    { enabled: isQuoteEnabledForStrategy(strategy, "long") },
   );
 
   const isFixed = strategy === "fixed";
@@ -290,44 +301,6 @@ export function TradePanel({
         <span className="mono text-[12px] text-muted-dark">
           {market.daysRemaining} DAYS REMAINING
         </span>
-      </div>
-
-      {/* Strategy Selector */}
-      <div
-        role="group"
-        aria-label="Strategy Mode"
-        className="grid grid-cols-2 border border-white/18 rounded-lg overflow-hidden"
-      >
-        <button
-          type="button"
-          aria-pressed={isFixed}
-          onClick={() => {
-            setStrategy("fixed");
-            if (inputAmountStr === "100") setInputAmountStr("1000");
-          }}
-          className={`min-h-[46px] border-0 text-[14px] font-medium transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ice ${
-            isFixed
-              ? "border-b-2 border-ice bg-ice/10 text-ice"
-              : "bg-transparent text-muted hover:text-white"
-          }`}
-        >
-          Fixed Yield
-        </button>
-        <button
-          type="button"
-          aria-pressed={!isFixed}
-          onClick={() => {
-            setStrategy("long");
-            if (inputAmountStr === "1000") setInputAmountStr("100");
-          }}
-          className={`min-h-[46px] border-0 text-[14px] font-medium transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-amber ${
-            !isFixed
-              ? "border-b-2 border-amber bg-amber/10 text-amber"
-              : "bg-transparent text-muted hover:text-white"
-          }`}
-        >
-          Long Yield
-        </button>
       </div>
 
       {/* Amount Input */}
@@ -638,30 +611,6 @@ export function TradePanel({
 
       {/* Primary Action Button */}
       {(() => {
-        if (!isConnected) {
-          return (
-            <button
-              type="button"
-              onClick={handleConnectWallet}
-              className="min-h-[52px] border-0 rounded-lg bg-amber text-[#0A0B0C] text-[15px] font-medium flex items-center justify-center hover:brightness-105 transition-all cursor-pointer"
-            >
-              Connect Wallet
-            </button>
-          );
-        }
-
-        if (isWrongNetwork) {
-          return (
-            <button
-              type="button"
-              onClick={handleNetworkSwitch}
-              className="min-h-[52px] border-0 rounded-lg bg-negative text-white text-[15px] font-medium flex items-center justify-center hover:brightness-105 transition-all cursor-pointer"
-            >
-              Switch to Robinhood Chain
-            </button>
-          );
-        }
-
         if (market.status === "paused") {
           return (
             <button
@@ -682,6 +631,30 @@ export function TradePanel({
               className="min-h-[52px] border border-white/20 rounded-lg bg-surface text-muted-dark text-[15px] font-medium flex items-center justify-center cursor-not-allowed"
             >
               Market Expired
+            </button>
+          );
+        }
+
+        if (!isConnected) {
+          return (
+            <button
+              type="button"
+              onClick={handleConnectWallet}
+              className="min-h-[52px] border-0 rounded-lg bg-amber text-[#0A0B0C] text-[15px] font-medium flex items-center justify-center hover:brightness-105 transition-all cursor-pointer"
+            >
+              Connect Wallet
+            </button>
+          );
+        }
+
+        if (isWrongNetwork) {
+          return (
+            <button
+              type="button"
+              onClick={handleNetworkSwitch}
+              className="min-h-[52px] border-0 rounded-lg bg-negative text-white text-[15px] font-medium flex items-center justify-center hover:brightness-105 transition-all cursor-pointer"
+            >
+              Switch to Robinhood Chain
             </button>
           );
         }

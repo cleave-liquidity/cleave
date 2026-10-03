@@ -3,15 +3,12 @@ import { TradeUnavailableState } from "@/components/trade/TradeUnavailableState"
 import { TradeWorkspaceClient } from "@/components/trade/TradeWorkspaceClient";
 import { yieldAdapter } from "@/lib/adapters/mock-adapter";
 import { normalizeTradeMarketId } from "@/lib/markets/trade-market";
+import { parseTradeStrategy } from "@/lib/markets/trade-strategy";
 import { MAX_SAFE_DISPLAY_AMOUNT } from "@/lib/utils/amounts";
 
 type SearchParams = { [key: string]: string | string[] | undefined };
 
 const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
-
-function parseStrategy(value: string | undefined): "fixed" | "long" | undefined {
-  return value === "fixed" || value === "long" ? value : undefined;
-}
 
 function parseAmount(value: string | undefined): string | undefined {
   if (!value || value.length > 18) return undefined;
@@ -42,7 +39,7 @@ export default async function TradeWorkspacePage({
 
   if (!market) notFound();
 
-  const strategy = parseStrategy(first(query.strategy));
+  const strategy = parseTradeStrategy(query.strategy);
   const amount = parseAmount(first(query.amount));
   if (market.id.toLowerCase() !== normalizedId.toLowerCase()) {
     const canonicalQuery = new URLSearchParams();
@@ -55,7 +52,7 @@ export default async function TradeWorkspacePage({
   return (
     <TradeWorkspaceClient
       market={market}
-      initialStrategy={strategy}
+      strategy={strategy}
       initialAmount={amount}
     />
   );

@@ -1,25 +1,30 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
+import { ArrowUpRight } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { MarketTable } from "@/components/markets/MarketTable";
-import { useMarkets } from "@/hooks/useMarkets";
-import { formatUsd } from "@/lib/utils/formatters";
-import { getYieldErrorMessage } from "@/types/errors";
 import { ApplicationBackdrop } from "@/components/layout/ApplicationBackdrop";
+import { AssetIcon } from "@/components/markets/AssetIcon";
+import { useMarkets } from "@/hooks/useMarkets";
+import { formatApy, formatUsd } from "@/lib/utils/formatters";
+import { getYieldErrorMessage } from "@/types/errors";
+import { YieldMarket } from "@/types/market";
 import { yieldAdapter } from "@/lib/adapters/mock-adapter";
+import {
+  buildTradeWorkspaceHref,
+  type TradeStrategy,
+} from "@/lib/markets/trade-strategy";
 import { getConfiguredChainId, getNetworkShortLabel } from "@/lib/web3/environment";
 
-export function TradeMarketHub() {
+export function TradeMarketHub({ strategy }: { strategy?: TradeStrategy }) {
   const { markets, isLoading, error } = useMarkets();
   const networkShortLabel = getNetworkShortLabel(getConfiguredChainId(), false);
   const tradeableMarkets = markets.filter(
-    (market) => market.status === "active" || market.status === "maturing",
-  );
-  const totalLiquidity = tradeableMarkets.reduce(
-    (sum, market) => sum + market.liquidityUsd,
-    0,
+    (market) =>
+      (market.status === "active" || market.status === "maturing") &&
+      market.daysRemaining > 0,
   );
 
   return (
@@ -29,77 +34,74 @@ export function TradeMarketHub() {
         <Navbar isLanding={false} />
 
         <main id="main-content" className="flex-grow max-w-[1240px] w-full mx-auto px-4 sm:px-6 lg:px-10 py-10 sm:py-16">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-8 border-b border-white/12">
-            <div className="flex flex-col gap-2">
-              <div className="mono text-[12px] tracking-[0.18em] text-muted-dark uppercase">
-                Trade Yield · Robinhood Chain
-              </div>
-              <h1 className="text-[36px] sm:text-[44px] font-normal tracking-[-0.03em] m-0 text-foreground">
-                Choose a market
-              </h1>
-              <p className="text-[16px] text-muted max-w-[560px] m-0 font-light">
-                Select a live yield market to open its dedicated trading workspace.
-                No market is selected until you choose one.
-              </p>
+          <div className="max-w-[760px]">
+            <div className="mono text-[12px] tracking-[0.18em] text-muted-dark uppercase">
+              Trade Yield · Robinhood Chain
             </div>
+            <h1 className="mt-2 text-[36px] sm:text-[48px] font-normal tracking-[-0.04em] text-foreground">
+              What kind of yield exposure do you want?
+            </h1>
+            <p className="mt-4 max-w-[640px] text-[16px] leading-7 text-muted font-light">
+              Choose a predictable yield outcome or exposure to future yield, then select a live market to open the position workspace.
+            </p>
+          </div>
 
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <div className="p-3.5 sm:p-4 rounded-xl border border-white/10 bg-surface/50 backdrop-blur-sm flex flex-col gap-1">
-                <span className="mono text-[10px] text-muted-dark uppercase tracking-wider">
-                  Tradeable Liquidity
-                </span>
-                <span className="mono text-[20px] sm:text-[22px] font-medium text-foreground">
-                  {isLoading ? "..." : formatUsd(totalLiquidity)}
-                </span>
+          <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2">
+            <StrategyIntro
+              strategy="fixed"
+              selected={strategy === "fixed"}
+              title="Fixed Yield"
+              summary="Predictable outcome"
+              description="Lock in a quoted rate and see the expected maturity outcome before you open the position."
+              tone="ice"
+            />
+            <StrategyIntro
+              strategy="long"
+              selected={strategy === "long"}
+              title="Long Yield"
+              summary="Future yield exposure"
+              description="Receive exposure to the underlying yield through maturity, with outcomes that move with realized rates."
+              tone="amber"
+            />
+          </div>
+
+          <div className="mt-12 flex flex-col gap-2 border-b border-white/12 pb-5 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <div className="mono text-[11px] tracking-[0.14em] text-muted-dark uppercase">
+                Live tradeable opportunities
               </div>
-              <div className="p-3.5 sm:p-4 rounded-xl border border-white/10 bg-surface/50 backdrop-blur-sm flex flex-col gap-1">
-                <span className="mono text-[10px] text-muted-dark uppercase tracking-wider">
-                  Tradeable Markets
-                </span>
-                <span className="mono text-[20px] sm:text-[22px] font-medium text-ice">
-                  {isLoading ? "..." : tradeableMarkets.length}
-                </span>
-              </div>
-              <div className="p-3.5 sm:p-4 rounded-xl border border-white/10 bg-surface/50 backdrop-blur-sm flex flex-col gap-1">
-                <span className="mono text-[10px] text-muted-dark uppercase tracking-wider">
-                  Network
-                </span>
-                <span className="text-[13px] font-medium text-foreground">
-                  Robinhood Chain
-                </span>
-                <span className="mono text-[10px] text-muted-dark">{networkShortLabel}</span>
-              </div>
-              <div className="p-3.5 sm:p-4 rounded-xl border border-white/10 bg-surface/50 backdrop-blur-sm flex flex-col gap-1 min-w-0">
-                <span className="mono text-[10px] text-muted-dark uppercase tracking-wider">
-                  Data Mode
-                </span>
-                <div className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_8px_#fbbf24] animate-pulse shrink-0" />
-                  <span className="text-[13px] font-medium text-foreground">
-                    {yieldAdapter.mode === "live" ? "Live Data" : "Preview Data"}
-                  </span>
-                </div>
-                <span className="mono text-[10px] text-muted-dark">
-                  {yieldAdapter.mode === "live" ? "Pendle API" : "Mock Adapter"}
-                </span>
-              </div>
+              <h2 className="mt-1 text-[24px] font-normal tracking-[-0.02em] text-foreground">
+                {strategy ? `${strategy === "fixed" ? "Fixed Yield" : "Long Yield"} markets` : "Choose a strategy first"}
+              </h2>
+            </div>
+            <div className="mono text-[11px] text-muted-dark">
+              {yieldAdapter.mode === "live" ? "PENDLE LIVE DATA" : "PREVIEW DATA"} · {networkShortLabel}
             </div>
           </div>
 
-          <div className="mt-8">
-            {isLoading ? (
+          <div className="mt-6">
+            {!strategy ? (
+              <div className="border border-white/12 bg-surface/60 py-20 text-center text-muted font-mono text-[13px]">
+                Select Fixed Yield or Long Yield above to see currently tradeable markets.
+              </div>
+            ) : isLoading ? (
               <div className="py-24 text-center text-muted font-mono">
-                Loading yield markets...
+                Loading live trade opportunities...
               </div>
             ) : error ? (
               <div className="py-24 text-center text-negative">
                 {getYieldErrorMessage(error)}
               </div>
+            ) : tradeableMarkets.length === 0 ? (
+              <div className="border border-white/12 bg-surface/60 py-20 text-center text-muted font-mono text-[13px]">
+                No currently tradeable live markets are available.
+              </div>
             ) : (
-              <MarketTable
-                markets={tradeableMarkets}
-                hrefForMarket={(market) => `/trade/${market.id}`}
-              />
+              <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+                {tradeableMarkets.map((market) => (
+                  <TradeOpportunityCard key={market.id} market={market} strategy={strategy} />
+                ))}
+              </div>
             )}
           </div>
         </main>
@@ -107,5 +109,141 @@ export function TradeMarketHub() {
         <Footer />
       </div>
     </div>
+  );
+}
+
+function StrategyIntro({
+  strategy,
+  selected,
+  title,
+  summary,
+  description,
+  tone,
+}: {
+  strategy: TradeStrategy;
+  selected: boolean;
+  title: string;
+  summary: string;
+  description: string;
+  tone: "ice" | "amber";
+}) {
+  return (
+    <Link
+      href={`/trade?strategy=${strategy}`}
+      aria-current={selected ? "page" : undefined}
+      className={`block border p-5 sm:p-6 transition-colors ${tone === "ice" ? "border-ice/25 bg-ice/5 hover:border-ice/50 hover:bg-ice/10" : "border-amber/25 bg-amber/5 hover:border-amber/50 hover:bg-amber/10"} ${selected ? "ring-1 ring-white/25" : ""}`}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className={`text-[22px] font-medium ${tone === "ice" ? "text-ice" : "text-amber"}`}>
+            {title}
+          </h2>
+          <div className="mono mt-1 text-[11px] uppercase tracking-[0.14em] text-muted-dark">
+            {summary}
+          </div>
+        </div>
+        <span className={`mt-1 h-2 w-2 rounded-full ${tone === "ice" ? "bg-ice shadow-[0_0_10px_#A9C8EE]" : "bg-amber shadow-[0_0_10px_#F0A85C]"}`} />
+      </div>
+      <p className="mt-5 max-w-[480px] text-[14px] leading-6 text-muted">{description}</p>
+    </Link>
+  );
+}
+
+function TradeOpportunityCard({ market, strategy }: { market: YieldMarket; strategy: TradeStrategy }) {
+  const symbol = market.assetMetadata?.symbol || market.symbol;
+  const name = market.assetMetadata?.name || market.name;
+  const source = market.sourceProtocol || market.protocolMetadata?.name || market.yieldSource;
+
+  return (
+    <article className="border border-white/14 bg-surface/70 p-5 sm:p-6">
+      <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-5">
+        <div className="flex min-w-0 items-center gap-3.5">
+          <AssetIcon
+            symbol={symbol}
+            name={name}
+            iconUrl={market.assetMetadata?.iconUrl}
+            size="md"
+          />
+          <div className="min-w-0">
+            <h3 className="truncate text-[18px] font-medium text-foreground">{symbol}</h3>
+            <p className="truncate text-[12px] text-muted-dark">{name} · {source}</p>
+          </div>
+        </div>
+        <span className="mono shrink-0 border border-ice/25 bg-ice/5 px-2.5 py-1 text-[10px] uppercase tracking-wider text-ice">
+          {market.status === "maturing" ? "Maturing" : "Active"}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 border-b border-white/10 py-5 sm:grid-cols-3">
+        <Metric label="Maturity" value={market.maturity} detail={`${market.daysRemaining} days`} />
+        <Metric label="Liquidity" value={formatUsd(market.liquidityUsd)} />
+        <Metric label="Rate now" value={formatApy(market.underlyingApy)} detail="Underlying APY" />
+      </div>
+
+      <div className="pt-5">
+        {strategy === "fixed" ? (
+          <StrategyAction
+            href={buildTradeWorkspaceHref(market.id, strategy)}
+            title="Fixed Yield"
+            value={formatApy(market.impliedApy)}
+            detail="Market implied APY"
+            action="Trade Fixed"
+            tone="ice"
+          />
+        ) : (
+          <StrategyAction
+            href={buildTradeWorkspaceHref(market.id, strategy)}
+            title="Long Yield"
+            value={formatApy(market.underlyingApy)}
+            detail="Current yield exposure"
+            action="Trade Long"
+            tone="amber"
+          />
+        )}
+      </div>
+    </article>
+  );
+}
+
+function Metric({ label, value, detail }: { label: string; value: string; detail?: string }) {
+  return (
+    <div className="min-w-0">
+      <div className="mono text-[10px] uppercase tracking-wider text-muted-dark">{label}</div>
+      <div className="mt-1 truncate text-[14px] font-medium text-foreground">{value}</div>
+      {detail && <div className="mono mt-1 text-[10px] text-muted-dark">{detail}</div>}
+    </div>
+  );
+}
+
+function StrategyAction({
+  href,
+  title,
+  value,
+  detail,
+  action,
+  tone,
+}: {
+  href: string;
+  title: string;
+  value: string;
+  detail: string;
+  action: string;
+  tone: "ice" | "amber";
+}) {
+  return (
+    <Link
+      href={href}
+      className={`group flex min-h-[132px] flex-col justify-between border p-4 transition-colors ${tone === "ice" ? "border-ice/20 bg-ice/5 hover:border-ice/50 hover:bg-ice/10" : "border-amber/20 bg-amber/5 hover:border-amber/50 hover:bg-amber/10"}`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className={`text-[14px] font-medium ${tone === "ice" ? "text-ice" : "text-amber"}`}>{title}</div>
+          <div className="mono mt-2 text-[22px] text-foreground">{value}</div>
+          <div className="mono mt-1 text-[10px] uppercase tracking-wider text-muted-dark">{detail}</div>
+        </div>
+        <ArrowUpRight className="h-4 w-4 text-muted-dark transition-colors group-hover:text-foreground" aria-hidden="true" />
+      </div>
+      <span className="mt-4 text-[13px] text-foreground">{action} →</span>
+    </Link>
   );
 }
