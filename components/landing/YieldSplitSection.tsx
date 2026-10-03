@@ -360,7 +360,7 @@ export function YieldSplitSection() {
       className="zs-runway relative select-none overflow-x-clip"
     >
       {/* Top divider: a hairline with a soft light that falls off smoothly on every side (no box). */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+      <div id="trade-yield" aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 top-0 h-[260px]"
