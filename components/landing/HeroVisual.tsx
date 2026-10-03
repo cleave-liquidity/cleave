@@ -305,6 +305,12 @@ function createSim() {
 }
 type Sim = ReturnType<typeof createSim>;
 
+/**
+ * Fast Refresh keeps the previous sim object alive across edits, so a field added later may be missing on it.
+ * Without this, one missing field would throw inside the frame loop and freeze the planet until a full reload.
+ */
+const limbWeights = (s: Sim): Record<LimbKey, number> => (s.limb ??= { white: 1, ice: 0, amber: 0, mint: 0 });
+
 /** Where every eased emphasis value is heading for the current stage / pointer. */
 function emphasisGoals(s: Sim) {
   const st = s.stage;
@@ -1234,7 +1240,7 @@ export function HeroVisual({ activeStage = 0, onSelectStage, isSplitLayout = tru
       ctx.save();
       ctx.scale(R, R);
       for (const key of LIMB_KEYS) {
-        const weight = s.limb[key];
+        const weight = limbWeights(s)[key];
         if (weight < 0.01) continue;
         ctx.globalAlpha = clamp(weight, 0, 1);
         ctx.fillStyle = gfx.atmo[key];
@@ -1314,7 +1320,7 @@ export function HeroVisual({ activeStage = 0, onSelectStage, isSplitLayout = tru
       ctx.scale(R, R);
       ctx.lineWidth = (1.6 * inv) / R;
       for (const key of LIMB_KEYS) {
-        const weight = s.limb[key];
+        const weight = limbWeights(s)[key];
         if (weight < 0.01) continue;
         ctx.globalAlpha = clamp(weight, 0, 1);
         ctx.strokeStyle = gfx.rim[key];
@@ -1386,7 +1392,8 @@ export function HeroVisual({ activeStage = 0, onSelectStage, isSplitLayout = tru
       s.longOp += (g.longOp - s.longOp) * e;
       s.iceBack += (g.iceBack - s.iceBack) * e;
       s.amberBack += (g.amberBack - s.amberBack) * e;
-      for (const key of LIMB_KEYS) s.limb[key] += (g.limb[key] - s.limb[key]) * e;
+      const limb = limbWeights(s);
+      for (const key of LIMB_KEYS) limb[key] += (g.limb[key] - limb[key]) * e;
       s.engineVis += (g.engineVis - s.engineVis) * e;
       s.vaultVis += (g.vaultVis - s.vaultVis) * e;
       for (let i = 0; i < 4; i++) {
@@ -1402,7 +1409,7 @@ export function HeroVisual({ activeStage = 0, onSelectStage, isSplitLayout = tru
       const emphasis =
         Math.abs(g.fixedOp - s.fixedOp) + Math.abs(g.longOp - s.longOp) +
         Math.abs(g.iceBack - s.iceBack) + Math.abs(g.amberBack - s.amberBack) +
-        LIMB_KEYS.reduce((a, key) => a + Math.abs(g.limb[key] - s.limb[key]), 0) +
+        LIMB_KEYS.reduce((a, key) => a + Math.abs(g.limb[key] - limbWeights(s)[key]), 0) +
         Math.abs(g.engineVis - s.engineVis) + Math.abs(g.vaultVis - s.vaultVis) +
         g.pinAct.reduce((a, v, i) => a + Math.abs(v - s.pinAct[i]), 0) +
         g.pinVis.reduce((a, v, i) => a + Math.abs(v - s.pinVis[i]), 0) +
