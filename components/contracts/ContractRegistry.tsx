@@ -256,7 +256,7 @@ export function ContractRegistry() {
         </div>
       )}
 
-      <LiveMarketContracts network={network} />
+      {network === "mainnet" && <LiveMarketContracts network={network} />}
 
       {network === "mainnet" && (
         <ProjectOwnedContracts network={network} deployments={projectDeployments} />
