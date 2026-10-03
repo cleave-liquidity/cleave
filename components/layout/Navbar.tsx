@@ -61,6 +61,9 @@ export function Navbar({ isLanding = false }: { isLanding?: boolean }) {
           >
             Markets
           </Link>
+          <Link href="/trade" className="text-muted hover:text-foreground transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ice">
+            Trade Yield
+          </Link>
           <Link
             href="/portfolio"
             aria-current={isPortfolio ? "page" : undefined}
@@ -68,15 +71,6 @@ export function Navbar({ isLanding = false }: { isLanding?: boolean }) {
           >
             Portfolio
           </Link>
-          {isLanding ? (
-            <a href="#trade-yield" className="text-muted hover:text-foreground transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ice">
-              Trade Yield
-            </a>
-          ) : (
-            <Link href="/#trade-yield" className="text-muted hover:text-foreground transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ice">
-              Trade Yield
-            </Link>
-          )}
           <Link
             href="/docs"
             aria-current={pathname === "/docs" ? "page" : undefined}

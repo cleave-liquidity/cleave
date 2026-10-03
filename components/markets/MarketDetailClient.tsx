@@ -169,6 +169,12 @@ export function MarketDetailClient({
           </div>
 
           <div className="w-full lg:sticky lg:top-28">
+            <Link
+              href={`/trade/${market.id}`}
+              className="mb-3 flex min-h-[44px] items-center justify-center border border-ice/50 bg-ice/10 px-4 text-[14px] text-ice transition-colors hover:bg-ice/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice"
+            >
+              Open Trade Workspace →
+            </Link>
             <TradePanel market={market} initialStrategy={initialStrategy} initialAmount={initialAmount} />
           </div>
         </div>

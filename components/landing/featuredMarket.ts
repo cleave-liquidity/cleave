@@ -55,13 +55,13 @@ export function pickPreviewMarkets(markets: readonly YieldMarket[], count: numbe
 export const DEFAULT_TICKET = getConfiguredDataMode() === "live" ? 100 : 1_000;
 
 /**
- * `/trade?market=<id>&strategy=…&amount=…` — where landing CTAs go. The market ID
+ * `/trade/<id>?strategy=…&amount=…` — where landing CTAs go. The market ID
  * is always the normalized adapter ID, and the trade workspace preselects the strategy and amount.
  */
 export function marketHref(marketId: string, strategy?: "fixed" | "long", amount?: number): string {
   const query = new URLSearchParams();
-  query.set("market", marketId);
   if (strategy) query.set("strategy", strategy);
   if (amount !== undefined) query.set("amount", String(amount));
-  return `/trade?${query.toString()}`;
+  const queryString = query.toString();
+  return `/trade/${marketId}${queryString ? `?${queryString}` : ""}`;
 }

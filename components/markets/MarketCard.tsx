@@ -6,12 +6,12 @@ import { YieldMarket } from "@/types/market";
 import { formatApy, formatUsd } from "@/lib/utils/formatters";
 import { AssetIcon, ProtocolIcon } from "./AssetIcon";
 
-export function MarketCard({ market }: { market: YieldMarket }) {
+export function MarketCard({ market, href }: { market: YieldMarket; href?: string }) {
   const isMaturing = market.status === "maturing";
 
   return (
     <Link
-      href={`/markets/${market.id}`}
+      href={href ?? `/markets/${market.id}`}
       className="group block border border-white/14 bg-surface p-4 transition-colors hover:border-ice/40 hover:bg-surface-raised sm:p-5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice"
     >
       <div className="flex items-center justify-between gap-3 pb-3 border-b border-white/10">

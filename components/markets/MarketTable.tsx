@@ -17,7 +17,13 @@ function sourceDetail(market: YieldMarket): string {
   return source.replace(new RegExp(`^${protocol}\\s*`, "i"), "") || source;
 }
 
-export function MarketTable({ markets }: { markets: YieldMarket[] }) {
+export function MarketTable({
+  markets,
+  hrefForMarket,
+}: {
+  markets: YieldMarket[];
+  hrefForMarket?: (market: YieldMarket) => string;
+}) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortField, setSortField] = useState<SortField>("daysRemaining");
@@ -63,6 +69,8 @@ export function MarketTable({ markets }: { markets: YieldMarket[] }) {
         return 0;
       });
   }, [markets, searchTerm, statusFilter, sortField, sortAsc]);
+
+  const marketHref = (market: YieldMarket) => hrefForMarket?.(market) ?? `/markets/${market.id}`;
 
   return (
     <div className="flex flex-col gap-6">
@@ -128,7 +136,7 @@ export function MarketTable({ markets }: { markets: YieldMarket[] }) {
       {/* Mobile Card View */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:hidden">
         {filteredAndSortedMarkets.map((market) => (
-          <MarketCard key={market.id} market={market} />
+          <MarketCard key={market.id} market={market} href={marketHref(market)} />
         ))}
       </div>
 
@@ -191,7 +199,7 @@ export function MarketTable({ markets }: { markets: YieldMarket[] }) {
                 return (
                   <Link
                     key={market.id}
-                    href={`/markets/${market.id}`}
+                    href={marketHref(market)}
                     className="group relative grid grid-cols-[2fr_1.5fr_1.1fr_1.1fr_1.3fr_1fr_1.1fr] items-center gap-4 px-6 py-5 text-foreground transition-all duration-150 hover:bg-white/[0.035] focus-visible:outline-none"
                   >
                     {/* Hover indicator left line */}
