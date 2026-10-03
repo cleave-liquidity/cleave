@@ -37,6 +37,13 @@ if [[ "$balance_wei" == "0" ]]; then
   exit 1
 fi
 
+broadcast_path="$contracts_dir/broadcast/DeployTestnetModules.s.sol/46630/run-latest.json"
+if [[ "${DEPLOY_BROADCAST_TESTNET:-0}" == "1" && -f "$broadcast_path" && "${DEPLOY_ALLOW_REPEAT_TESTNET:-0}" != "1" ]]; then
+  printf 'Refusing repeat Testnet deployment: a confirmed module broadcast already exists at %s.\n' "$broadcast_path" >&2
+  printf 'Use the existing broadcast for verification/sync; set DEPLOY_ALLOW_REPEAT_TESTNET=1 only for an intentional replacement deployment.\n' >&2
+  exit 1
+fi
+
 forge_args=(
   script "$contracts_dir/script/DeployTestnetModules.s.sol:DeployTestnetModules"
   --root "$contracts_dir"
@@ -48,6 +55,16 @@ forge_args=(
 if [[ "${DEPLOY_BROADCAST_TESTNET:-0}" == "1" ]]; then
   printf 'Broadcast: enabled for Testnet modules only.\n'
   forge "${forge_args[@]}" --broadcast
+  if [[ "${DEPLOY_VERIFY_TESTNET:-1}" == "1" ]]; then
+    if bun "$repo_dir/scripts/verify-testnet-modules.ts"; then
+      DEPLOYMENT_VERIFIED=1 bun "$repo_dir/scripts/sync-project-deployments.ts"
+    else
+      DEPLOYMENT_VERIFIED=0 bun "$repo_dir/scripts/sync-project-deployments.ts"
+      exit 1
+    fi
+  else
+    DEPLOYMENT_VERIFIED=0 bun "$repo_dir/scripts/sync-project-deployments.ts"
+  fi
 else
   printf 'Broadcast: disabled (dry run). Set DEPLOY_BROADCAST_TESTNET=1 to broadcast.\n'
   forge "${forge_args[@]}"

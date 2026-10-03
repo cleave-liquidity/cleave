@@ -104,19 +104,59 @@ function LiveMarketContracts({ network }: { network: RobinhoodNetwork }) {
   );
 }
 
+function ProjectOwnedContracts({
+  network,
+  deployments,
+}: {
+  network: RobinhoodNetwork;
+  deployments: readonly ContractDeployment[];
+}) {
+  return (
+    <section className="flex flex-col gap-3">
+      <div className="mono text-[10px] uppercase tracking-[0.16em] text-muted-dark">Project-owned contracts</div>
+      {deployments.length === 0 ? (
+        <div className="border border-white/15 bg-surface/70 px-5 py-5 text-[13px] leading-6 text-muted">
+          <span className="block text-foreground">Not deployed</span>
+          No CLEAVE-owned {network === "mainnet" ? "Mainnet" : "Testnet"} contract is represented in the synchronized registry. No placeholder address is shown.
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3 border border-white/15 bg-surface/70 px-5 py-5 text-[13px] leading-6 text-muted">
+          {network === "testnet" && (
+            <div className="border-b border-white/10 pb-4">
+              <span className="block text-foreground">{deployments.length} contracts deployed and verified</span>
+              <span>CLEAVE&apos;s project-owned contracts are deployed and verified on Robinhood Chain Testnet 46630.</span>
+            </div>
+          )}
+          {deployments.map((deployment) => (
+            <div key={deployment.id} className="grid gap-2 sm:grid-cols-[1.1fr_2fr_1fr] sm:items-start">
+              <div>
+                <span className="block text-foreground">{deployment.name}</span>
+                <span className="mono text-[10px] uppercase tracking-[0.12em] text-amber">{deployment.verificationStatus || (deployment.verified ? "VERIFIED" : "UNVERIFIED")}</span>
+              </div>
+              <code className="break-all text-[11px]">{deployment.address}</code>
+              <span className="text-[12px]">Used by current runtime: {deployment.usedByRuntime ? "YES" : "NO · registry only"}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function ContractRegistry() {
   const [network, setNetwork] = useState<RobinhoodNetwork>(() => getConfiguredNetwork());
   const [category, setCategory] = useState<ContractCategory | "all">("all");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const deployments = getContractDeployments(network);
   const projectDeployments = getProjectContractDeployments(network === "mainnet" ? 4663 : 46630);
+  const externalDeployments = deployments.filter((deployment) => deployment.ownership !== "project");
   const representedCategories = useMemo(
-    () => Array.from(new Set(deployments.map((deployment) => deployment.category))),
-    [deployments],
+    () => Array.from(new Set(externalDeployments.map((deployment) => deployment.category))),
+    [externalDeployments],
   );
   const filteredDeployments = category === "all"
-    ? deployments
-    : deployments.filter((deployment) => deployment.category === category);
+    ? externalDeployments
+    : externalDeployments.filter((deployment) => deployment.category === category);
 
   const copyAddress = async (deployment: ContractDeployment) => {
     if (!navigator.clipboard) return;
@@ -161,6 +201,10 @@ export function ContractRegistry() {
         {network === "mainnet" ? "Robinhood Chain Mainnet · Chain 4663" : "Robinhood Chain Testnet · Chain 46630"}
       </div>
 
+      {network === "testnet" && (
+        <ProjectOwnedContracts network={network} deployments={projectDeployments} />
+      )}
+
       {representedCategories.length > 0 && (
         <div className="flex flex-wrap items-center gap-2" aria-label="Filter contract categories">
           <button type="button" aria-pressed={category === "all"} onClick={() => setCategory("all")} className="min-h-[34px] border-b-2 border-transparent px-2 text-[12px] text-muted transition-colors aria-pressed:border-ice aria-pressed:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice">All</button>
@@ -175,9 +219,13 @@ export function ContractRegistry() {
       {filteredDeployments.length === 0 ? (
         <div className="border border-white/15 bg-surface/70 px-6 py-16 text-center sm:px-12">
           <div className="mono text-[11px] uppercase tracking-[0.16em] text-amber">{network === "mainnet" ? "Robinhood Chain Mainnet" : "Robinhood Chain Testnet"}</div>
-          <h2 className="mt-3 text-[22px] font-normal text-foreground">No verified external deployments configured.</h2>
+          <h2 className="mt-3 text-[22px] font-normal text-foreground">
+            {network === "testnet" ? "External Yield Infrastructure Unavailable" : "No verified external deployments configured."}
+          </h2>
           <p className="mx-auto mt-3 max-w-[520px] text-[14px] leading-6 text-muted">
-            No address is fabricated for this network. Preview or Mainnet market addresses are not copied into the Testnet registry.
+            {network === "testnet"
+              ? "CLEAVE's project-owned contracts are deployed and verified on Testnet. External live yield markets are currently available on Mainnet only."
+              : "No address is fabricated for this network. Preview or Mainnet market addresses are not copied into the Testnet registry."}
           </p>
         </div>
       ) : (
@@ -210,28 +258,9 @@ export function ContractRegistry() {
 
       <LiveMarketContracts network={network} />
 
-      <section className="flex flex-col gap-3">
-        <div className="mono text-[10px] uppercase tracking-[0.16em] text-muted-dark">Project-owned contracts</div>
-        {projectDeployments.length === 0 ? (
-          <div className="border border-white/15 bg-surface/70 px-5 py-5 text-[13px] leading-6 text-muted">
-            <span className="block text-foreground">Not deployed</span>
-            No CLEAVE-owned {network === "mainnet" ? "Mainnet" : "Testnet"} contract is represented in the synchronized registry. No placeholder address is shown.
-          </div>
-        ) : (
-          <div className="flex flex-col gap-3 border border-white/15 bg-surface/70 px-5 py-5 text-[13px] leading-6 text-muted">
-            {projectDeployments.map((deployment) => (
-              <div key={deployment.id} className="grid gap-2 sm:grid-cols-[1.1fr_2fr_1fr] sm:items-start">
-                <div>
-                  <span className="block text-foreground">{deployment.name}</span>
-                  <span className="mono text-[10px] uppercase tracking-[0.12em] text-amber">{deployment.verificationStatus || (deployment.verified ? "VERIFIED" : "UNVERIFIED")}</span>
-                </div>
-                <code className="break-all text-[11px]">{deployment.address}</code>
-                <span className="text-[12px]">Used by current runtime: {deployment.usedByRuntime ? "YES" : "NO · registry only"}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+      {network === "mainnet" && (
+        <ProjectOwnedContracts network={network} deployments={projectDeployments} />
+      )}
     </div>
   );
 }

@@ -242,6 +242,7 @@ async function main(): Promise<void> {
   const projectMainnet = mainnetDeployments.filter((deployment) => deployment.ownership === "project");
   const projectTestnet = testnetDeployments.filter((deployment) => deployment.ownership === "project");
   line("Project Contracts", `Mainnet ${projectMainnet.length} · Testnet ${projectTestnet.length}`);
+  line("Mainnet CLEAVE Modules", projectMainnet.length ? `${projectMainnet.length} deployed` : "PREPARED · NOT DEPLOYED");
   for (const deployment of projectMainnet) {
     line("Project / deployment", `${deploymentStatus(deployment)} · ${deployment.address}`);
     if (deployment.deploymentTx) line("Deployment tx", deployment.deploymentTx);
@@ -257,6 +258,7 @@ async function main(): Promise<void> {
   const verifiedTestnetDeployments = testnetDeployments.filter((deployment) => deployment.verified);
   line("Registry", verifiedTestnetDeployments.length ? `${verifiedTestnetDeployments.length} verified` : "0 verified deployments");
   line("CLEAVE-owned", projectTestnet.length ? `${projectTestnet.length} registered` : "NOT DEPLOYED");
+  line("Registered CLEAVE Markets", "0 · no verified Testnet Pendle market");
   for (const deployment of projectTestnet) {
     line(deployment.name, `${deploymentOwnership(deployment)} · ${deploymentStatus(deployment)} · ${deployment.address}`);
     if (deployment.deploymentTx) line("Deployment tx", deployment.deploymentTx);

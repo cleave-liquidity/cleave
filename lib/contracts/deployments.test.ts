@@ -16,13 +16,27 @@ describe("verified contract deployment registry", () => {
     expect(getProjectContractDeployments(4663)).toEqual([]);
     const registry = getProjectContractDeployments(46630);
 
-    expect(registry).toHaveLength(1);
-    expect(registry[0]?.name).toBe("CleaveRegistry");
+    expect(registry).toHaveLength(8);
+    expect(registry.map((deployment) => deployment.name)).toEqual([
+      "CleaveRegistry",
+      "CleaveAccessManager",
+      "CleaveAdapterRegistry",
+      "CleaveMarketRegistry",
+      "CleaveRiskGuard",
+      "CleaveExecutionRouter",
+      "CleaveLifecycleManager",
+      "CleaveLens",
+    ]);
+    for (const deployment of registry) {
+      expect(deployment.chainId).toBe(46630);
+      expect(deployment.ownership).toBe("project");
+      expect(deployment.verified).toBe(true);
+      expect(deployment.usedByRuntime).toBe(false);
+      expect(deployment.deploymentTx).toMatch(/^0x[0-9a-f]{64}$/);
+      expect(deployment.deploymentBlock).toBeGreaterThan(0);
+      expect(deployment.gasUsed).toMatch(/^[0-9]+$/);
+    }
     expect(registry[0]?.address).toBe("0xa5d21b39258da11152a0e63135936b1e60acfe43");
-    expect(registry[0]?.chainId).toBe(46630);
-    expect(registry[0]?.ownership).toBe("project");
-    expect(registry[0]?.verified).toBe(true);
-    expect(registry[0]?.usedByRuntime).toBe(false);
     expect(getContractDeployments("mainnet").some((deployment) => deployment.ownership === "project")).toBe(false);
   });
 });

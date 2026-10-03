@@ -8,7 +8,16 @@ async function main(): Promise<void> {
   const router = getContractByName(4663, "Pendle Router V2");
   if (!router?.verified || !router.address) throw new Error("No verified Mainnet Pendle Router V2 is registered.");
 
-  const markets = (await yieldAdapter.getMarkets()).filter(isMarketTradable);
+  const markets = (await yieldAdapter.getMarkets())
+    .filter(isMarketTradable)
+    .filter((market) => Boolean(
+      market.marketAddress &&
+      market.ptAddress &&
+      market.ytAddress &&
+      market.syAddress &&
+      market.underlyingTokenAddress &&
+      Number.isFinite(new Date(market.maturityDate).getTime()),
+    ));
   const plan = markets.map((market) => ({
     marketId: market.id,
     marketKey: keccak256(stringToHex(market.id)),
@@ -20,7 +29,7 @@ async function main(): Promise<void> {
     yt: market.ytAddress,
     sy: market.syAddress,
     underlying: market.underlyingTokenAddress,
-    maturity: Math.floor(new Date(market.maturity).getTime() / 1000),
+    maturity: Math.floor(new Date(market.maturityDate).getTime() / 1000),
     name: market.name,
   }));
 
