@@ -157,6 +157,7 @@ export function ContractRegistry() {
   const filteredDeployments = category === "all"
     ? externalDeployments
     : externalDeployments.filter((deployment) => deployment.category === category);
+  const summaryDeployments = network === "testnet" ? projectDeployments : filteredDeployments;
 
   const copyAddress = async (deployment: ContractDeployment) => {
     if (!navigator.clipboard) return;
@@ -193,7 +194,7 @@ export function ContractRegistry() {
         />
 
         <div className="mono pb-3.5 text-[11px] uppercase tracking-[0.12em] text-muted-dark">
-          {filteredDeployments.filter((deployment) => deployment.verified).length} verified · {filteredDeployments.length} registry {filteredDeployments.length === 1 ? "entry" : "entries"}
+          {summaryDeployments.filter((deployment) => deployment.verified).length} verified · {summaryDeployments.length} registry {summaryDeployments.length === 1 ? "entry" : "entries"}
         </div>
       </div>
 
