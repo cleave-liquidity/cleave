@@ -50,7 +50,7 @@ export const FALLBACK_STAGES: StageInfo[] = [
     ],
     stats: [
       { label: "UNDERLYING", value: "Paxos USDG" },
-      { label: "IMPLIED APY", value: "6.42%", color: "#A9C8EE" },
+      { label: "IMPLIED APY", value: "6.42%", color: "#3B86FF" },
       { label: "SETTLEMENT", value: "Zero Liquidation" },
     ],
     primaryCtaText: "Explore markets",
@@ -72,7 +72,7 @@ export const FALLBACK_STAGES: StageInfo[] = [
       "No health ratios or liquidation liquidators. Ideal for treasury reserves and risk-averse yield seekers.",
     ],
     stats: [
-      { label: "FIXED APY", value: "6.42%", color: "#A9C8EE" },
+      { label: "FIXED APY", value: "6.42%", color: "#3B86FF" },
       { label: "PT PRICE", value: "$0.941" },
       { label: "MATURITY", value: "26 Mar 2027" },
     ],
@@ -95,9 +95,9 @@ export const FALLBACK_STAGES: StageInfo[] = [
       "Accumulate real-time streaming yield claimable anytime with single-transaction settlement.",
     ],
     stats: [
-      { label: "VARIABLE APY", value: "7.10%", color: "#F0A85C" },
+      { label: "VARIABLE APY", value: "7.10%", color: "#EF5F22" },
       { label: "YT PRICE", value: "$0.059" },
-      { label: "EFFECTIVE LEV", value: "~16.9x", color: "#F0A85C" },
+      { label: "EFFECTIVE LEV", value: "~16.9x", color: "#EF5F22" },
     ],
     primaryCtaText: "Trade Long Yield (YT)",
     primaryCtaHref: "/markets",
@@ -214,7 +214,7 @@ export function buildStages(
       description: `Lock ${fixedApy} fixed APY on your ${S} until ${m.maturity}. Your return is paid upfront at a discount with no margin calls, no maintenance, and zero liquidation risk.`,
       subDetails: [`Purchase Principal Tokens (PT) at an upfront discount and redeem 1 ${S} per PT at maturity.`, s1.subDetails[1], s1.subDetails[2]],
       stats: [
-        { label: "FIXED APY", value: fixedApy, color: "#A9C8EE" },
+        { label: "FIXED APY", value: fixedApy, color: "#3B86FF" },
         { label: "PT PRICE", value: ptPrice },
         { label: "MATURITY", value: m.maturity },
       ],
@@ -232,9 +232,9 @@ export function buildStages(
         s2.subDetails[2],
       ],
       stats: [
-        { label: "VARIABLE APY", value: formatApy(m.underlyingApy), color: "#F0A85C" },
+        { label: "VARIABLE APY", value: formatApy(m.underlyingApy), color: "#EF5F22" },
         { label: "YT PRICE", value: ytPrice ? `${ytPrice.toFixed(3)} ${S}` : "—" },
-        { label: "EFFECTIVE LEV", value: leverage, color: "#F0A85C" },
+        { label: "EFFECTIVE LEV", value: leverage, color: "#EF5F22" },
       ],
       primaryCtaHref: marketHref(m.id, "long"),
       secondaryCtaHref: "/markets",

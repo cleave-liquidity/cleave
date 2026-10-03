@@ -28,6 +28,12 @@ a:hover {
   color: #ffffff;
 }
 
+/* Everything that can be clicked says so. :where() keeps the specificity at zero, so a utility such as
+   cursor-not-allowed on a specific element still wins. */
+:where(a[href], button:not(:disabled), [role="button"], [role="tab"], summary, select, label[for], input[type="checkbox"], input[type="radio"], input[type="range"]) {
+  cursor: pointer;
+}
+
 .mono {
   font-family: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   font-variant-numeric: tabular-nums;
@@ -596,7 +602,7 @@ input:focus-visible {
 
 /* ── Liquid glass (landing floating navbar) ─────────────────────────────────
    Dark glass: the body is a near-clear dark tint, so on this black page it reads as part of the scene
-   rather than a pale slab. The "gloss" comes from edge light (rim, specular arc, ice/amber edge fringe)
+   rather than a pale slab. The "gloss" comes from edge light (rim, specular arc, blue/orange edge fringe)
    and from refraction, not from a white fill. Layers, back to front: backdrop (refracted + lightly frosted)
    → dark tint → specular arc + corner light (::after) → rim ring (::before) → pointer glow → one-time sweep
    → content. In Chromium FloatingNav also bends the page behind the rim with an SVG displacement map;
@@ -624,9 +630,9 @@ input:focus-visible {
     inset 0 -1px 0 rgba(255, 255, 255, 0.08),
     inset 1px 0 0 rgba(255, 255, 255, 0.07),
     inset -1px 0 0 rgba(255, 255, 255, 0.05),
-    /* edge fringe, like the colour split on the rim of real glass: ice on the left, amber on the right */
-    inset 3px 0 5px -2px rgba(120, 170, 255, 0.3),
-    inset -3px 0 5px -2px rgba(255, 150, 80, 0.26),
+    /* edge fringe, like the colour split on the rim of real glass: blue on the left, orange on the right */
+    inset 3px 0 5px -2px rgba(59, 134, 255, 0.45),
+    inset -3px 0 5px -2px rgba(239, 95, 34, 0.4),
     /* the glass thickens toward its lower edge */
     inset 0 -14px 18px -14px rgba(0, 0, 0, 0.55);
 }
@@ -655,7 +661,7 @@ input:focus-visible {
 }
 
 /* Specular arc along the top edge (a sharp highlight that fades toward both ends) plus faint
-   ice / amber light pooling in the lower corners. */
+   blue / orange light pooling in the lower corners. */
 .lg-panel::after {
   content: "";
   position: absolute;
@@ -665,8 +671,8 @@ input:focus-visible {
   pointer-events: none;
   background:
     radial-gradient(70% 55% at 50% -12%, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.05) 48%, transparent 72%),
-    radial-gradient(34% 120% at 0% 125%, rgba(169, 200, 238, 0.16), transparent 70%),
-    radial-gradient(34% 120% at 100% 125%, rgba(240, 168, 92, 0.14), transparent 70%);
+    radial-gradient(34% 120% at 0% 125%, rgba(59, 134, 255, 0.16), transparent 70%),
+    radial-gradient(34% 120% at 100% 125%, rgba(239, 95, 34, 0.14), transparent 70%);
 }
 
 .lg-glow {
@@ -728,35 +734,24 @@ input:focus-visible {
   opacity: 1;
 }
 
-/* Launch app: amber-tinted glass (same family as the hero navbar's amber button), not a solid white slab. */
+/* Launch app: solid orange (same fill as the site's other primary orange buttons), with only a thin top
+   highlight so it still sits on the glass instead of reading as a flat sticker. */
 .lg-cta,
 .lg-cta:hover {
-  color: #ffe8cc;
+  color: #0a0b0c;
 }
 .lg-cta {
   position: relative;
-  overflow: hidden;
-  background: linear-gradient(180deg, rgba(240, 168, 92, 0.42), rgba(240, 122, 43, 0.18));
-  -webkit-backdrop-filter: blur(6px) saturate(1.5);
-  backdrop-filter: blur(6px) saturate(1.5);
+  background: #ef5f22;
   box-shadow:
-    inset 0 1px 0 rgba(255, 224, 186, 0.6),
-    inset 0 -1px 0 rgba(240, 168, 92, 0.25),
-    0 0 0 1px rgba(240, 168, 92, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.38),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18),
     0 6px 18px rgba(0, 0, 0, 0.45),
-    0 0 20px rgba(240, 140, 60, 0.16);
+    0 0 22px rgba(239, 95, 34, 0.35);
   transition: filter 0.2s ease, transform 0.2s ease;
 }
-.lg-cta::after {
-  content: "";
-  position: absolute;
-  inset: 0 0 52% 0;
-  border-radius: inherit;
-  pointer-events: none;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0));
-}
 .lg-cta:hover {
-  filter: brightness(1.12);
+  filter: brightness(1.08);
 }
 .lg-cta:active {
   transform: scale(0.97);

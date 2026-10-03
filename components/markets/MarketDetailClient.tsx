@@ -76,7 +76,7 @@ export function MarketDetailClient({
                   <span className="mono text-[12px] text-muted-light border border-white/15 rounded-full px-3 py-1 flex items-center gap-1.5">
                     <span
                       className="w-2 h-2 rounded-full"
-                      style={{ background: marketStatus === "maturing" ? "#F0A85C" : "#A9C8EE" }}
+                      style={{ background: marketStatus === "maturing" ? "#EF5F22" : "#3B86FF" }}
                       aria-hidden="true"
                     />
                     <span className="capitalize">{marketStatus}</span>

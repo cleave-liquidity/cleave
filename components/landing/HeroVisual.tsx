@@ -75,9 +75,9 @@ function smoothDamp(cur: number, target: number, vel: number, smoothTime: number
 }
 
 // ─── Palette (rgb triplets so alpha can be applied per draw) ─────────────────
-const ICE = "169,200,238";
+const ICE = "59,134,255";
 const ICE_L = "221,232,248";
-const AMBER = "240,168,92";
+const AMBER = "239,95,34";
 const AMBER_L = "255,242,214";
 const MINT = "52,211,153";
 const MINT_L = "167,243,208";
@@ -346,8 +346,8 @@ function createGfx(ctx: CanvasRenderingContext2D): Gfx {
   const rim = ctx.createLinearGradient(-0.78, -0.78, 0.78, 0.78);
   rim.addColorStop(0, "rgba(255,255,255,0.95)");
   rim.addColorStop(0.32, "rgba(235,242,255,0.5)");
-  rim.addColorStop(0.62, "rgba(169,200,238,0.12)");
-  rim.addColorStop(1, "rgba(169,200,238,0.05)");
+  rim.addColorStop(0.62, "rgba(59,134,255,0.12)");
+  rim.addColorStop(1, "rgba(59,134,255,0.05)");
 
   // Soft round sprite for stars — drawImage is far cheaper than a gradient per star.
   const sprite = document.createElement("canvas");
@@ -372,8 +372,8 @@ function createGfx(ctx: CanvasRenderingContext2D): Gfx {
       [1, "rgba(2,4,8,0.95)"],
     ]),
     atmo: radial(0, 0, 0.94, 0, 0, 1.26, [
-      [0, "rgba(169,200,238,0)"],
-      [0.2, "rgba(169,200,238,0.32)"],
+      [0, "rgba(59,134,255,0)"],
+      [0.2, "rgba(59,134,255,0.32)"],
       [0.55, "rgba(120,170,235,0.08)"],
       [1, "rgba(120,170,235,0)"],
     ]),

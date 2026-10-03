@@ -96,7 +96,7 @@ export function SplashScreen() {
               <circle
                 r="54"
                 fill="none"
-                stroke="rgba(169,200,238,0.6)"
+                stroke="rgba(59,134,255,0.6)"
                 strokeWidth="1.2"
                 className="ringflow"
                 style={{ animationDuration: "14s" }}
@@ -104,7 +104,7 @@ export function SplashScreen() {
               <circle
                 r="68"
                 fill="none"
-                stroke="rgba(240,168,92,0.55)"
+                stroke="rgba(239,95,34,0.55)"
                 strokeWidth="0.9"
                 strokeDasharray="8 16"
                 className="ringflow"
@@ -139,7 +139,7 @@ export function SplashScreen() {
               <circle
                 r="54"
                 fill="none"
-                stroke="rgba(169,200,238,0.6)"
+                stroke="rgba(59,134,255,0.6)"
                 strokeWidth="1.2"
                 className="ringflow"
                 style={{ animationDuration: "14s" }}
@@ -147,7 +147,7 @@ export function SplashScreen() {
               <circle
                 r="68"
                 fill="none"
-                stroke="rgba(240,168,92,0.55)"
+                stroke="rgba(239,95,34,0.55)"
                 strokeWidth="0.9"
                 strokeDasharray="8 16"
                 className="ringflow"

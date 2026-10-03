@@ -48,7 +48,7 @@ export function MaturityPreview() {
           />
           {/* Active Ping Node */}
           <div
-            className="absolute top-1/2 -translate-y-1/2 w-4 h-4 -ml-2 rounded-full bg-background border-2 border-ice shadow-[0_0_12px_rgba(169,200,238,0.8)]"
+            className="absolute top-1/2 -translate-y-1/2 w-4 h-4 -ml-2 rounded-full bg-background border-2 border-ice shadow-[0_0_12px_rgba(59,134,255,0.8)]"
             style={{ left: "32.6%" }}
           />
         </div>
@@ -160,7 +160,7 @@ export function MaturityPreview() {
               type="button"
               onClick={() => setClaimed(true)}
               disabled={claimed}
-              className={`flex-1 min-h-[46px] px-4 rounded-xl text-[13px] font-medium transition-all shadow-[0_2px_14px_rgba(240,168,92,0.2)] ${
+              className={`flex-1 min-h-[46px] px-4 rounded-xl text-[13px] font-medium transition-all shadow-[0_2px_14px_rgba(239,95,34,0.2)] ${
                 claimed
                   ? "bg-white/10 text-muted border border-white/10 cursor-not-allowed"
                   : "bg-amber text-[#0A0C10] hover:bg-white cursor-pointer"

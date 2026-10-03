@@ -40,7 +40,7 @@ export function MarketCard({
         <div className="flex items-center gap-1.5 text-[12px] text-muted-light">
           <span
             className="w-2 h-2 rounded-full"
-            style={{ background: isMaturing ? "#F0A85C" : "#A9C8EE" }}
+            style={{ background: isMaturing ? "#EF5F22" : "#3B86FF" }}
           />
           <span className="capitalize">{market.status.replace("_", " ")}</span>
         </div>

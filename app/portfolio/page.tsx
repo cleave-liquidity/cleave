@@ -185,7 +185,7 @@ export default function PortfolioPage() {
           <div className="mt-6 flex flex-col gap-4">
             {!isConnected ? (
               <div className="border border-white/10 rounded-2xl bg-[#07080A]/90 backdrop-blur-md p-12 sm:p-16 text-center flex flex-col items-center gap-5 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-                <div className="w-14 h-14 rounded-2xl border border-white/12 bg-white/[0.04] flex items-center justify-center text-ice shadow-[0_0_24px_rgba(169,200,238,0.12)]">
+                <div className="w-14 h-14 rounded-2xl border border-white/12 bg-white/[0.04] flex items-center justify-center text-ice shadow-[0_0_24px_rgba(59,134,255,0.12)]">
                   <Wallet className="w-7 h-7" />
                 </div>
                 <div className="flex flex-col gap-1 max-w-[420px]">

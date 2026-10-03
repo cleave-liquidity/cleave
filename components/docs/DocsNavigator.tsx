@@ -116,7 +116,7 @@ export function DocsNavigator() {
 
                   {/* Active glowing indicator pill */}
                   {isActive && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-ice shadow-[0_0_8px_#A9C8EE] shrink-0" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-ice shadow-[0_0_8px_#3B86FF] shrink-0" />
                   )}
                 </a>
               );

@@ -35,7 +35,7 @@ export function Navbar({ isLanding = false }: { isLanding?: boolean }) {
               ry="4.2"
               transform="rotate(-14 17 17)"
               fill="none"
-              stroke="#A9C8EE"
+              stroke="#3B86FF"
               strokeWidth="1.4"
             />
             <ellipse
@@ -45,7 +45,7 @@ export function Navbar({ isLanding = false }: { isLanding?: boolean }) {
               ry="5.6"
               transform="rotate(-14 17 17)"
               fill="none"
-              stroke="#F0A85C"
+              stroke="#EF5F22"
               strokeWidth="1"
               strokeDasharray="5 3"
             />
@@ -97,7 +97,7 @@ export function Navbar({ isLanding = false }: { isLanding?: boolean }) {
           {isLanding ? (
             <Link
               href="/markets"
-              className="inline-flex items-center justify-center min-h-[38px] sm:min-h-[44px] px-4 sm:px-6 border border-amber/55 bg-background/50 hover:bg-amber/15 hover:border-amber transition-colors text-[13px] sm:text-[15px] font-medium"
+              className="inline-flex items-center justify-center min-h-[38px] sm:min-h-[44px] px-4 sm:px-6 border border-amber bg-background/50 hover:bg-amber/20 transition-colors text-[13px] sm:text-[15px] font-medium"
             >
               Launch app
             </Link>

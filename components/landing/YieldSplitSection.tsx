@@ -366,7 +366,7 @@ export function YieldSplitSection() {
         className="pointer-events-none absolute inset-x-0 top-0 h-[260px]"
         style={{
           background:
-            "radial-gradient(48% 100% at 50% 0%, rgba(169,200,238,0.16) 0%, rgba(169,200,238,0.07) 38%, rgba(169,200,238,0.02) 62%, transparent 82%)",
+            "radial-gradient(48% 100% at 50% 0%, rgba(59,134,255,0.16) 0%, rgba(59,134,255,0.07) 38%, rgba(59,134,255,0.02) 62%, transparent 82%)",
         }}
       />
       <div
@@ -380,7 +380,7 @@ export function YieldSplitSection() {
         className="zs-pin relative pb-3 pt-14 lg:pt-10"
         style={{
           background:
-            "radial-gradient(ellipse 80% 40% at 50% 0%, rgba(169,200,238,0.05) 0%, transparent 70%)",
+            "radial-gradient(ellipse 80% 40% at 50% 0%, rgba(59,134,255,0.05) 0%, transparent 70%)",
         }}
       >
       {/* Section Header */}
@@ -474,22 +474,22 @@ export function YieldSplitSection() {
             <defs>
               {/* Radial gradient for glowing slider handle */}
               <radialGradient id="handleGlow" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="rgba(169,200,238,0.5)" />
-                <stop offset="60%" stopColor="rgba(169,200,238,0.15)" />
-                <stop offset="100%" stopColor="rgba(169,200,238,0)" />
+                <stop offset="0%" stopColor="rgba(59,134,255,0.5)" />
+                <stop offset="60%" stopColor="rgba(59,134,255,0.15)" />
+                <stop offset="100%" stopColor="rgba(59,134,255,0)" />
               </radialGradient>
               <radialGradient id="handleGlowAmber" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="rgba(240,168,92,0.6)" />
-                <stop offset="60%" stopColor="rgba(240,168,92,0.15)" />
-                <stop offset="100%" stopColor="rgba(240,168,92,0)" />
+                <stop offset="0%" stopColor="rgba(239,95,34,0.6)" />
+                <stop offset="60%" stopColor="rgba(239,95,34,0.15)" />
+                <stop offset="100%" stopColor="rgba(239,95,34,0)" />
               </radialGradient>
               {/* Vertical guide through the handle */}
               <linearGradient id="splitLineGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="rgba(169,200,238,0)" />
-                <stop offset="30%" stopColor="rgba(169,200,238,0.25)" />
+                <stop offset="0%" stopColor="rgba(59,134,255,0)" />
+                <stop offset="30%" stopColor="rgba(59,134,255,0.25)" />
                 <stop offset="50%" stopColor="rgba(236,237,234,0.6)" />
-                <stop offset="70%" stopColor="rgba(240,168,92,0.25)" />
-                <stop offset="100%" stopColor="rgba(240,168,92,0)" />
+                <stop offset="70%" stopColor="rgba(239,95,34,0.25)" />
+                <stop offset="100%" stopColor="rgba(239,95,34,0)" />
               </linearGradient>
               {/* The asset line fades in from the left edge — it is entering the scene */}
               <linearGradient id="unifiedGrad" gradientUnits="userSpaceOnUse" x1="-300" y1="0" x2="360" y2="0">
@@ -497,12 +497,12 @@ export function YieldSplitSection() {
                 <stop offset="100%" stopColor="rgba(236,237,234,1)" />
               </linearGradient>
               <linearGradient id="areaFixedGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="rgba(169,200,238,0.2)" />
-                <stop offset="100%" stopColor="rgba(169,200,238,0.01)" />
+                <stop offset="0%" stopColor="rgba(59,134,255,0.2)" />
+                <stop offset="100%" stopColor="rgba(59,134,255,0.01)" />
               </linearGradient>
               <linearGradient id="areaLongGrad" x1="0" y1="1" x2="0" y2="0">
-                <stop offset="0%" stopColor="rgba(240,168,92,0.2)" />
-                <stop offset="100%" stopColor="rgba(240,168,92,0.01)" />
+                <stop offset="0%" stopColor="rgba(239,95,34,0.2)" />
+                <stop offset="100%" stopColor="rgba(239,95,34,0.01)" />
               </linearGradient>
               <linearGradient id="vaultEdge" x1="0" y1="0" x2="1" y2="0">
                 <stop offset="0%" stopColor="rgba(236,237,234,0)" />
@@ -529,7 +529,7 @@ export function YieldSplitSection() {
             {/* Elapsed time along the axis: lights up as the split moves toward maturity */}
             <path
               d={`M ${START_X} ${AXIS_Y} H ${splitX}`}
-              stroke="rgba(169,200,238,0.75)"
+              stroke="rgba(59,134,255,0.75)"
               strokeWidth="2"
               strokeLinecap="round"
               className="zs-fade"
@@ -555,14 +555,14 @@ export function YieldSplitSection() {
             {/* Maturity line at x=1200 */}
             <path
               d={`M ${END_X} 112 V ${AXIS_Y}`}
-              stroke={isFullZipped ? "#F0A85C" : "rgba(236,237,234,0.45)"}
+              stroke={isFullZipped ? "#EF5F22" : "rgba(236,237,234,0.45)"}
               strokeWidth={isFullZipped ? "1.8" : "1"}
               strokeDasharray={isFullZipped ? "none" : "3 6"}
               className="zs-fade"
               style={at(0.9)}
             />
             <g className="mono zs-fade" fontSize="12" letterSpacing="0.14em" style={at(2.1)}>
-              <text x={END_X + 16} y="146" fill={isFullZipped ? "#F0A85C" : "#ECEDEA"}>
+              <text x={END_X + 16} y="146" fill={isFullZipped ? "#EF5F22" : "#ECEDEA"}>
                 MATURITY
               </text>
               <text x={END_X + 16} y="166" fill="#8E9390">
@@ -627,7 +627,7 @@ export function YieldSplitSection() {
                   <text x={VAULT_PAD} y="94" fill="#8E9390">
                     UNDERLYING APY
                   </text>
-                  <text x={vault.w - VAULT_PAD} y="94" textAnchor="end" fill="#A9C8EE">
+                  <text x={vault.w - VAULT_PAD} y="94" textAnchor="end" fill="#3B86FF">
                     {market ? formatApy(market.underlyingApy) : dash}
                   </text>
                   <text x={VAULT_PAD} y="112" fill="#8E9390">
@@ -652,13 +652,13 @@ export function YieldSplitSection() {
 
             {/* 2. Fixed Yield branch (ice): steady. Always mounted so the entrance never replays on re-split. */}
             <g style={{ opacity: branchOpacity, transition: "opacity 0.35s ease" }}>
-              <path d={pathFixed} stroke="rgba(169,200,238,0.07)" strokeWidth="11" fill="none" strokeLinecap="round" className="zs-fade" style={at(1.7)} />
-              <path d={pathFixed} stroke="rgba(169,200,238,0.16)" strokeWidth="5" fill="none" strokeLinecap="round" className="zs-fade" style={at(1.7)} />
-              <path d={pathFixed} pathLength={1} stroke="#A9C8EE" strokeWidth="2.2" fill="none" strokeLinecap="round" className="zs-draw" style={at(1.7)} />
+              <path d={pathFixed} stroke="rgba(59,134,255,0.07)" strokeWidth="11" fill="none" strokeLinecap="round" className="zs-fade" style={at(1.7)} />
+              <path d={pathFixed} stroke="rgba(59,134,255,0.16)" strokeWidth="5" fill="none" strokeLinecap="round" className="zs-fade" style={at(1.7)} />
+              <path d={pathFixed} pathLength={1} stroke="#3B86FF" strokeWidth="2.2" fill="none" strokeLinecap="round" className="zs-draw" style={at(1.7)} />
               <path d={pathFixed} stroke="#DDE8F8" strokeWidth="3.5" fill="none" strokeLinecap="round" className="zs-flow" style={at(2.6)} />
               <g className="mono zs-fade" fontSize="11" letterSpacing="0.12em" style={at(2.4)}>
                 <g opacity={labelOpacity}>
-                  <text x={labelX} y="196" fill="#A9C8EE">
+                  <text x={labelX} y="196" fill="#3B86FF">
                     FIXED YIELD · APY {formatApy(splitMarket.impliedApy)}
                   </text>
                   <text x={labelX} y="214" fill="#8E9390" fontSize="10">
@@ -667,15 +667,15 @@ export function YieldSplitSection() {
                 </g>
               </g>
               <g className="zs-pop" style={{ ...at(2.9), transformBox: "fill-box", transformOrigin: "center" }}>
-                <circle cx={END_X} cy={fixedEndPt.y} r="9" fill="rgba(169,200,238,0.18)" />
-                <circle cx={END_X} cy={fixedEndPt.y} r="5" fill="#A9C8EE" />
+                <circle cx={END_X} cy={fixedEndPt.y} r="9" fill="rgba(59,134,255,0.18)" />
+                <circle cx={END_X} cy={fixedEndPt.y} r="5" fill="#3B86FF" />
               </g>
               <g className="mono zs-fade" fontSize="11" letterSpacing="0.12em" style={at(3)}>
-                <rect x={END_X + 16} y={fixedEndPt.y - 22} width="124" height="40" rx="8" fill="rgba(169,200,238,0.07)" stroke="rgba(169,200,238,0.3)" />
-                <text x={END_X + 28} y={fixedEndPt.y - 5} fill="#A9C8EE">
+                <rect x={END_X + 16} y={fixedEndPt.y - 22} width="124" height="40" rx="8" fill="rgba(59,134,255,0.07)" stroke="rgba(59,134,255,0.3)" />
+                <text x={END_X + 28} y={fixedEndPt.y - 5} fill="#3B86FF">
                   PAYS 1 : 1
                 </text>
-                <text x={END_X + 28} y={fixedEndPt.y + 11} fill="#A9C8EE" opacity="0.8">
+                <text x={END_X + 28} y={fixedEndPt.y + 11} fill="#3B86FF" opacity="0.8">
                   IN {symbol}
                 </text>
               </g>
@@ -683,13 +683,13 @@ export function YieldSplitSection() {
 
             {/* 3. Long Yield branch (amber): alive */}
             <g style={{ opacity: branchOpacity, transition: "opacity 0.35s ease" }}>
-              <path d={pathLong} stroke="rgba(240,168,92,0.07)" strokeWidth="11" fill="none" strokeLinecap="round" className="zs-fade" style={at(1.7)} />
-              <path d={pathLong} stroke="rgba(240,168,92,0.16)" strokeWidth="5" fill="none" strokeLinecap="round" className="zs-fade" style={at(1.7)} />
-              <path d={pathLong} pathLength={1} stroke="#F0A85C" strokeWidth="2.2" fill="none" strokeLinecap="round" className="zs-draw zs-draw-slow" style={at(1.7)} />
+              <path d={pathLong} stroke="rgba(239,95,34,0.07)" strokeWidth="11" fill="none" strokeLinecap="round" className="zs-fade" style={at(1.7)} />
+              <path d={pathLong} stroke="rgba(239,95,34,0.16)" strokeWidth="5" fill="none" strokeLinecap="round" className="zs-fade" style={at(1.7)} />
+              <path d={pathLong} pathLength={1} stroke="#EF5F22" strokeWidth="2.2" fill="none" strokeLinecap="round" className="zs-draw zs-draw-slow" style={at(1.7)} />
               <path d={pathLong} stroke="#FFE9D2" strokeWidth="3.5" fill="none" strokeLinecap="round" className="zs-flow" style={at(2.8)} />
               <g className="mono zs-fade" fontSize="11" letterSpacing="0.12em" style={at(2.6)}>
                 <g opacity={labelOpacity}>
-                  <text x={labelX} y="500" fill="#F0A85C">
+                  <text x={labelX} y="500" fill="#EF5F22">
                     LONG YIELD · FLOATS WITH THE RATE
                   </text>
                   <text x={labelX} y="518" fill="#8E9390" fontSize="10">
@@ -698,15 +698,15 @@ export function YieldSplitSection() {
                 </g>
               </g>
               <g className="zs-pop" style={{ ...at(3.1), transformBox: "fill-box", transformOrigin: "center" }}>
-                <circle cx={END_X} cy={longEndPt.y} r="9" fill="rgba(240,168,92,0.14)" />
-                <circle cx={END_X} cy={longEndPt.y} r="5" fill="#07090D" stroke="#F0A85C" strokeWidth="1.8" />
+                <circle cx={END_X} cy={longEndPt.y} r="9" fill="rgba(239,95,34,0.14)" />
+                <circle cx={END_X} cy={longEndPt.y} r="5" fill="#07090D" stroke="#EF5F22" strokeWidth="1.8" />
               </g>
               <g className="mono zs-fade" fontSize="11" letterSpacing="0.12em" style={at(3.2)}>
-                <rect x={END_X + 16} y={longEndPt.y - 20} width="150" height="40" rx="8" fill="rgba(240,168,92,0.07)" stroke="rgba(240,168,92,0.3)" />
-                <text x={END_X + 28} y={longEndPt.y - 3} fill="#F0A85C">
+                <rect x={END_X + 16} y={longEndPt.y - 20} width="150" height="40" rx="8" fill="rgba(239,95,34,0.07)" stroke="rgba(239,95,34,0.3)" />
+                <text x={END_X + 28} y={longEndPt.y - 3} fill="#EF5F22">
                   YIELD PAID OUT
                 </text>
-                <text x={END_X + 28} y={longEndPt.y + 13} fill="#F0A85C" opacity="0.8">
+                <text x={END_X + 28} y={longEndPt.y + 13} fill="#EF5F22" opacity="0.8">
                   ENDS AT ZERO
                 </text>
               </g>
@@ -773,7 +773,7 @@ export function YieldSplitSection() {
               <g className="zs-pop" style={{ ...at(1.3), transformBox: "fill-box", transformOrigin: "center" }}>
                 {/* Pulse until the handle has been used once: the diagram is meant to be played with */}
                 {!hinted && !isFullZipped && (
-                  <circle cx="0" cy={BASE_Y} r="18" fill="none" stroke="rgba(169,200,238,0.6)" strokeWidth="1.2" className="zs-ping" />
+                  <circle cx="0" cy={BASE_Y} r="18" fill="none" stroke="rgba(59,134,255,0.6)" strokeWidth="1.2" className="zs-ping" />
                 )}
 
                 {/* Ambient handle glow */}
@@ -791,7 +791,7 @@ export function YieldSplitSection() {
                   cy={BASE_Y}
                   r={isDragging ? "21" : "17"}
                   fill="#0A0C10"
-                  stroke={isDragging ? "#FFFFFF" : isFullZipped ? "#F0A85C" : "#A9C8EE"}
+                  stroke={isDragging ? "#FFFFFF" : isFullZipped ? "#EF5F22" : "#3B86FF"}
                   strokeWidth="1.6"
                   className="transition-all duration-150"
                 />
@@ -800,7 +800,7 @@ export function YieldSplitSection() {
                 <circle cx="0" cy={BASE_Y} r="11.5" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1" strokeDasharray="3 3" />
 
                 {/* Center core dot */}
-                <circle cx="0" cy={BASE_Y} r="5" fill={isFullZipped ? "#F0A85C" : "#ECEDEA"} />
+                <circle cx="0" cy={BASE_Y} r="5" fill={isFullZipped ? "#EF5F22" : "#ECEDEA"} />
 
                 {/* Drag affordance: it moves along the timeline */}
                 <g fill="rgba(236,237,234,0.55)" opacity={isDragging ? 0 : 1} className="transition-opacity duration-150">

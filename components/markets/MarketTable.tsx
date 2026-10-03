@@ -254,7 +254,7 @@ export function MarketTable({
                       >
                         <span
                           className={`w-1.5 h-1.5 rounded-full ${
-                            isMaturing ? "bg-amber shadow-[0_0_6px_#F0A85C]" : "bg-ice shadow-[0_0_6px_#A9C8EE]"
+                            isMaturing ? "bg-amber shadow-[0_0_6px_#EF5F22]" : "bg-ice shadow-[0_0_6px_#3B86FF]"
                           }`}
                         />
                         {isMaturing ? "Maturing" : "Active"}

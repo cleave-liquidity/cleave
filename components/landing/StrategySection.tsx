@@ -269,21 +269,21 @@ export function StrategySection() {
                 {/* Steady ascent */}
                 <path
                   d="M 10 88 C 150 76, 320 44, 470 20"
-                  stroke="#A9C8EE"
+                  stroke="#3B86FF"
                   strokeWidth="2"
                   fill="none"
                 />
                 <path
                   d="M 10 88 C 150 76, 320 44, 470 20 L 470 100 L 10 100 Z"
-                  fill="rgba(169,200,238,0.06)"
+                  fill="rgba(59,134,255,0.06)"
                 />
-                <circle cx="470" cy="20" r="4.5" fill="#A9C8EE" />
+                <circle cx="470" cy="20" r="4.5" fill="#3B86FF" />
                 <text
                   className="mono"
                   x="476"
                   y="16"
                   fontSize="11"
-                  fill="#A9C8EE"
+                  fill="#3B86FF"
                   fontWeight="500"
                 >
                   1.00 {symbol}
@@ -332,7 +332,7 @@ export function StrategySection() {
             </div>
             <Link
               href={market ? marketHref(market.id, "fixed") : "/markets"}
-              className="mt-2 min-h-[44px] bg-ice text-[#0A0C10] font-medium text-[13px] flex items-center justify-center hover:bg-white transition-all shadow-[0_0_20px_rgba(169,200,238,0.2)]"
+              className="mt-2 min-h-[44px] bg-ice text-[#0A0C10] font-medium text-[13px] flex items-center justify-center hover:bg-white transition-all shadow-[0_0_20px_rgba(59,134,255,0.2)]"
             >
               Lock Fixed Rate (PT) &rarr;
             </Link>
@@ -417,7 +417,7 @@ export function StrategySection() {
                 {/* Reactive wave */}
                 <path
                   d={dynamicLongWave}
-                  stroke="#F0A85C"
+                  stroke="#EF5F22"
                   strokeWidth="2.2"
                   fill="none"
                   className="transition-all duration-300"
@@ -427,7 +427,7 @@ export function StrategySection() {
                   x="12"
                   y="20"
                   fontSize="10"
-                  fill="#F0A85C"
+                  fill="#EF5F22"
                   letterSpacing="0.1em"
                 >
                   {simulatedRate >= BREAK_EVEN_RATE
@@ -459,7 +459,7 @@ export function StrategySection() {
             </div>
             <Link
               href={market ? marketHref(market.id, "long") : "/markets"}
-              className="mt-2 min-h-[44px] bg-amber text-[#0A0C10] font-medium text-[13px] flex items-center justify-center hover:bg-white transition-all shadow-[0_0_20px_rgba(240,168,92,0.2)]"
+              className="mt-2 min-h-[44px] bg-amber text-[#0A0C10] font-medium text-[13px] flex items-center justify-center hover:bg-white transition-all shadow-[0_0_20px_rgba(239,95,34,0.2)]"
             >
               Trade Long Yield (YT) &rarr;
             </Link>

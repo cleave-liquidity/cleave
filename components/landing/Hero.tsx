@@ -22,7 +22,7 @@ const NAV_TIMEOUT_MS = 1600; // safety net if `scrollend` never fires
 const COPY_OUT_MS = 210;
 
 const STAGE_SHORT = ["The Split", "Fixed Yield", "Long Yield", "Split Engine", "Live Vaults"];
-const STAGE_ACCENT = ["#ECEDEA", "#A9C8EE", "#F0A85C", "#DDE8F8", "#34D399"];
+const STAGE_ACCENT = ["#ECEDEA", "#3B86FF", "#EF5F22", "#DDE8F8", "#34D399"];
 
 const FOCUS_RING =
   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice";
@@ -340,8 +340,8 @@ export function Hero() {
                             fixed ? "border-ice/35 hover:border-ice/70" : "border-amber/35 hover:border-amber/70"
                           }`}
                         >
-                          <span className="flex items-center gap-2 text-[12px] sm:text-[13px] font-medium" style={{ color: fixed ? "#A9C8EE" : "#F0A85C" }}>
-                            <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: fixed ? "#A9C8EE" : "#F0A85C" }} aria-hidden="true" />
+                          <span className="flex items-center gap-2 text-[12px] sm:text-[13px] font-medium" style={{ color: fixed ? "#3B86FF" : "#EF5F22" }}>
+                            <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: fixed ? "#3B86FF" : "#EF5F22" }} aria-hidden="true" />
                             {path.title}
                             <span className="ml-auto opacity-0 transition-opacity group-hover:opacity-100" aria-hidden="true">→</span>
                           </span>

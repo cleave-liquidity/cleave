@@ -110,19 +110,19 @@ export function YieldChart({
               type="monotone"
               dataKey="implied"
               name="Implied APY"
-              stroke="#A9C8EE"
+              stroke="#3B86FF"
               strokeWidth={1.6}
               dot={false}
-              activeDot={{ fill: "#A9C8EE", r: 3 }}
+              activeDot={{ fill: "#3B86FF", r: 3 }}
             />
             <Line
               type="monotone"
               dataKey="underlying"
               name="Rate Now"
-              stroke="#F0A85C"
+              stroke="#EF5F22"
               strokeWidth={1.6}
               dot={false}
-              activeDot={{ fill: "#F0A85C", r: 3 }}
+              activeDot={{ fill: "#EF5F22", r: 3 }}
             />
           </LineChart>
         </ResponsiveContainer>

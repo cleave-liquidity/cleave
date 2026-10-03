@@ -59,18 +59,18 @@ const TONE = {
     text: "text-ice",
     dot: "bg-ice",
     rail: "border-ice",
-    card: "border-ice/55 bg-ice/[0.06] shadow-[0_0_30px_rgba(169,200,238,0.07)]",
+    card: "border-ice/55 bg-ice/[0.06] shadow-[0_0_30px_rgba(59,134,255,0.07)]",
     soft: "border-ice/25 bg-ice/[0.07]",
-    cta: "bg-ice shadow-[0_4px_24px_rgba(169,200,238,0.25)]",
+    cta: "bg-ice shadow-[0_4px_24px_rgba(59,134,255,0.25)]",
     seg: "bg-ice text-[#0A0C10]",
   },
   long: {
     text: "text-amber",
     dot: "bg-amber",
     rail: "border-amber",
-    card: "border-amber/55 bg-amber/[0.06] shadow-[0_0_30px_rgba(240,168,92,0.07)]",
+    card: "border-amber/55 bg-amber/[0.06] shadow-[0_0_30px_rgba(239,95,34,0.07)]",
     soft: "border-amber/25 bg-amber/[0.07]",
-    cta: "bg-amber shadow-[0_4px_24px_rgba(240,168,92,0.25)]",
+    cta: "bg-amber shadow-[0_4px_24px_rgba(239,95,34,0.25)]",
     seg: "bg-amber text-[#0A0C10]",
   },
 } as const;
@@ -820,12 +820,12 @@ function Sparkline({ kind }: { kind: Strategy }) {
   return (
     <svg viewBox="0 0 200 40" className="h-12 w-full" aria-hidden="true" preserveAspectRatio="none">
       {kind === "fixed" ? (
-        <path d="M2 30 C 60 26, 120 16, 198 8" fill="none" stroke="#A9C8EE" strokeWidth="2" strokeLinecap="round" />
+        <path d="M2 30 C 60 26, 120 16, 198 8" fill="none" stroke="#3B86FF" strokeWidth="2" strokeLinecap="round" />
       ) : (
         <path
           d="M2 24 C 14 6, 26 6, 38 20 S 62 36, 76 20 S 100 4, 114 18 S 140 34, 154 16 S 182 6, 198 14"
           fill="none"
-          stroke="#F0A85C"
+          stroke="#EF5F22"
           strokeWidth="2"
           strokeLinecap="round"
         />

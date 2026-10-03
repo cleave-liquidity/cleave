@@ -13,7 +13,7 @@ const ROWS = 3;
 const COLS = "grid-cols-[2.1fr_1.5fr_1fr_1fr_1.25fr_1fr_1.1fr]";
 
 // Status dot colours match the markets page.
-const statusColor = (m: YieldMarket) => (m.status === "maturing" ? "#F0A85C" : "#A9C8EE");
+const statusColor = (m: YieldMarket) => (m.status === "maturing" ? "#EF5F22" : "#3B86FF");
 const statusLabel = (m: YieldMarket) => (m.status === "maturing" ? "Maturing soon" : "Active");
 
 /** Market rows come from the normalized market list (mock or live) — nothing here is hardcoded. */

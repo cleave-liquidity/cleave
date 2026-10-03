@@ -152,10 +152,10 @@ export function FloatingNav() {
         <span className="lg-sweep" data-play={visible ? "true" : "false"} aria-hidden="true" />
 
         <div className="relative z-[3] flex items-center justify-between gap-3 py-2 pl-4 pr-2 sm:pl-5">
-          <Link href="/" aria-label="Cleave home" className={`group flex items-center gap-2.5 rounded-full ${FOCUS_RING}`}>
+          <Link href="/" aria-label="Cleave home" className={`group flex cursor-pointer items-center gap-2.5 rounded-full ${FOCUS_RING}`}>
             <svg width="26" height="26" viewBox="0 0 34 34" aria-hidden="true" className="shrink-0 transition-transform group-hover:scale-105">
               <circle cx="17" cy="17" r="8" fill="#F07A2B" />
-              <ellipse cx="17" cy="17" rx="15" ry="4.2" transform="rotate(-14 17 17)" fill="none" stroke="#A9C8EE" strokeWidth="1.4" />
+              <ellipse cx="17" cy="17" rx="15" ry="4.2" transform="rotate(-14 17 17)" fill="none" stroke="#3B86FF" strokeWidth="1.4" />
               <ellipse
                 cx="17"
                 cy="17"
@@ -163,7 +163,7 @@ export function FloatingNav() {
                 ry="5.6"
                 transform="rotate(-14 17 17)"
                 fill="none"
-                stroke="#F0A85C"
+                stroke="#EF5F22"
                 strokeWidth="1"
                 strokeDasharray="5 3"
               />
@@ -182,7 +182,7 @@ export function FloatingNav() {
                 onPointerEnter={(event) => moveChipTo(event.currentTarget)}
                 onFocus={(event) => moveChipTo(event.currentTarget)}
                 onBlur={hideChip}
-                className={`relative rounded-full px-3.5 py-1.5 text-white/75 transition-colors hover:text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.45)] ${FOCUS_RING}`}
+                className={`relative cursor-pointer rounded-full px-3.5 py-1.5 text-white/75 transition-colors hover:text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.45)] ${FOCUS_RING}`}
               >
                 {link.label}
               </Link>
@@ -191,7 +191,7 @@ export function FloatingNav() {
 
           <Link
             href="/markets"
-            className={`lg-cta inline-flex min-h-[38px] items-center justify-center rounded-full px-4 text-[13px] font-medium sm:px-5 ${FOCUS_RING}`}
+            className={`lg-cta inline-flex min-h-[38px] cursor-pointer items-center justify-center rounded-full px-4 text-[13px] font-medium sm:px-5 ${FOCUS_RING}`}
           >
             <span className="relative z-10">Launch app</span>
           </Link>

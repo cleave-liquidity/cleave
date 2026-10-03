@@ -95,8 +95,8 @@ export function PositionCard({
     >
       <div aria-hidden="true" className="pointer-events-none absolute right-[-30px] top-[-36px] opacity-40">
         <svg width="220" height="140" viewBox="0 0 220 140" fill="none">
-          <path d="M-20 120C50 25 120 20 250 70" stroke={isFixed ? "#A9C8EE" : "#F0A85C"} strokeOpacity="0.32" strokeDasharray="2 9" />
-          <circle cx="142" cy="48" r="3" fill={isFixed ? "#A9C8EE" : "#F0A85C"} />
+          <path d="M-20 120C50 25 120 20 250 70" stroke={isFixed ? "#3B86FF" : "#EF5F22"} strokeOpacity="0.32" strokeDasharray="2 9" />
+          <circle cx="142" cy="48" r="3" fill={isFixed ? "#3B86FF" : "#EF5F22"} />
         </svg>
       </div>
       {/* Header */}

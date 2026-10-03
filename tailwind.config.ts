@@ -24,14 +24,14 @@ const config: Config = {
           faint: "#6F7471",
         },
         ice: {
-          DEFAULT: "#A9C8EE",
-          glow: "rgba(169, 200, 238, 0.25)",
+          DEFAULT: "#3B86FF",
+          glow: "rgba(59, 134, 255, 0.25)",
           light: "#EAF2FF",
         },
         amber: {
-          DEFAULT: "#F0A85C",
+          DEFAULT: "#EF5F22",
           primary: "#F07A2B",
-          glow: "rgba(240, 168, 92, 0.25)",
+          glow: "rgba(239, 95, 34, 0.25)",
           light: "#FFE9D2",
         },
         positive: "#8FD3A8",

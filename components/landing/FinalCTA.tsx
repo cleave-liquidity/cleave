@@ -41,12 +41,12 @@ export function FinalCTA() {
 
           {/* Back orbit rings */}
           <g transform="translate(80 50) rotate(-16) scale(1 0.22)" clipPath="url(#ctaback)">
-            <circle r="58" fill="none" stroke="#A9C8EE" strokeWidth="4" opacity="0.65" />
+            <circle r="58" fill="none" stroke="#3B86FF" strokeWidth="4" opacity="0.65" />
             <circle
               className="ringflow"
               r="72"
               fill="none"
-              stroke="#F0A85C"
+              stroke="#EF5F22"
               strokeWidth="3.5"
               strokeDasharray="12 6 3 8"
               style={{ animationDuration: "18s" }}
@@ -58,12 +58,12 @@ export function FinalCTA() {
 
           {/* Front orbit rings */}
           <g transform="translate(80 50) rotate(-16) scale(1 0.22)" clipPath="url(#ctafront)">
-            <circle r="58" fill="none" stroke="#A9C8EE" strokeWidth="4" opacity="0.65" />
+            <circle r="58" fill="none" stroke="#3B86FF" strokeWidth="4" opacity="0.65" />
             <circle
               className="ringflow"
               r="72"
               fill="none"
-              stroke="#F0A85C"
+              stroke="#EF5F22"
               strokeWidth="3.5"
               strokeDasharray="12 6 3 8"
               style={{ animationDuration: "18s" }}
