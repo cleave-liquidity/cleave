@@ -20,6 +20,9 @@ node_modules
 .DS_Store
 *.pem
 
+# Agent / design scratch files
+scratch/
+
 # debug
 npm-debug.log*
 yarn-debug.log*
