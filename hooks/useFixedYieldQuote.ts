@@ -4,12 +4,12 @@ import { useQuery } from "@tanstack/react-query";
 import { FixedYieldQuote } from "@/types/quote";
 import { yieldAdapter } from "@/lib/adapters/mock-adapter";
 import { queryKeys } from "@/lib/query-keys";
-import { useAccount } from "wagmi";
 import { usePublicClient } from "wagmi";
+import { getConfiguredChainId } from "@/lib/web3/environment";
 
 export function useFixedYieldQuote(marketId: string, inputAmount: number) {
-  const { chainId } = useAccount();
-  const publicClient = usePublicClient();
+  const chainId = getConfiguredChainId();
+  const publicClient = usePublicClient({ chainId });
   const query = useQuery<FixedYieldQuote>({
     queryKey: queryKeys.fixedQuote(marketId, inputAmount, chainId),
     queryFn: () => yieldAdapter.getFixedQuote(marketId, inputAmount, { publicClient }),

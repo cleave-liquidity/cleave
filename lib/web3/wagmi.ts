@@ -1,12 +1,10 @@
 import { getDefaultConfig } from "@rainbow-me/rainbowkit";
 import { custom, http, type Chain, type Transport } from "viem";
 import { robinhoodChain, robinhoodChainTestnet } from "./chains";
+import { getWalletConnectProjectId } from "./environment";
 
 const WALLET_CONNECT_PROJECT_ID =
-  process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID &&
-  process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID.trim().length > 0
-    ? process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
-    : "3a8170812b534d0ff9d794f19a901d64";
+  getWalletConnectProjectId() ?? "3a8170812b534d0ff9d794f19a901d64";
 
 /**
  * Transport for a chain. `http()` with no URL throws while the client is being *created*, which

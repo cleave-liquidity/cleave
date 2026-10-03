@@ -106,7 +106,7 @@ export default function DocsPage() {
                 <SectionLabel>06 / Wallet & network</SectionLabel>
                 <h2>Wallet state and market data are separate.</h2>
                 <p>
-                  CLEAVE uses your connected wallet and network state for account access. Robinhood Chain uses ETH for gas. The app supports Mainnet (4663) and Testnet (46630); switch networks from the trade panel when needed.
+                  CLEAVE uses your connected wallet and network state for account access. Robinhood Chain uses ETH for gas. Live market browsing defaults to Mainnet (4663). Testnet (46630) remains available for wallet and explicit mock/development flows; live Pendle markets are not silently substituted there.
                 </p>
               </section>
 
@@ -114,9 +114,9 @@ export default function DocsPage() {
                 <SectionLabel>07 / Preview vs live</SectionLabel>
                 <h2>Know what the app is showing you.</h2>
                 <p>
-                  This development environment uses the mock adapter. Market list entries, APYs, liquidity, balances, quotes, addresses, and transaction hashes are preview values. They are not verified live protocol data and do not change simply because your wallet is on Mainnet.
+                  Normal browsing uses the Pendle live adapter. Market entries, APYs, liquidity, maturity, history, token metadata, and contract addresses come from verified live sources on Mainnet (4663). Explicit mock mode is reserved for development and uses preview values; it never activates merely because a wallet is disconnected or on another chain.
                 </p>
-                <p>When a live adapter is connected, the Preview Data indicator will become Live Data and the source, balances, quotes, and contract addresses must all come from verified production integrations.</p>
+                <p>If Pendle or an RPC endpoint fails, the app shows a typed live-source error instead of replacing the response with mock markets or balances.</p>
               </section>
 
               <section id="transparency" className="scroll-mt-32">

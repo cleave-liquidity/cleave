@@ -119,4 +119,14 @@ describe("Pendle live market normalization", () => {
       else process.env.NEXT_PUBLIC_ROBINHOOD_CHAIN_ENV = previous;
     }
   });
+
+  it("rejects approvals for an unverified spender before wallet interaction", async () => {
+    await expect(pendleLiveYieldAdapter.approveToken({
+      tokenAddress: underlying.address,
+      owner: underlying.address,
+      spender: "0x0000000000000000000000000000000000000001",
+      amount: BigInt(1),
+      chainId: 4663,
+    })).rejects.toMatchObject({ code: "live-source-unavailable" });
+  });
 });

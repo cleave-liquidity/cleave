@@ -1,10 +1,10 @@
 # Live Integration Checklist
 
-This checklist is the handoff boundary from CLEAVE's mock adapter to a verified live protocol adapter.
+This checklist covers the verified live Pendle adapter used by normal Mainnet browsing. Mock mode remains an explicit development option only.
 
 ## Configuration and provenance
 
-- [ ] Set `NEXT_PUBLIC_CLEAVE_DATA_MODE=live` only in an environment intended for live integration.
+- [ ] Set `NEXT_PUBLIC_CLEAVE_DATA_MODE=live` in the production environment; use `mock` only for explicit development testing.
 - [ ] Configure the matching RPC URL and `NEXT_PUBLIC_ROBINHOOD_CHAIN_ENV`.
 - [ ] Register only verified token metadata for chain `4663` or `46630`.
 - [ ] Register only verified contract deployments in `lib/contracts/deployments.ts`.
@@ -35,4 +35,4 @@ This checklist is the handoff boundary from CLEAVE's mock adapter to a verified 
 - [ ] Confirm wallet and network changes cannot display data from the previous account/network.
 - [ ] Run `bun test`, `bun run typecheck`, `bun run lint`, and `bun run build`.
 - [ ] Verify valid market routes remain `200` and unknown market IDs use the App Router `notFound()` path.
-- [ ] Complete testnet canary and security sign-off before enabling mainnet.
+- [ ] Complete funded human-wallet canary and security sign-off before treating mainnet writes as production-ready.

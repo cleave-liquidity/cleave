@@ -8,6 +8,8 @@ import { useFixedYieldQuote } from "@/hooks/useFixedYieldQuote";
 import { useLongYieldQuote } from "@/hooks/useLongYieldQuote";
 import { useNetworkGuard } from "@/hooks/useNetworkGuard";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
+import { useTokenAllowance } from "@/hooks/useTokenAllowance";
+import { useApproveToken } from "@/hooks/useApproveToken";
 import { useOpenFixedPosition } from "@/hooks/useOpenFixedPosition";
 import { useOpenLongPosition } from "@/hooks/useOpenLongPosition";
 import { formatApy, formatTokenAmount } from "@/lib/utils/formatters";
@@ -16,6 +18,7 @@ import { TransactionState } from "@/types/transaction";
 import { YieldDomainError, getYieldErrorMessage } from "@/types/errors";
 import { AlertCircle, CheckCircle2, ChevronDown, Loader2 } from "lucide-react";
 import { yieldAdapter } from "@/lib/adapters/mock-adapter";
+import { getContractByName } from "@/lib/contracts/deployments";
 
 export function TradePanel({
   market,
@@ -35,6 +38,14 @@ export function TradePanel({
     market.underlyingDecimals,
     market.chainId,
   );
+  const approvalSpender = getContractByName(market.chainId, "Pendle Router V2")?.address;
+  const { allowance, refresh: refreshAllowance } = useTokenAllowance(
+    address,
+    market.underlyingTokenAddress,
+    approvalSpender,
+    market.chainId,
+  );
+  const approveToken = useApproveToken();
   const openFixedPosition = useOpenFixedPosition();
   const openLongPosition = useOpenLongPosition();
   const { openConnectModal } = useConnectModal();
@@ -75,6 +86,16 @@ export function TradePanel({
   const activeQuote = isFixed ? fixedQuote : longQuote;
   const quoteError = isFixed ? fixedQuoteError : longQuoteError;
   const isQuoteExpired = Boolean(activeQuote && activeQuote.quoteExpiry <= currentTime);
+  const isApprovalRequired = Boolean(
+    yieldAdapter.mode === "live" &&
+      isConnected &&
+      activeQuote?.approvalToken &&
+      activeQuote.approvalAmount &&
+      market.underlyingTokenAddress &&
+      activeQuote.approvalToken.toLowerCase() === market.underlyingTokenAddress.toLowerCase() &&
+      allowance !== null &&
+      allowance < activeQuote.approvalAmount,
+  );
 
   const formatScenarioChange = (change: number) =>
     `${change >= 0 ? "+" : ""}${change}%`;
@@ -167,6 +188,31 @@ export function TradePanel({
       }
       if (!address || !chainId) {
         throw new YieldDomainError("wallet-disconnected", "Connect a wallet to continue.");
+      }
+
+      if (isApprovalRequired) {
+        if (
+          !approvalSpender ||
+          !activeQuote?.approvalToken ||
+          !activeQuote.approvalAmount ||
+          !market.underlyingTokenAddress ||
+          activeQuote.approvalToken.toLowerCase() !== market.underlyingTokenAddress.toLowerCase()
+        ) {
+          throw new YieldDomainError("live-source-unavailable", "The live quote did not include verified approval data.");
+        }
+        setTxState({ step: "approval-required" });
+        setTxState({ step: "approving" });
+        await approveToken.mutateAsync({
+          tokenAddress: activeQuote.approvalToken,
+          owner: address,
+          spender: approvalSpender,
+          amount: activeQuote.approvalAmount,
+          chainId: market.chainId,
+        });
+        await refreshAllowance();
+        setTxState({ step: "approval-success" });
+        toast.success(`${market.quoteAsset} approval granted`);
+        return;
       }
 
       if (yieldAdapter.mode === "mock") {
@@ -712,8 +758,9 @@ export function TradePanel({
                 <CheckCircle2 className="w-4 h-4" /> Position Opened!
               </>
             )}
+            {isApprovalRequired && (txState.step === "idle" || txState.step === "ready") && "Approve Token"}
             {(txState.step === "idle" || txState.step === "ready") &&
-              (isFixed ? "Open Fixed Position" : "Open Long Position")}
+              !isApprovalRequired && (isFixed ? "Open Fixed Position" : "Open Long Position")}
             {txState.step === "error" && "Try Again"}
           </button>
         );

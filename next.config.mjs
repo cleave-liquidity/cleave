@@ -2,12 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   typescript: {
-    ignoreBuildErrors: true,
-  },
-  env: {
-    NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID:
-      process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ||
-      "3a8170812b534d0ff9d794f19a901d64",
+    ignoreBuildErrors: false,
   },
   transpilePackages: ["@rainbow-me/rainbowkit", "wagmi", "viem"],
   webpack: (config) => {

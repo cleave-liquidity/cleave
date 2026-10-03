@@ -35,10 +35,19 @@ export function MarketTable({ markets }: { markets: YieldMarket[] }) {
   const filteredAndSortedMarkets = useMemo(() => {
     return markets
       .filter((market) => {
-        const matchesSearch =
-          market.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          market.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          market.yieldSource.toLowerCase().includes(searchTerm.toLowerCase());
+        const search = searchTerm.toLowerCase();
+        const matchesSearch = [
+          market.name,
+          market.symbol,
+          market.assetMetadata?.name,
+          market.assetMetadata?.symbol,
+          market.sourceProtocol,
+          market.protocolMetadata?.name,
+          market.yieldSource,
+          market.yieldSourceMetadata?.name,
+        ]
+          .filter((value): value is string => Boolean(value))
+          .some((value) => value.toLowerCase().includes(search));
 
         const matchesStatus =
           statusFilter === "all" || market.status === statusFilter;

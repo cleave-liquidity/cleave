@@ -4,9 +4,9 @@
 
 - Network: Robinhood Chain Testnet, chain ID `46630`.
 - RPC: supplied only through `NEXT_PUBLIC_ROBINHOOD_CHAIN_TESTNET_RPC_URL`.
-- Data mode: `NEXT_PUBLIC_CLEAVE_DATA_MODE=mock` by default.
+- Data mode: mock only when `NEXT_PUBLIC_CLEAVE_DATA_MODE=mock` is explicitly selected.
 - Mock market data, quote math, positions, and transaction results are available for product-flow testing.
-- No verified testnet token metadata or contract deployments are currently registered.
+- No verified Pendle testnet token metadata or contract deployments are currently registered.
 
 ## Ready for
 
@@ -24,4 +24,4 @@
 5. Define receipt/event parsing, quote source, expiry, slippage, paused-state, and liquidity rules.
 6. Execute wallet, approval, open, claim, sell, and redeem tests against a funded test wallet.
 
-Until these items are complete, live mode intentionally returns `live-integration-not-configured`; it never fabricates a contract write.
+Until these items are complete, explicit live mode returns `live-source-unavailable` for testnet Pendle markets; it never falls back to Mainnet data or fabricates a contract write.

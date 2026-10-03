@@ -4,13 +4,14 @@
 
 - Network: Robinhood Chain Mainnet, chain ID `4663`.
 - RPC: supplied only through `NEXT_PUBLIC_ROBINHOOD_CHAIN_RPC_URL`.
-- Data mode: mock by default; live mode is an explicit configuration choice.
-- The deployment manifest and verified token registry currently contain zero entries.
-- No production contract writes are enabled.
+- Data mode: live by default; mock mode is explicit development configuration.
+- Pendle live market discovery and verified token metadata are enabled through the live adapter.
+- Verified external Pendle router/factory deployments are listed in the contract registry.
+- Production writes are implemented, but still require the human-wallet canary below.
 
 ## Mainnet gate
 
-Mainnet is **not ready for user funds**. The live adapter remains a typed boundary and throws `live-integration-not-configured` until the deployment, ABI, security, and operational checks below are signed off.
+Mainnet is **not yet signed off for unrestricted user funds**. The live adapter has typed market, quote, approval, transaction, receipt, and portfolio boundaries; the operational and human-wallet checks below remain release gates.
 
 - Independent contract and protocol review completed.
 - Addresses verified against the intended chain and published sources.

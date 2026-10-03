@@ -22,7 +22,7 @@ export interface TokenAllowanceAdapter {
 export class ViemTokenAllowanceAdapter implements TokenAllowanceAdapter {
   constructor(
     private readonly publicClient: PublicClient,
-    private readonly walletClient: WalletClient,
+    private readonly walletClient?: WalletClient,
   ) {}
 
   private assertRequest(tokenAddress: Address, owner: Address, spender: Address, chainId: number): void {
@@ -32,7 +32,7 @@ export class ViemTokenAllowanceAdapter implements TokenAllowanceAdapter {
     if (this.publicClient.chain?.id && this.publicClient.chain.id !== chainId) {
       throw new YieldDomainError("wrong-network", "The RPC client is connected to a different network.");
     }
-    if (this.walletClient.chain?.id && this.walletClient.chain.id !== chainId) {
+    if (this.walletClient?.chain?.id && this.walletClient.chain.id !== chainId) {
       throw new YieldDomainError("wrong-network", "The wallet is connected to a different network.");
     }
   }
@@ -61,15 +61,19 @@ export class ViemTokenAllowanceAdapter implements TokenAllowanceAdapter {
     if (request.amount <= BigInt(0)) {
       throw new YieldDomainError("invalid-amount", "Approval amount must be greater than zero.");
     }
+    const walletClient = this.walletClient;
+    if (!walletClient) {
+      throw new YieldDomainError("wallet-disconnected", "Connect a wallet to approve this token.");
+    }
 
     try {
-      return await this.walletClient.writeContract({
+      return await walletClient.writeContract({
         account: request.owner,
         address: request.tokenAddress,
         abi: erc20Abi,
         functionName: "approve",
         args: [request.spender, request.amount],
-        chain: this.walletClient.chain,
+        chain: walletClient.chain,
       });
     } catch (error) {
       throw normalizeYieldError(error);

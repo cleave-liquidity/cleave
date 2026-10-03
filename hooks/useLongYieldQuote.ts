@@ -4,12 +4,12 @@ import { useQuery } from "@tanstack/react-query";
 import { LongYieldQuote } from "@/types/quote";
 import { yieldAdapter } from "@/lib/adapters/mock-adapter";
 import { queryKeys } from "@/lib/query-keys";
-import { useAccount } from "wagmi";
 import { usePublicClient } from "wagmi";
+import { getConfiguredChainId } from "@/lib/web3/environment";
 
 export function useLongYieldQuote(marketId: string, inputAmount: number) {
-  const { chainId } = useAccount();
-  const publicClient = usePublicClient();
+  const chainId = getConfiguredChainId();
+  const publicClient = usePublicClient({ chainId });
   const query = useQuery<LongYieldQuote>({
     queryKey: queryKeys.longQuote(marketId, inputAmount, chainId),
     queryFn: () => yieldAdapter.getLongQuote(marketId, inputAmount, { publicClient }),
