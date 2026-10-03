@@ -37,7 +37,7 @@ export const contractDeployments: Readonly<Record<ContractChainId, readonly Cont
       version: "v2",
       verified: true,
       ownership: "external",
-      explorerUrl: "https://explorer.robinhoodchain.org/address/0x888888888889758F76e7103c6CbF23ABbF58F946",
+      explorerUrl: "https://robinhoodchain.blockscout.com/address/0x888888888889758F76e7103c6CbF23ABbF58F946",
       source: "https://github.com/pendle-finance/pendle-core-v2-public/blob/main/deployments/4663-core.json",
     },
     {
@@ -50,7 +50,7 @@ export const contractDeployments: Readonly<Record<ContractChainId, readonly Cont
       version: "v2",
       verified: true,
       ownership: "external",
-      explorerUrl: "https://explorer.robinhoodchain.org/address/0x6813d43782395A1F2AAb42f39aeEDE03ac655e09",
+      explorerUrl: "https://robinhoodchain.blockscout.com/address/0x6813d43782395A1F2AAb42f39aeEDE03ac655e09",
       source: "https://github.com/pendle-finance/pendle-core-v2-public/blob/main/deployments/4663-core.json",
     },
     {
@@ -63,7 +63,7 @@ export const contractDeployments: Readonly<Record<ContractChainId, readonly Cont
       version: "v6",
       verified: true,
       ownership: "external",
-      explorerUrl: "https://explorer.robinhoodchain.org/address/0x544BF81c855AE84c1e8b65d5E38770898D01EeE2",
+      explorerUrl: "https://robinhoodchain.blockscout.com/address/0x544BF81c855AE84c1e8b65d5E38770898D01EeE2",
       source: "https://github.com/pendle-finance/pendle-core-v2-public/blob/main/deployments/4663-core.json",
     },
     {
@@ -76,7 +76,7 @@ export const contractDeployments: Readonly<Record<ContractChainId, readonly Cont
       version: "v6",
       verified: true,
       ownership: "external",
-      explorerUrl: "https://explorer.robinhoodchain.org/address/0xa543BF1ac6441822E95eD408076bB53090a0a9d7",
+      explorerUrl: "https://robinhoodchain.blockscout.com/address/0xa543BF1ac6441822E95eD408076bB53090a0a9d7",
       source: "https://github.com/pendle-finance/pendle-core-v2-public/blob/main/deployments/4663-core.json",
     },
     {
@@ -89,7 +89,7 @@ export const contractDeployments: Readonly<Record<ContractChainId, readonly Cont
       version: "v6",
       verified: true,
       ownership: "external",
-      explorerUrl: "https://explorer.robinhoodchain.org/address/0x466CeD3b33045Ea986B2f306C8D0aA8067961CF8",
+      explorerUrl: "https://robinhoodchain.blockscout.com/address/0x466CeD3b33045Ea986B2f306C8D0aA8067961CF8",
       source: "https://github.com/pendle-finance/pendle-core-v2-public/blob/main/deployments/4663-core.json",
     },
   ],

@@ -28,7 +28,7 @@ export const robinhoodChain = defineChain({
   blockExplorers: {
     default: {
       name: "Robinhood Explorer",
-      url: "https://explorer.robinhoodchain.org",
+      url: "https://robinhoodchain.blockscout.com",
     },
   },
 });
@@ -49,7 +49,7 @@ export const robinhoodChainTestnet = defineChain({
   blockExplorers: {
     default: {
       name: "Robinhood Testnet Explorer",
-      url: "https://testnet-explorer.robinhoodchain.org",
+      url: "https://explorer.testnet.chain.robinhood.com",
     },
   },
   testnet: true,
