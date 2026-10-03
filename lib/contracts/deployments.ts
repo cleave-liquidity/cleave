@@ -1,4 +1,5 @@
 import type { RobinhoodChainId, RobinhoodNetwork } from "@/types/market";
+import { projectContractDeployments } from "./project-deployments";
 
 export type ContractChainId = RobinhoodChainId;
 
@@ -25,6 +26,11 @@ export type ContractDeployment = {
   source?: string;
   usedByRuntime: boolean;
   runtimeRole: string;
+  deploymentTx?: `0x${string}`;
+  deploymentBlock?: number;
+  deployer?: `0x${string}`;
+  gasUsed?: string;
+  verificationStatus?: "VERIFIED" | "DEPLOYED / NOT VERIFIED";
 };
 
 export const contractDeployments: Readonly<Record<ContractChainId, readonly ContractDeployment[]>> = {
@@ -113,11 +119,12 @@ export function getContractChainId(network: RobinhoodNetwork): ContractChainId {
 }
 
 export function getContractDeployments(network: RobinhoodNetwork): readonly ContractDeployment[] {
-  return contractDeployments[getContractChainId(network)];
+  const chainId = getContractChainId(network);
+  return [...contractDeployments[chainId], ...projectContractDeployments[chainId]];
 }
 
 export function getContractsForChain(chainId: ContractChainId): readonly ContractDeployment[] {
-  return contractDeployments[chainId];
+  return [...contractDeployments[chainId], ...projectContractDeployments[chainId]];
 }
 
 export function getContractByName(

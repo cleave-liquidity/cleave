@@ -5,6 +5,7 @@ import { Check, Copy, ExternalLink } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import type { ContractCategory, ContractDeployment } from "@/lib/contracts/deployments";
 import { getContractDeployments } from "@/lib/contracts/deployments";
+import { getProjectContractDeployments } from "@/lib/contracts/project-deployments";
 import type { RobinhoodNetwork } from "@/types/market";
 import { getConfiguredNetwork } from "@/lib/web3/environment";
 import { NetworkSelect, type NetworkOption } from "@/components/contracts/NetworkSelect";
@@ -103,6 +104,7 @@ export function ContractRegistry() {
   const [category, setCategory] = useState<ContractCategory | "all">("all");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const deployments = getContractDeployments(network);
+  const projectDeployments = getProjectContractDeployments(network === "mainnet" ? 4663 : 46630);
   const representedCategories = useMemo(
     () => Array.from(new Set(deployments.map((deployment) => deployment.category))),
     [deployments],
@@ -125,7 +127,7 @@ export function ContractRegistry() {
           <div className="mono text-[11px] uppercase tracking-[0.18em] text-muted-dark">Deployment registry / Transparency</div>
           <h1 className="mt-3 text-[36px] font-normal leading-none tracking-[-0.04em] text-foreground sm:text-[48px]">CLEAVE Contract Registry</h1>
           <p className="mt-4 max-w-[620px] text-[15px] leading-6 text-muted">
-            Verified external protocol addresses used by CLEAVE. Static rows come from the deployment registry; live market, PT, YT, and SY rows come from verified Pendle metadata. None are CLEAVE-owned deployments.
+            External protocol addresses used by CLEAVE are shown alongside any real CLEAVE-owned deployments. Static rows come from the deployment registry; live market, PT, YT, and SY rows come from verified Pendle metadata.
           </p>
         </div>
         <div className="shrink-0 border-l-2 border-amber bg-amber/5 px-4 py-3 text-[12px] leading-5 text-muted">
@@ -146,7 +148,7 @@ export function ContractRegistry() {
         />
 
         <div className="mono pb-3.5 text-[11px] uppercase tracking-[0.12em] text-muted-dark">
-          {filteredDeployments.length} verified {filteredDeployments.length === 1 ? "deployment" : "deployments"}
+          {filteredDeployments.filter((deployment) => deployment.verified).length} verified · {filteredDeployments.length} registry {filteredDeployments.length === 1 ? "entry" : "entries"}
         </div>
       </div>
 
@@ -205,10 +207,25 @@ export function ContractRegistry() {
 
       <section className="flex flex-col gap-3">
         <div className="mono text-[10px] uppercase tracking-[0.16em] text-muted-dark">Project-owned contracts</div>
-        <div className="border border-white/15 bg-surface/70 px-5 py-5 text-[13px] leading-6 text-muted">
-          <span className="block text-foreground">None registered</span>
-          CLEAVE currently integrates external Pendle deployments. No CLEAVE-owned Mainnet or Testnet contract is represented as deployed or verified.
-        </div>
+        {projectDeployments.length === 0 ? (
+          <div className="border border-white/15 bg-surface/70 px-5 py-5 text-[13px] leading-6 text-muted">
+            <span className="block text-foreground">Not deployed</span>
+            No CLEAVE-owned {network === "mainnet" ? "Mainnet" : "Testnet"} contract is represented in the synchronized registry. No placeholder address is shown.
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3 border border-white/15 bg-surface/70 px-5 py-5 text-[13px] leading-6 text-muted">
+            {projectDeployments.map((deployment) => (
+              <div key={deployment.id} className="grid gap-2 sm:grid-cols-[1.1fr_2fr_1fr] sm:items-start">
+                <div>
+                  <span className="block text-foreground">{deployment.name}</span>
+                  <span className="mono text-[10px] uppercase tracking-[0.12em] text-amber">{deployment.verificationStatus || (deployment.verified ? "VERIFIED" : "UNVERIFIED")}</span>
+                </div>
+                <code className="break-all text-[11px]">{deployment.address}</code>
+                <span className="text-[12px]">Used by current runtime: {deployment.usedByRuntime ? "YES" : "NO · registry only"}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );

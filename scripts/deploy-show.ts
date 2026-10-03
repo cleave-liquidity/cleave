@@ -40,7 +40,7 @@ function paint(value: string, color: keyof typeof ANSI): string {
 }
 
 function styledValue(value: string): string {
-  if (value.includes("FAIL") || value.includes("UNAVAILABLE") || value.includes("NOT VERIFIED")) {
+  if (value.includes("FAIL") || value.includes("UNAVAILABLE") || value.includes("NOT VERIFIED") || value.includes("NOT DEPLOYED")) {
     return paint(value, "yellow");
   }
   if (value.includes("PASS") || value.includes("READY") || value.includes("ACTIVE") || value.includes("ONLINE")) {
@@ -58,6 +58,18 @@ function section(title: string): void {
   console.log();
   console.log(paint(`◆ ${title}`, "cyan"));
   console.log(paint("─".repeat(66), "dim"));
+}
+
+function deploymentStatus(deployment: {
+  verified: boolean;
+  deploymentTx?: string;
+}): string {
+  if (deployment.verified) return "VERIFIED";
+  return deployment.deploymentTx ? "DEPLOYED / NOT VERIFIED" : "NOT DEPLOYED";
+}
+
+function deploymentOwnership(deployment: { ownership?: "external" | "project" }): string {
+  return deployment.ownership === "project" ? "PROJECT OWNED" : "EXTERNAL";
 }
 
 function badge(label: string, tone: "success" | "warning" | "info"): string {
@@ -215,16 +227,26 @@ async function main(): Promise<void> {
 
   section("MAINNET CONTRACTS · CHAIN 4663");
   for (const deployment of mainnetDeployments) {
-    line(deployment.name, `${deployment.usedByRuntime ? "ACTIVE" : "REGISTRY ONLY"} · EXTERNAL · ${deployment.address}`);
+    line(
+      deployment.name,
+      `${deployment.usedByRuntime ? "ACTIVE" : "REGISTRY ONLY"} · ${deploymentOwnership(deployment)} · ${deploymentStatus(deployment)} · ${deployment.address}`,
+    );
   }
   if (featured) {
-    line("Market", `ACTIVE · EXTERNAL · ${featured.marketAddress}`);
-    line("PT", `ACTIVE · EXTERNAL · ${featured.ptAddress}`);
-    line("YT", `ACTIVE · EXTERNAL · ${featured.ytAddress}`);
-    line("SY", `ACTIVE · EXTERNAL · ${featured.syAddress}`);
-    line("Underlying", `INPUT TOKEN · EXTERNAL · ${featured.underlyingTokenAddress}`);
+    line("Market", `ACTIVE · EXTERNAL · VERIFIED LIVE METADATA · ${featured.marketAddress}`);
+    line("PT", `ACTIVE · EXTERNAL · VERIFIED LIVE METADATA · ${featured.ptAddress}`);
+    line("YT", `ACTIVE · EXTERNAL · VERIFIED LIVE METADATA · ${featured.ytAddress}`);
+    line("SY", `ACTIVE · EXTERNAL · VERIFIED LIVE METADATA · ${featured.syAddress}`);
+    line("Underlying", `INPUT TOKEN · EXTERNAL · VERIFIED LIVE METADATA · ${featured.underlyingTokenAddress}`);
   }
-  line("Project Contracts", `Mainnet ${mainnetDeployments.filter((deployment) => deployment.ownership === "project").length} · Testnet ${testnetDeployments.filter((deployment) => deployment.ownership === "project").length}`);
+  const projectMainnet = mainnetDeployments.filter((deployment) => deployment.ownership === "project");
+  const projectTestnet = testnetDeployments.filter((deployment) => deployment.ownership === "project");
+  line("Project Contracts", `Mainnet ${projectMainnet.length} · Testnet ${projectTestnet.length}`);
+  for (const deployment of projectMainnet) {
+    line("Project / deployment", `${deploymentStatus(deployment)} · ${deployment.address}`);
+    if (deployment.deploymentTx) line("Deployment tx", deployment.deploymentTx);
+    if (deployment.deploymentBlock !== undefined) line("Deployment block", String(deployment.deploymentBlock));
+  }
 
   section("TESTNET · ROBINHOOD CHAIN · 46630");
   line("Network", "Robinhood Chain");
@@ -232,7 +254,14 @@ async function main(): Promise<void> {
   line("RPC", `${testnetRpc.status}${testnetRpc.blockNumber === undefined ? "" : ` · block ${testnetRpc.blockNumber}`}`);
   line("Current block", testnetRpc.blockNumber === undefined ? "UNAVAILABLE" : `#${testnetRpc.blockNumber}`);
   line("Pendle API Markets", testnetMarkets.status === "PASS" ? String(testnetMarkets.total) : "UNAVAILABLE");
-  line("Registry", testnetDeployments.length ? `${testnetDeployments.length} verified` : "0 verified deployments");
+  const verifiedTestnetDeployments = testnetDeployments.filter((deployment) => deployment.verified);
+  line("Registry", verifiedTestnetDeployments.length ? `${verifiedTestnetDeployments.length} verified` : "0 verified deployments");
+  line("CLEAVE-owned", projectTestnet.length ? `${projectTestnet.length} registered` : "NOT DEPLOYED");
+  for (const deployment of projectTestnet) {
+    line("Project / deployment", `${deploymentStatus(deployment)} · ${deployment.address}`);
+    if (deployment.deploymentTx) line("Deployment tx", deployment.deploymentTx);
+    if (deployment.deploymentBlock !== undefined) line("Deployment block", String(deployment.deploymentBlock));
+  }
   line("Pendle Router", "NOT VERIFIED");
   line("Market / PT / YT / SY", "NOT VERIFIED");
   line("Trading", "UNAVAILABLE · live adapter is Mainnet-only");
