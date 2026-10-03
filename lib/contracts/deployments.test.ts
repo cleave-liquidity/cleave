@@ -12,13 +12,17 @@ describe("verified contract deployment registry", () => {
     expect(router?.usedByRuntime).toBe(true);
   });
 
-  it("keeps Testnet empty instead of copying Mainnet addresses", () => {
-    expect(getContractDeployments("testnet")).toEqual([]);
-    expect(getProjectContractDeployments(46630)).toEqual([]);
-  });
-
-  it("does not invent a CLEAVE-owned deployment before a broadcast is synchronized", () => {
+  it("keeps the confirmed CLEAVE-owned deployment isolated to Testnet", () => {
     expect(getProjectContractDeployments(4663)).toEqual([]);
-    expect(getProjectContractDeployments(46630)).toEqual([]);
+    const registry = getProjectContractDeployments(46630);
+
+    expect(registry).toHaveLength(1);
+    expect(registry[0]?.name).toBe("CleaveRegistry");
+    expect(registry[0]?.address).toBe("0xa5d21b39258da11152a0e63135936b1e60acfe43");
+    expect(registry[0]?.chainId).toBe(46630);
+    expect(registry[0]?.ownership).toBe("project");
+    expect(registry[0]?.verified).toBe(true);
+    expect(registry[0]?.usedByRuntime).toBe(false);
+    expect(getContractDeployments("mainnet").some((deployment) => deployment.ownership === "project")).toBe(false);
   });
 });

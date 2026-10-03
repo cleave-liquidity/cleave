@@ -44,7 +44,13 @@ bun contracts:sync
 bun deploy:show
 ```
 
-The registry will mark the contract `DEPLOYED / NOT VERIFIED` until explorer verification succeeds. No placeholder address is accepted by the sync script.
+The registry marks the contract `DEPLOYED / NOT VERIFIED` by default. After the explorer returns a successful verification result, synchronize the verified status explicitly:
+
+```bash
+DEPLOYMENT_VERIFIED=1 bun contracts:sync
+```
+
+No placeholder address is accepted by the sync script.
 
 ## Testnet verification
 

@@ -258,7 +258,7 @@ async function main(): Promise<void> {
   line("Registry", verifiedTestnetDeployments.length ? `${verifiedTestnetDeployments.length} verified` : "0 verified deployments");
   line("CLEAVE-owned", projectTestnet.length ? `${projectTestnet.length} registered` : "NOT DEPLOYED");
   for (const deployment of projectTestnet) {
-    line("Project / deployment", `${deploymentStatus(deployment)} · ${deployment.address}`);
+    line(deployment.name, `${deploymentOwnership(deployment)} · ${deploymentStatus(deployment)} · ${deployment.address}`);
     if (deployment.deploymentTx) line("Deployment tx", deployment.deploymentTx);
     if (deployment.deploymentBlock !== undefined) line("Deployment block", String(deployment.deploymentBlock));
   }

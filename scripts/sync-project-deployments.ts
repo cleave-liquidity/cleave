@@ -44,7 +44,18 @@ function asOptionalString(value: unknown): string | undefined {
   return typeof value === "string" && value.length > 0 ? value : undefined;
 }
 
+function asOptionalQuantity(value: unknown): string | undefined {
+  const raw = asOptionalString(value);
+  if (raw === undefined) return undefined;
+  try {
+    return BigInt(raw).toString(10);
+  } catch {
+    throw new Error("Broadcast metadata contains an invalid gas-used quantity.");
+  }
+}
+
 function main(): void {
+  const verified = process.env.DEPLOYMENT_VERIFIED === "1";
   let broadcast: JsonObject;
   try {
     broadcast = JSON.parse(readFileSync(broadcastPath, "utf8")) as JsonObject;
@@ -58,14 +69,18 @@ function main(): void {
   );
   if (!creation) throw new Error("The Testnet broadcast contains no CleaveRegistry CREATE transaction.");
 
-  const receipt = asObject(creation.receipt);
+  const deploymentTx = asHash(creation.hash);
+  const receipts = Array.isArray(broadcast.receipts) ? broadcast.receipts.map(asObject) : [];
+  const receipt = receipts.find((candidate) => candidate.transactionHash === deploymentTx) ?? asObject(creation.receipt);
+  if (receipt.status !== undefined && receipt.status !== "0x1" && receipt.status !== "1") {
+    throw new Error("The CleaveRegistry deployment receipt did not succeed.");
+  }
   const transaction = asObject(creation.transaction);
   const address = asAddress(creation.contractAddress, "contract address");
-  const deploymentTx = asHash(creation.hash ?? receipt.transactionHash);
   const deploymentBlock = asBlock(receipt.blockNumber ?? creation.blockNumber);
-  const deployerValue = transaction.from ?? creation.from;
+  const deployerValue = transaction.from ?? receipt.from ?? creation.from;
   const deployer = deployerValue === undefined ? undefined : asAddress(deployerValue, "deployer address");
-  const gasUsed = asOptionalString(receipt.gasUsed === undefined ? undefined : String(receipt.gasUsed));
+  const gasUsed = asOptionalQuantity(receipt.gasUsed);
 
   const entry = {
     id: "cleave-registry-testnet",
@@ -74,7 +89,7 @@ function main(): void {
     chainId,
     category: "other",
     address,
-    verified: false,
+    verified,
     ownership: "project",
     explorerUrl: `https://explorer.testnet.chain.robinhood.com/address/${address}`,
     usedByRuntime: false,
@@ -83,7 +98,7 @@ function main(): void {
     deploymentBlock,
     ...(deployer ? { deployer } : {}),
     ...(gasUsed ? { gasUsed } : {}),
-    verificationStatus: "DEPLOYED / NOT VERIFIED",
+    verificationStatus: verified ? "VERIFIED" : "DEPLOYED / NOT VERIFIED",
   };
 
   const content = `import type { ContractChainId, ContractDeployment } from "./deployments";\n\n/** Generated from the verified Foundry Testnet broadcast. */\nexport const projectContractDeployments: Readonly<Record<ContractChainId, readonly ContractDeployment[]>> = {\n  4663: [],\n  46630: [${JSON.stringify(entry, null, 2)}],\n};\n\nexport function getProjectContractDeployments(\n  chainId: ContractChainId,\n): readonly ContractDeployment[] {\n  return projectContractDeployments[chainId];\n}\n`;
