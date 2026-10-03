@@ -7,6 +7,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { useFixedYieldQuote } from "@/hooks/useFixedYieldQuote";
 import { useLongYieldQuote } from "@/hooks/useLongYieldQuote";
 import { useMarkets } from "@/hooks/useMarkets";
+import { formatApy } from "@/lib/utils/formatters";
 import { DEFAULT_TICKET, pickFeaturedMarket } from "./featuredMarket";
 import { buildStages, FALLBACK_STAGES } from "./heroStages";
 
@@ -73,6 +74,19 @@ export function Hero() {
   const { quote: fixedQuote } = useFixedYieldQuote(featured?.id ?? "", DEFAULT_TICKET);
   const { quote: longQuote } = useLongYieldQuote(featured?.id ?? "", DEFAULT_TICKET);
   const stages = useMemo(() => buildStages(featured, fixedQuote, longQuote), [featured, fixedQuote, longQuote]);
+
+  // The planet's own labels follow the same market and rate as the copy.
+  const planetLabels = useMemo(
+    () =>
+      featured
+        ? {
+            fixedPin: `FIXED · ${formatApy(fixedQuote?.quotedFixedApy ?? featured.impliedApy)}`,
+            vaultPin: `${featured.symbol.toUpperCase()} VAULT`,
+            core: `${featured.symbol.toUpperCase()} · SPLIT VAULT CORE`,
+          }
+        : undefined,
+    [featured, fixedQuote],
+  );
 
   const stage = stages[shownStage];
   const accentColor = STAGE_ACCENT[shownStage];
@@ -258,6 +272,7 @@ export function Hero() {
               onSelectStage={handleSelectStage}
               isSplitLayout={true}
               stagePosRef={stagePosRef}
+              labels={planetLabels}
             />
           </div>
 
@@ -312,7 +327,35 @@ export function Hero() {
                   {stage.description}
                 </p>
 
+                {/* First stage: the two ways in, as cards you can act on right away */}
+                {stage.paths && (
+                  <div style={rise(3)} className="hero-rise mt-4 sm:mt-5 grid grid-cols-2 gap-2.5 sm:gap-3 max-w-[460px] pointer-events-auto">
+                    {stage.paths.map((path) => {
+                      const fixed = path.kind === "fixed";
+                      return (
+                        <Link
+                          key={path.kind}
+                          href={path.href}
+                          className={`group flex flex-col gap-1 border bg-background/60 px-3 py-2.5 sm:px-3.5 sm:py-3 transition-colors ${FOCUS_RING} ${
+                            fixed ? "border-ice/35 hover:border-ice/70" : "border-amber/35 hover:border-amber/70"
+                          }`}
+                        >
+                          <span className="flex items-center gap-2 text-[12px] sm:text-[13px] font-medium" style={{ color: fixed ? "#A9C8EE" : "#F0A85C" }}>
+                            <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: fixed ? "#A9C8EE" : "#F0A85C" }} aria-hidden="true" />
+                            {path.title}
+                            <span className="ml-auto opacity-0 transition-opacity group-hover:opacity-100" aria-hidden="true">→</span>
+                          </span>
+                          <span className="text-[11px] sm:text-[12px] leading-snug text-muted-light">{path.tagline}</span>
+                          <span className="mono mt-0.5 text-[17px] sm:text-[19px] leading-none text-foreground">{path.figure}</span>
+                          <span className="mono text-[9px] sm:text-[10px] tracking-[0.04em] text-muted">{path.caption}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+
                 {/* Sub-tabs */}
+                {!stage.paths && (
                 <div
                   role="tablist"
                   aria-label={`${stage.title} details`}
@@ -347,7 +390,9 @@ export function Hero() {
                     </button>
                   ))}
                 </div>
+                )}
 
+                {!stage.paths && (
                 <div
                   id="hero-subpanel"
                   role="tabpanel"
@@ -357,6 +402,7 @@ export function Hero() {
                 >
                   {stage.subDetails[activeSubTab]}
                 </div>
+                )}
 
                 {/* Stats */}
                 <dl style={rise(4)} className="hero-rise flex flex-wrap gap-x-6 sm:gap-x-8 gap-y-3 mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-white/10 max-w-[460px] m-0">

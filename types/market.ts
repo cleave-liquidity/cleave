@@ -33,6 +33,8 @@ export interface YieldMarket {
   sourceProtocol?: string;
   assetMetadata?: MarketAssetMetadata;
   protocolMetadata?: MarketProtocolMetadata;
+  /** The project the yield actually comes from (e.g. NetNet, Pons) and its own logo, as the source reports it. */
+  yieldSourceMetadata?: MarketProtocolMetadata;
   syMetadata?: MarketTokenMetadata;
   ptMetadata?: MarketTokenMetadata;
   ytMetadata?: MarketTokenMetadata;

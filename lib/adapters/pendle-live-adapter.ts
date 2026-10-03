@@ -300,6 +300,7 @@ export function normalizePendleMarket(
       iconUrl: asString(raw.icon),
     },
     protocolMetadata: { name: "Pendle" },
+    yieldSourceMetadata: { name: yieldSource, iconUrl: asString(utilizedProtocol?.imageUrl) },
     syMetadata: tokenMetadata(syAddress, syMeta),
     ptMetadata: tokenMetadata(ptAddress, ptMeta),
     ytMetadata: tokenMetadata(ytAddress, ytMeta),

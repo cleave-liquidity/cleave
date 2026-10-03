@@ -209,8 +209,8 @@ export function MarketTable({ markets }: { markets: YieldMarket[] }) {
                     {/* Protocol / Yield Source */}
                     <span className="flex items-center gap-2 min-w-0">
                       <ProtocolIcon
-                        name={market.sourceProtocol || market.protocolMetadata?.name || market.yieldSource}
-                        iconUrl={market.protocolMetadata?.iconUrl}
+                        name={market.yieldSourceMetadata?.name || market.sourceProtocol || market.protocolMetadata?.name || market.yieldSource}
+                        iconUrl={market.yieldSourceMetadata?.iconUrl || market.protocolMetadata?.iconUrl}
                         size="sm"
                       />
                       <span className="flex flex-col gap-0.5 min-w-0">

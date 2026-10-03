@@ -3,12 +3,24 @@ import type { YieldMarket } from "@/types/market";
 import type { FixedYieldQuote, LongYieldQuote } from "@/types/quote";
 import { marketHref } from "./featuredMarket";
 
+/** One of the two ways to own the yield, shown as a card in the first stage. */
+export interface StagePath {
+  kind: "fixed" | "long";
+  title: string;
+  tagline: string;
+  figure: string;
+  caption: string;
+  href: string;
+}
+
 export interface StageInfo {
   index: number;
   tag: string;
   title: string;
   accent: string;
   description: string;
+  /** When present the stage shows these cards instead of the detail tabs. */
+  paths?: StagePath[];
   subTabs: string[];
   subDetails: string[];
   stats: { label: string; value: string; color?: string }[];
@@ -25,7 +37,11 @@ export const FALLBACK_STAGES: StageInfo[] = [
     title: "Yield, split in two.",
     accent: "Fixed or Long\u00A0— you choose.", // nbsp keeps the dash on the previous line
     description:
-      "Cleave splits USDG yield into PT (fixed rate, locked upfront) and YT (variable rate, amplified exposure). Settle instantly on Robinhood Chain — no liquidations, ever.",
+      "One yield-bearing asset, two ways to earn from it: lock a fixed rate you can count on, or bet on yield rising. No liquidations, ever.",
+    paths: [
+      { kind: "fixed", title: "Fixed Yield", tagline: "Know exactly what you'll get.", figure: "Locked", caption: "rate until maturity", href: "/markets" },
+      { kind: "long", title: "Long Yield", tagline: "Earn more if yield rises.", figure: "Variable", caption: "can also fall — value can drop", href: "/markets" },
+    ],
     subTabs: ["01 Overview", "02 Dual Paths", "03 USDG Anchor"],
     subDetails: [
       "Cleave tokenizes yield into two liquid components: Principal Tokens (PT) and Yield Tokens (YT).",
@@ -162,7 +178,25 @@ export function buildStages(
   return [
     {
       ...s0,
-      description: `Cleave splits ${S} yield into PT (fixed rate, locked upfront) and YT (variable rate, amplified exposure). Settle instantly on Robinhood Chain — no liquidations, ever.`,
+      description: `One ${S} position, two ways to earn from it: lock a fixed rate you can count on, or bet on yield rising. No liquidations, ever.`,
+      paths: [
+        {
+          kind: "fixed",
+          title: "Fixed Yield",
+          tagline: "Know exactly what you'll get.",
+          figure: fixedApy,
+          caption: `locked until ${m.maturity}`,
+          href: marketHref(m.id, "fixed"),
+        },
+        {
+          kind: "long",
+          title: "Long Yield",
+          tagline: "Earn more if yield rises.",
+          figure: formatApy(m.underlyingApy),
+          caption: "today, variable — can fall too",
+          href: marketHref(m.id, "long"),
+        },
+      ],
       subDetails: [
         s0.subDetails[0],
         s0.subDetails[1],
@@ -170,7 +204,7 @@ export function buildStages(
       ],
       stats: [
         { label: "UNDERLYING", value: underlying },
-        { label: "IMPLIED APY", value: formatApy(m.impliedApy), color: "#A9C8EE" },
+        { label: "LIQUIDITY", value: formatUsd(m.liquidityUsd) },
         { label: "SETTLEMENT", value: "Zero Liquidation" },
       ],
       primaryCtaHref: "/markets",

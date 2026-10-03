@@ -43,8 +43,8 @@ export function MarketCard({ market }: { market: YieldMarket }) {
         <span className="text-muted-dark">Source</span>
         <span className="flex min-w-0 items-center gap-2">
           <ProtocolIcon
-            name={market.protocolMetadata?.name || market.sourceProtocol || market.yieldSource}
-            iconUrl={market.protocolMetadata?.iconUrl}
+            name={market.yieldSourceMetadata?.name || market.protocolMetadata?.name || market.sourceProtocol || market.yieldSource}
+            iconUrl={market.yieldSourceMetadata?.iconUrl || market.protocolMetadata?.iconUrl}
           />
           <span className="flex min-w-0 flex-col text-right">
             <span className="text-foreground">{market.sourceProtocol || market.protocolMetadata?.name || market.yieldSource}</span>

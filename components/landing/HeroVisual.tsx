@@ -4,7 +4,17 @@ import React, { useEffect, useRef, useState } from "react";
 import { RotateCcw } from "lucide-react";
 import { STAR_NODES } from "./heroStars";
 
+/** Text on the planet that comes from the market (symbol, rate) instead of being fixed in the scene. */
+export interface HeroLabels {
+  fixedPin: string; // e.g. "FIXED · 3.36%"
+  vaultPin: string; // e.g. "USDG VAULT"
+  core: string; // e.g. "USDG · SPLIT VAULT CORE"
+}
+const DEFAULT_LABELS: HeroLabels = { fixedPin: "FIXED YIELD", vaultPin: "VAULT", core: "SPLIT VAULT CORE" };
+
 export interface HeroVisualProps {
+  /** Market-derived labels; neutral wording is shown until they arrive. */
+  labels?: HeroLabels;
   activeStage?: number;
   onSelectStage?: (stage: number) => void;
   isSplitLayout?: boolean;
@@ -603,7 +613,7 @@ function paintMoons(ctx: CanvasRenderingContext2D, g: Gfx, front: boolean, sinT:
 }
 
 /** Nested vault cube + tesseract struts, PT/YT laser and labels (drawn upright, planet-centred). */
-function paintCore(ctx: CanvasRenderingContext2D, g: Gfx, s: Sim, t: number, inv: number) {
+function paintCore(ctx: CanvasRenderingContext2D, g: Gfx, s: Sim, t: number, inv: number, lb: HeroLabels) {
   const rx = s.currentX * DEG;
   const ry = s.currentY * DEG;
   const cosRx = Math.cos(rx);
@@ -711,7 +721,7 @@ function paintCore(ctx: CanvasRenderingContext2D, g: Gfx, s: Sim, t: number, inv
 
   ctx.fillStyle = rgba(FG, lerp(0.45, 0.9, engine));
   ctx.font = `400 8px ${BASE_FONT}`;
-  text(ctx, "USDG · SPLIT VAULT CORE", 0, 98, 1.9, "center");
+  text(ctx, lb.core, 0, 98, 1.9, "center");
 }
 
 /** Mini-planet geometry (animated by time only). Painted in pin space (r = 26). */
@@ -861,10 +871,10 @@ function paintPinGeometry(ctx: CanvasRenderingContext2D, g: Gfx, idx: number, t:
 }
 
 const PIN_STYLE = [
-  { rgb: ICE, bg: "rgba(4,9,18,0.92)", w: 132, title: "FIXED · 6.42%", sub: "SENIOR TRANCHE", orbit: -26, orbitR: 46 },
+  { rgb: ICE, bg: "rgba(4,9,18,0.92)", w: 132, title: "", sub: "SENIOR TRANCHE", orbit: -26, orbitR: 46 },
   { rgb: AMBER, bg: "rgba(16,8,3,0.92)", w: 136, title: "LONG · FLOATING", sub: "JUNIOR TRANCHE", orbit: 32, orbitR: 48 },
   { rgb: FG, bg: "rgba(8,10,16,0.92)", w: 132, title: "SPLIT ENGINE", sub: "TRANCHE CLEAVER", orbit: 0, orbitR: 0 },
-  { rgb: MINT, bg: "rgba(3,14,10,0.92)", w: 132, title: "USDG VAULT", sub: "DELTA-NEUTRAL", orbit: 0, orbitR: 0 },
+  { rgb: MINT, bg: "rgba(3,14,10,0.92)", w: 132, title: "", sub: "DELTA-NEUTRAL", orbit: 0, orbitR: 0 },
 ] as const;
 
 const PIN_GLOW = ["ice", "amber", "white", "mint"] as const;
@@ -879,7 +889,7 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
   ctx.closePath();
 }
 
-function paintPin(ctx: CanvasRenderingContext2D, g: Gfx, s: Sim, idx: number, x: number, y: number, z: number, t: number) {
+function paintPin(ctx: CanvasRenderingContext2D, g: Gfx, s: Sim, idx: number, x: number, y: number, z: number, t: number, lb: HeroLabels) {
   const st = PIN_STYLE[idx];
   const act = s.pinAct[idx];
   const vis = s.pinVis[idx];
@@ -966,7 +976,7 @@ function paintPin(ctx: CanvasRenderingContext2D, g: Gfx, s: Sim, idx: number, x:
     ctx.textBaseline = "alphabetic";
     ctx.fillStyle = rgba(st.rgb, 1);
     ctx.font = `600 9.5px ${BASE_FONT}`;
-    text(ctx, st.title, 18, 14, 1.3);
+    text(ctx, idx === 0 ? lb.fixedPin : idx === 3 ? lb.vaultPin : st.title, 18, 14, 1.3);
     ctx.fillStyle = rgba(MUTED, 1);
     ctx.font = `400 7.5px ${BASE_FONT}`;
     text(ctx, st.sub, 18, 24, 0.75);
@@ -1078,11 +1088,16 @@ function paintBackdrop(ctx: CanvasRenderingContext2D, s: Sim, L: View, t: number
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function HeroVisual({ activeStage = 0, onSelectStage, isSplitLayout = true, stagePosRef }: HeroVisualProps) {
+export function HeroVisual({ activeStage = 0, onSelectStage, isSplitLayout = true, stagePosRef, labels = DEFAULT_LABELS }: HeroVisualProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const onSelectRef = useRef(onSelectStage);
   const kickRef = useRef<() => void>(() => {});
   const resetRef = useRef<() => void>(() => {});
+  const labelsRef = useRef<HeroLabels>(labels);
+  useEffect(() => {
+    labelsRef.current = labels;
+    kickRef.current(); // a sleeping (reduced-motion) loop repaints with the new text
+  }, [labels]);
   const sRef = useRef(createSim());
   const [oriented, setOriented] = useState(false);
 
@@ -1212,7 +1227,7 @@ export function HeroVisual({ activeStage = 0, onSelectStage, isSplitLayout = tru
 
       ctx.save();
       ctx.rotate(-ROLL);
-      paintCore(ctx, gfx, s, t, inv);
+      paintCore(ctx, gfx, s, t, inv, labelsRef.current);
       if (s.vaultVis > 0.01) {
         // Stage 4 tactical HUD
         ctx.globalAlpha = s.vaultVis;
@@ -1284,7 +1299,7 @@ export function HeroVisual({ activeStage = 0, onSelectStage, isSplitLayout = tru
         pins[i].y = ay + z * (PIN_POS[i][1] - s.cam.fy);
         pins[i].z = z;
       }
-      for (let i = 0; i < 4; i++) paintPin(ctx, gfx, s, i, pins[i].x, pins[i].y, z, t);
+      for (let i = 0; i < 4; i++) paintPin(ctx, gfx, s, i, pins[i].x, pins[i].y, z, t, labelsRef.current);
     };
 
     // ─── step ────────────────────────────────────────────────────────────────
