@@ -36,6 +36,12 @@ import {
   QUOTE_UNAVAILABLE_TITLE,
   type QuoteUiState,
 } from "@/lib/markets/quote-state";
+import {
+  applyBalanceShortcut,
+  applyManualAmount,
+  hasResolvedWalletBalance,
+  type BalanceShortcut,
+} from "@/lib/markets/balance-shortcuts";
 
 export type TradeQuoteContext = {
   marketId: string;
@@ -58,7 +64,7 @@ export function TradePanel({
 }) {
   const router = useRouter();
   const { address, chainId, isConnected, status: networkStatus, switchToRobinhood } = useNetworkGuard();
-  const { balance } = useTokenBalance(
+  const { balance, isLoading: balanceLoading, error: balanceError } = useTokenBalance(
     address,
     market.quoteAsset,
     market.underlyingTokenAddress,
@@ -82,6 +88,7 @@ export function TradePanel({
   const [txState, setTxState] = useState<TransactionState>(initialTradeState.transactionState);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [currentTime, setCurrentTime] = useState(() => Date.now());
+  const [selectedShortcut, setSelectedShortcut] = useState<BalanceShortcut | null>(null);
 
   useEffect(() => {
     const timer = window.setInterval(() => setCurrentTime(Date.now()), 1_000);
@@ -93,7 +100,12 @@ export function TradePanel({
     setInputAmountStr(resetState.inputAmount);
     setShowAdvanced(resetState.showAdvanced);
     setTxState(resetState.transactionState);
+    setSelectedShortcut(null);
   }, [strategy, initialAmount]);
+
+  useEffect(() => {
+    setSelectedShortcut(null);
+  }, [market.chainId, market.id, market.quoteAsset, market.underlyingTokenAddress]);
 
   const inputAmount = Number(inputAmountStr);
   const hasNumericAmount = inputAmountStr.trim() !== "" && Number.isFinite(inputAmount);
@@ -115,6 +127,17 @@ export function TradePanel({
     (isConnected && chainId !== market.chainId);
   const isInvalidAmount = !hasNumericAmount || inputAmount <= 0;
   const isInsufficientBalance = isConnected && !isInvalidAmount && inputAmount > balance;
+  const canUseBalanceShortcuts = hasResolvedWalletBalance({
+    isConnected,
+    isLoading: balanceLoading,
+    error: balanceError,
+    balance,
+  });
+
+  useEffect(() => {
+    if (!canUseBalanceShortcuts) setSelectedShortcut(null);
+  }, [canUseBalanceShortcuts]);
+
   const isMarketUnavailable = market.status === "paused" || market.status === "matured";
   const activeQuote = isFixed ? fixedQuote : longQuote;
   const quoteError = isFixed ? fixedQuoteError : longQuoteError;
@@ -178,9 +201,28 @@ export function TradePanel({
     toast.error(error.message);
   };
 
-  const handlePreset = (percent: number) => {
-    const val = (balance * percent).toFixed(2);
-    setInputAmountStr(val);
+  const handlePreset = (shortcut: BalanceShortcut) => {
+    const next = applyBalanceShortcut(
+      { inputAmount: inputAmountStr, selectedShortcut },
+      shortcut,
+      {
+        isConnected,
+        isLoading: balanceLoading,
+        error: balanceError,
+        balance,
+      },
+    );
+    setInputAmountStr(next.inputAmount);
+    setSelectedShortcut(next.selectedShortcut);
+  };
+
+  const handleManualAmountChange = (value: string) => {
+    const next = applyManualAmount(
+      { inputAmount: inputAmountStr, selectedShortcut },
+      value,
+    );
+    setInputAmountStr(next.inputAmount);
+    setSelectedShortcut(next.selectedShortcut);
   };
 
   const handleNetworkSwitch = async () => {
@@ -365,7 +407,13 @@ export function TradePanel({
           <label htmlFor="trade-amount">You pay</label>
           <div className="flex items-center gap-2 mono text-[12px]">
             <span>
-              BALANCE: {isConnected ? formatTokenAmount(balance) : "Connect wallet"}
+              BALANCE: {!isConnected
+                ? "Connect wallet"
+                : balanceLoading
+                  ? "Loading…"
+                  : balanceError
+                    ? "Unavailable"
+                    : formatTokenAmount(balance)}
             </span>
             <span className="text-muted-faint">{market.quoteAsset}</span>
           </div>
@@ -378,7 +426,7 @@ export function TradePanel({
             min="0"
             step="any"
             value={inputAmountStr}
-            onChange={(e) => setInputAmountStr(e.target.value)}
+            onChange={(e) => handleManualAmountChange(e.target.value)}
             className="mono flex-grow min-w-0 bg-transparent border-0 text-foreground text-[24px] outline-none"
             placeholder="0.00"
           />
@@ -392,21 +440,39 @@ export function TradePanel({
           <button
             type="button"
             onClick={() => handlePreset(0.25)}
-            className="px-2.5 py-1 text-[11px] mono border border-white/12 rounded text-muted hover:border-white/30 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice"
+            disabled={!canUseBalanceShortcuts}
+            aria-pressed={selectedShortcut === 0.25 && canUseBalanceShortcuts}
+            className={`px-2.5 py-1 text-[11px] mono border rounded transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice disabled:cursor-not-allowed disabled:opacity-50 ${
+              selectedShortcut === 0.25 && canUseBalanceShortcuts
+                ? "border-foreground bg-foreground/15 text-foreground font-medium"
+                : "border-white/12 text-muted hover:border-white/30"
+            }`}
           >
             25%
           </button>
           <button
             type="button"
             onClick={() => handlePreset(0.5)}
-            className="px-2.5 py-1 text-[11px] mono border border-white/12 rounded text-muted hover:border-white/30 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice"
+            disabled={!canUseBalanceShortcuts}
+            aria-pressed={selectedShortcut === 0.5 && canUseBalanceShortcuts}
+            className={`px-2.5 py-1 text-[11px] mono border rounded transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice disabled:cursor-not-allowed disabled:opacity-50 ${
+              selectedShortcut === 0.5 && canUseBalanceShortcuts
+                ? "border-foreground bg-foreground/15 text-foreground font-medium"
+                : "border-white/12 text-muted hover:border-white/30"
+            }`}
           >
             50%
           </button>
           <button
             type="button"
             onClick={() => handlePreset(1.0)}
-            className="px-2.5 py-1 text-[11px] mono border border-white/12 rounded text-muted hover:border-white/30 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice"
+            disabled={!canUseBalanceShortcuts}
+            aria-pressed={selectedShortcut === 1 && canUseBalanceShortcuts}
+            className={`px-2.5 py-1 text-[11px] mono border rounded transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice disabled:cursor-not-allowed disabled:opacity-50 ${
+              selectedShortcut === 1 && canUseBalanceShortcuts
+                ? "border-foreground bg-foreground/15 text-foreground font-medium"
+                : "border-white/12 text-muted hover:border-white/30"
+            }`}
           >
             MAX
           </button>
