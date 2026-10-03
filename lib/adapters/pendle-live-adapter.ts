@@ -698,6 +698,17 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
     return { publicClient, walletClient };
   }
 
+  private async assertNativeGasBalance(publicClient: PublicClient, owner: Address): Promise<void> {
+    try {
+      const balance = await publicClient.getBalance({ address: owner });
+      if (balance <= BigInt(0)) {
+        throw new YieldDomainError("insufficient-eth-for-gas", "Insufficient ETH for network fees.");
+      }
+    } catch (error) {
+      throw error instanceof YieldDomainError ? error : normalizeYieldError(error);
+    }
+  }
+
   private async executeTransaction(
     response: ConvertResponse,
     owner: Address,
@@ -715,6 +726,7 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
       throw new YieldDomainError("live-source-unavailable", "Pendle returned calldata for a different wallet.");
     }
     const { publicClient, walletClient } = this.assertWalletRuntime(chainId, runtime);
+    await this.assertNativeGasBalance(publicClient, owner);
     for (const approval of response.requiredApprovals || []) {
       const token = toAddress(approval.token);
       const amount = parseRawAmount(approval.amount, "approval");
@@ -789,6 +801,7 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
       throw new YieldDomainError("unsupported-operation", "The live claim route unexpectedly requires token approval.");
     }
     const { publicClient, walletClient } = this.assertWalletRuntime(chainId, runtime);
+    await this.assertNativeGasBalance(publicClient, owner);
     const hash = await walletClient.sendTransaction({
       account: owner,
       to: transaction.to,
@@ -1022,6 +1035,7 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
     }
     const { publicClient, walletClient } = this.assertWalletRuntime(request.chainId, runtime);
     if (request.amount <= BigInt(0)) throw new YieldDomainError("invalid-amount", "Approval amount must be greater than zero.");
+    await this.assertNativeGasBalance(publicClient, request.owner);
     try {
       const txHash = await walletClient.writeContract({
         account: request.owner,

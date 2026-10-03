@@ -24,8 +24,9 @@ export function canRedeemFixed(position: YieldPosition, now = Date.now()): boole
     position.strategy === "fixed" && position.status === "active" && isMatured(position.maturityDate, now);
 }
 
-export function canSellPosition(position: YieldPosition): boolean {
-  return position.status === "active" && (position.strategy === "fixed" || position.strategy === "long");
+export function canSellPosition(position: YieldPosition, now = Date.now()): boolean {
+  return position.status === "active" && !isMatured(position.maturityDate, now) &&
+    (position.strategy === "fixed" || position.strategy === "long");
 }
 
 export function canClaimYield(position: YieldPosition): boolean {

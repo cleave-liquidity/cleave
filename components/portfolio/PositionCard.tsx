@@ -2,14 +2,18 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { useAccount } from "wagmi";
 import { FixedYieldPosition, LongYieldPosition, YieldPosition } from "@/types/position";
 import { formatTokenAmount, formatUsd } from "@/lib/utils/formatters";
 import { useClaimYield, useRedeemFixed, useSellPosition } from "@/hooks/usePositionActions";
+import { useNetworkGuard } from "@/hooks/useNetworkGuard";
+import { useNativeBalance } from "@/hooks/useNativeBalance";
 import { getYieldErrorMessage } from "@/types/errors";
 import { AssetIcon } from "@/components/markets/AssetIcon";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { getConfiguredChainId } from "@/lib/web3/environment";
+import { blocksExecutionForNativeBalance } from "@/lib/markets/native-balance";
+import { canRedeemFixed, canSellPosition, isMatured as isPositionMatured } from "@/lib/positions/valuation";
 
 export function PositionCard({
   position,
@@ -19,23 +23,38 @@ export function PositionCard({
   onActionComplete?: () => void;
 }) {
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
-  const { address } = useAccount();
+  const { address, chainId, isConnected } = useNetworkGuard();
   const claimYield = useClaimYield();
   const redeemFixed = useRedeemFixed();
   const sellPosition = useSellPosition();
+
+  const parsedPositionChainId = Number(position.id.split(":")[1]);
+  const positionChainId = parsedPositionChainId === 4663 || parsedPositionChainId === 46630
+    ? parsedPositionChainId
+    : getConfiguredChainId();
+  const nativeBalance = useNativeBalance(address, positionChainId);
+  const isWrongNetwork = isConnected && chainId !== positionChainId;
+  const isNativeBalanceBlocking = blocksExecutionForNativeBalance({
+    isConnected,
+    isLoading: nativeBalance.isLoading,
+    hasBalance: nativeBalance.hasBalance,
+    balance: nativeBalance.balance,
+    error: nativeBalance.error,
+  });
 
   const isFixed = position.strategy === "fixed";
   const fixedPos = isFixed ? (position as FixedYieldPosition) : null;
   const longPos = !isFixed ? (position as LongYieldPosition) : null;
 
-  const isMatured = position.status === "matured";
+  const isMatured = position.status === "matured" || isPositionMatured(position.maturityDate);
   const isRedeemed = position.status === "redeemed";
   const isActive = position.status === "active";
   const canClaim =
     !isFixed &&
+    position.status !== "closed" &&
     (isActive || isMatured) &&
     (longPos?.claimableYield || 0) > 0;
-  const canSell = isActive;
+  const canSell = canSellPosition(position);
 
   const handleClaim = async () => {
     if (!longPos || !canClaim) return;
@@ -55,7 +74,7 @@ export function PositionCard({
   };
 
   const handleRedeem = async () => {
-    if (!fixedPos) return;
+    if (!fixedPos || !canRedeemFixed(position)) return;
     try {
       setLoadingAction("redeem");
       if (!address) throw new Error("Connect a wallet to redeem this position.");
@@ -203,7 +222,7 @@ export function PositionCard({
             <button
               type="button"
               disabled={
-                loadingAction !== null || !canClaim
+                loadingAction !== null || !canClaim || isWrongNetwork || isNativeBalanceBlocking
               }
               onClick={handleClaim}
               className="min-h-[42px] px-4.5 rounded-lg bg-amber text-[#0A0B0C] text-[14px] font-medium flex items-center gap-1.5 hover:brightness-105 transition-all disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber"
@@ -216,10 +235,10 @@ export function PositionCard({
           )}
 
           {/* Fixed Strategy Redeem Action at Maturity */}
-          {isFixed && !isRedeemed && position.status !== "closed" && (
+          {isFixed && isMatured && !isRedeemed && position.status !== "closed" && (
             <button
               type="button"
-              disabled={!isMatured || isRedeemed || loadingAction !== null}
+              disabled={!isMatured || isRedeemed || loadingAction !== null || isWrongNetwork || isNativeBalanceBlocking}
               onClick={handleRedeem}
               className={`min-h-[42px] px-4.5 rounded-lg text-[14px] font-medium flex items-center gap-1.5 transition-all ${
                 isMatured && !isRedeemed
@@ -238,7 +257,7 @@ export function PositionCard({
           {canSell && (
             <button
               type="button"
-              disabled={loadingAction !== null}
+              disabled={loadingAction !== null || isWrongNetwork || isNativeBalanceBlocking}
               onClick={handleSellEarly}
             className="min-h-[42px] px-4 border border-white/25 rounded-lg bg-transparent text-foreground hover:border-white/50 text-[14px] flex items-center gap-1.5 transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice"
             >
@@ -249,6 +268,16 @@ export function PositionCard({
             </button>
           )}
         </div>
+        {isConnected && !isWrongNetwork && nativeBalance.status === "resolved" && nativeBalance.balance === 0 && (
+          <span role="alert" className="w-full text-right text-[12px] text-negative">
+            Insufficient ETH for network fees.
+          </span>
+        )}
+        {isConnected && !isWrongNetwork && nativeBalance.status === "unavailable" && (
+          <span role="alert" className="w-full text-right text-[12px] text-negative">
+            Unable to verify ETH for network fees.
+          </span>
+        )}
       </div>
     </div>
   );

@@ -35,6 +35,7 @@ export default function PortfolioPage() {
       const longP = p as import("@/types/position").LongYieldPosition;
       return acc + (longP.claimableYield || 0);
     }, 0);
+  const claimableYieldAvailable = isConnected && !isLoading && !error;
 
   const filteredPositions = positions.filter((p) => {
     if (filter === "active") return p.status === "active";
@@ -119,7 +120,7 @@ export default function PortfolioPage() {
                 Claimable Yield
               </span>
               <span className="mono text-[20px] sm:text-[22px] font-medium text-amber">
-                {totalClaimable.toFixed(2)} USDG
+                {claimableYieldAvailable ? `${totalClaimable.toFixed(2)} USDG` : "—"}
               </span>
             </div>
           </div>

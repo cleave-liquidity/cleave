@@ -129,4 +129,65 @@ describe("Pendle live market normalization", () => {
       chainId: 4663,
     })).rejects.toMatchObject({ code: "live-source-unavailable" });
   });
+
+  it("blocks a live approval before wallet interaction when native ETH is zero", async () => {
+    let writeCalled = false;
+    const publicClient = {
+      chain: { id: 4663 },
+      getBalance: async () => BigInt(0),
+    } as any;
+    const walletClient = {
+      chain: { id: 4663 },
+      writeContract: async () => {
+        writeCalled = true;
+        return "0x1111111111111111111111111111111111111111111111111111111111111111";
+      },
+    } as any;
+
+    await expect(pendleLiveYieldAdapter.approveToken({
+      tokenAddress: underlying.address,
+      owner: underlying.address,
+      spender: "0x888888888889758F76e7103c6CbF23ABbF58F946",
+      amount: BigInt(1),
+      chainId: 4663,
+    }, { publicClient, walletClient })).rejects.toMatchObject({
+      code: "insufficient-eth-for-gas",
+    });
+    expect(writeCalled).toBe(false);
+  });
+
+  it("preserves wallet rejection and confirmed receipt states for live approval", async () => {
+    const request = {
+      tokenAddress: underlying.address,
+      owner: underlying.address,
+      spender: "0x888888888889758F76e7103c6CbF23ABbF58F946" as `0x${string}`,
+      amount: BigInt(1),
+      chainId: 4663 as const,
+    };
+    const publicClient = {
+      chain: { id: 4663 },
+      getBalance: async () => BigInt(1),
+      waitForTransactionReceipt: async () => ({ status: "success", blockNumber: BigInt(42) }),
+    } as any;
+    const rejectingWalletClient = {
+      chain: { id: 4663 },
+      writeContract: async () => {
+        throw { name: "UserRejectedRequestError", message: "User rejected" };
+      },
+    } as any;
+
+    await expect(pendleLiveYieldAdapter.approveToken(request, {
+      publicClient,
+      walletClient: rejectingWalletClient,
+    })).rejects.toMatchObject({ code: "transaction-rejected" });
+
+    const confirmedWalletClient = {
+      chain: { id: 4663 },
+      writeContract: async () => "0x1111111111111111111111111111111111111111111111111111111111111111",
+    } as any;
+    await expect(pendleLiveYieldAdapter.approveToken(request, {
+      publicClient,
+      walletClient: confirmedWalletClient,
+    })).resolves.toMatchObject({ status: "confirmed", blockNumber: BigInt(42) });
+  });
 });

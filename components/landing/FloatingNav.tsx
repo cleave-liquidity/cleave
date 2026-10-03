@@ -1,10 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { Fragment, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  Fragment,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { XIcon } from "@/components/layout/XIcon";
 import { X_URL } from "@/lib/site-links";
 import { buildLensMapUrl, supportsBackdropLens } from "./liquidGlass";
+import Image from "next/image";
 
 const HERO_ID = "top";
 const LENS_FILTER_ID = "cleave-liquid-lens";
@@ -19,9 +26,21 @@ const LINKS = [
 
 // Different shifts per colour channel split the bent image into the rainbow fringe real glass has at its rim.
 const DISPERSION = [
-  { name: "red", scale: 34, matrix: "1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" },
-  { name: "green", scale: 46, matrix: "0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" },
-  { name: "blue", scale: 58, matrix: "0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" },
+  {
+    name: "red",
+    scale: 34,
+    matrix: "1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0",
+  },
+  {
+    name: "green",
+    scale: 46,
+    matrix: "0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0",
+  },
+  {
+    name: "blue",
+    scale: 58,
+    matrix: "0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0",
+  },
 ] as const;
 
 const FOCUS_RING =
@@ -40,9 +59,17 @@ type Chip = { left: number; width: number; on: boolean };
 export function FloatingNav() {
   const [visible, setVisible] = useState(false);
   const [chip, setChip] = useState<Chip>({ left: 0, width: 0, on: false });
-  const [lensMap, setLensMap] = useState<{ url: string; width: number; height: number } | null>(null);
+  const [lensMap, setLensMap] = useState<{
+    url: string;
+    width: number;
+    height: number;
+  } | null>(null);
   const panelRef = useRef<HTMLElement>(null);
-  const canRefract = useSyncExternalStore(subscribeNothing, readLensSupport, () => false);
+  const canRefract = useSyncExternalStore(
+    subscribeNothing,
+    readLensSupport,
+    () => false,
+  );
 
   useEffect(() => {
     const hero = document.getElementById(HERO_ID);
@@ -56,7 +83,10 @@ export function FloatingNav() {
 
     // The hero is the first block of the page, so "not intersecting" can only mean it is above the
     // viewport. The callback also fires once on mount, which keeps reloads and #anchors correct.
-    const observer = new IntersectionObserver(([entry]) => setVisible(!entry.isIntersecting), { threshold: 0 });
+    const observer = new IntersectionObserver(
+      ([entry]) => setVisible(!entry.isIntersecting),
+      { threshold: 0 },
+    );
     observer.observe(hero);
     return () => observer.disconnect();
   }, []);
@@ -90,7 +120,8 @@ export function FloatingNav() {
     panel.style.setProperty("--lg-y", `${event.clientY - bounds.top}px`);
   };
 
-  const moveChipTo = (link: HTMLElement) => setChip({ left: link.offsetLeft, width: link.offsetWidth, on: true });
+  const moveChipTo = (link: HTMLElement) =>
+    setChip({ left: link.offsetLeft, width: link.offsetWidth, on: true });
   const hideChip = () => setChip((current) => ({ ...current, on: false }));
 
   const backdrop = lensMap
@@ -101,11 +132,17 @@ export function FloatingNav() {
     <div
       inert={!visible}
       className={`lg-enter fixed left-1/2 top-3 sm:top-4 z-40 w-[calc(100%-1.5rem)] max-w-[940px] -translate-x-1/2 ${
-        visible ? "translate-y-0 scale-100 opacity-100" : "pointer-events-none -translate-y-[170%] scale-90 opacity-0"
+        visible
+          ? "translate-y-0 scale-100 opacity-100"
+          : "pointer-events-none -translate-y-[170%] scale-90 opacity-0"
       }`}
     >
       {lensMap && (
-        <svg aria-hidden="true" focusable="false" className="pointer-events-none absolute h-0 w-0">
+        <svg
+          aria-hidden="true"
+          focusable="false"
+          className="pointer-events-none absolute h-0 w-0"
+        >
           <filter
             id={LENS_FILTER_ID}
             filterUnits="userSpaceOnUse"
@@ -134,12 +171,34 @@ export function FloatingNav() {
                   yChannelSelector="G"
                   result={`${name}-shifted`}
                 />
-                <feColorMatrix in={`${name}-shifted`} type="matrix" values={matrix} result={name} />
+                <feColorMatrix
+                  in={`${name}-shifted`}
+                  type="matrix"
+                  values={matrix}
+                  result={name}
+                />
               </Fragment>
             ))}
             {/* Add the channels back together. (feBlend "screen" turns the three-way merge white in Chromium.) */}
-            <feComposite in="red" in2="green" operator="arithmetic" k1="0" k2="1" k3="1" k4="0" result="red-green" />
-            <feComposite in="red-green" in2="blue" operator="arithmetic" k1="0" k2="1" k3="1" k4="0" />
+            <feComposite
+              in="red"
+              in2="green"
+              operator="arithmetic"
+              k1="0"
+              k2="1"
+              k3="1"
+              k4="0"
+              result="red-green"
+            />
+            <feComposite
+              in="red-green"
+              in2="blue"
+              operator="arithmetic"
+              k1="0"
+              k2="1"
+              k3="1"
+              k4="0"
+            />
           </filter>
         </svg>
       )}
@@ -148,35 +207,42 @@ export function FloatingNav() {
         ref={panelRef}
         onPointerMove={handlePointerMove}
         className="lg-panel"
-        style={backdrop ? { backdropFilter: backdrop, WebkitBackdropFilter: backdrop } : undefined}
+        style={
+          backdrop
+            ? { backdropFilter: backdrop, WebkitBackdropFilter: backdrop }
+            : undefined
+        }
       >
         <span className="lg-glow" aria-hidden="true" />
-        <span className="lg-sweep" data-play={visible ? "true" : "false"} aria-hidden="true" />
+        <span
+          className="lg-sweep"
+          data-play={visible ? "true" : "false"}
+          aria-hidden="true"
+        />
 
         <div className="relative z-[3] flex items-center justify-between gap-3 py-2 pl-4 pr-2 sm:pl-5">
-          <Link href="/" aria-label="Cleave home" className={`group flex cursor-pointer items-center gap-2.5 rounded-full ${FOCUS_RING}`}>
-            <svg width="26" height="26" viewBox="0 0 34 34" aria-hidden="true" className="shrink-0 transition-transform group-hover:scale-105">
-              <circle cx="17" cy="17" r="8" fill="#F07A2B" />
-              <ellipse cx="17" cy="17" rx="15" ry="4.2" transform="rotate(-14 17 17)" fill="none" stroke="#3B86FF" strokeWidth="1.4" />
-              <ellipse
-                cx="17"
-                cy="17"
-                rx="16.5"
-                ry="5.6"
-                transform="rotate(-14 17 17)"
-                fill="none"
-                stroke="#EF5F22"
-                strokeWidth="1"
-                strokeDasharray="5 3"
-              />
-            </svg>
+          <Link
+            href="/"
+            aria-label="Cleave home"
+            className={`group flex cursor-pointer items-center gap-2.5 rounded-full ${FOCUS_RING}`}
+          >
+            <Image src="/logo.png" alt="Cleave logo" width={34} height={34} />
             <span className="text-[15px] font-medium tracking-[0.36em] text-foreground [text-shadow:0_1px_3px_rgba(0,0,0,0.4)]">
               CLEAVE
             </span>
           </Link>
 
-          <nav aria-label="Primary" onPointerLeave={hideChip} className="relative hidden md:flex items-center gap-1 text-[14px]">
-            <span className="lg-chip" data-on={chip.on} style={{ left: chip.left, width: chip.width }} aria-hidden="true" />
+          <nav
+            aria-label="Primary"
+            onPointerLeave={hideChip}
+            className="relative hidden md:flex items-center gap-1 text-[14px]"
+          >
+            <span
+              className="lg-chip"
+              data-on={chip.on}
+              style={{ left: chip.left, width: chip.width }}
+              aria-hidden="true"
+            />
             {LINKS.map((link) => (
               <Link
                 key={link.href}

@@ -17,6 +17,7 @@ export function useApproveToken() {
     onSuccess: (_, request) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.allowancePrefix(request.owner, request.chainId) });
       void queryClient.invalidateQueries({ queryKey: queryKeys.balancePrefix(request.owner, request.chainId) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.nativeBalance(request.owner, request.chainId) });
     },
   });
 }

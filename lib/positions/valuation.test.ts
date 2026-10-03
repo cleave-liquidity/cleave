@@ -77,4 +77,11 @@ describe("position valuation and lifecycle guards", () => {
     expect(canSellPosition(position)).toBe(true);
     expect(canRedeemFixed(position)).toBe(false);
   });
+
+  it("does not allow an active position to sell after its maturity date", () => {
+    const maturedFixed = fixed({ maturityDate: "2026-01-01T00:00:00.000Z" });
+
+    expect(canSellPosition(maturedFixed, Date.parse("2026-01-02T00:00:00.000Z"))).toBe(false);
+    expect(canRedeemFixed(maturedFixed, Date.parse("2026-01-02T00:00:00.000Z"))).toBe(true);
+  });
 });
