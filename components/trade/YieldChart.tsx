@@ -11,6 +11,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import type { HistoricalYieldPoint, MarketDataMode } from "@/types/market";
+import { formatApy } from "@/lib/utils/formatters";
 
 const MOCK_HISTORICAL_DATA = [
   { date: "May", underlying: 6.8, implied: 6.2 },
@@ -68,11 +69,11 @@ export function YieldChart({
         <div className="flex items-center gap-4 text-[13px]">
           <div className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-ice" />
-            <span className="text-muted">Implied APY ({impliedApy}%)</span>
+            <span className="text-muted">Implied APY ({formatApy(impliedApy)})</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-amber" />
-            <span className="text-muted">Rate Now ({underlyingApy}%)</span>
+            <span className="text-muted">Rate Now ({formatApy(underlyingApy)})</span>
           </div>
         </div>
       </div>
@@ -103,7 +104,7 @@ export function YieldChart({
               borderRadius: "2px",
                 fontSize: "13px",
               }}
-              formatter={(value: number) => [`${value}%`]}
+              formatter={(value: number) => [formatApy(value)]}
             />
             <Line
               type="monotone"
@@ -128,10 +129,10 @@ export function YieldChart({
       </div>
       <figcaption className="sr-only">
         {hasLiveHistory
-          ? `Historical live comparison of implied APY and underlying rate. Implied APY is ${impliedApy}% and the current underlying rate is ${underlyingApy}%.`
+          ? `Historical live comparison of implied APY and underlying rate. Implied APY is ${formatApy(impliedApy)} and the current underlying rate is ${formatApy(underlyingApy)}.`
           : dataMode === "live"
-          ? `Current live comparison of implied APY and underlying rate. Implied APY is ${impliedApy}% and the current underlying rate is ${underlyingApy}%.`
-          : `Historical comparison of implied APY and underlying rate. Implied APY is ${impliedApy}% and the current underlying rate is ${underlyingApy}%.`}
+          ? `Current live comparison of implied APY and underlying rate. Implied APY is ${formatApy(impliedApy)} and the current underlying rate is ${formatApy(underlyingApy)}.`
+          : `Historical comparison of implied APY and underlying rate. Implied APY is ${formatApy(impliedApy)} and the current underlying rate is ${formatApy(underlyingApy)}.`}
       </figcaption>
     </figure>
   );

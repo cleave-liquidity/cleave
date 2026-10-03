@@ -3,6 +3,7 @@ import {
   buildTradeWorkspaceHref,
   getTradeResetState,
   isQuoteEnabledForStrategy,
+  isSettledTransactionStep,
   parseTradeStrategy,
 } from "./trade-strategy";
 
@@ -52,5 +53,19 @@ describe("trade strategy route state", () => {
       showAdvanced: false,
       transactionState: { step: "idle" },
     });
+  });
+});
+
+describe("settled transaction steps", () => {
+  it("lets the panel clear result states only", () => {
+    expect(isSettledTransactionStep("success")).toBe(true);
+    expect(isSettledTransactionStep("error")).toBe(true);
+    expect(isSettledTransactionStep("approval-success")).toBe(true);
+  });
+
+  it("never clears a transaction that is still in flight", () => {
+    for (const step of ["validating", "approving", "confirming", "pending"] as const) {
+      expect(isSettledTransactionStep(step)).toBe(false);
+    }
   });
 });

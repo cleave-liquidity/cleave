@@ -6,12 +6,15 @@ import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { ApplicationBackdrop } from "@/components/layout/ApplicationBackdrop";
-import { AssetIcon } from "@/components/markets/AssetIcon";
+import { DataModeBadge } from "@/components/layout/DataModeBadge";
+import { AssetIcon, ProtocolIcon } from "@/components/markets/AssetIcon";
+import { MarketMetricsStrip } from "@/components/markets/MarketMetricsStrip";
 import { TradePanel, type TradeQuoteContext } from "@/components/trade/TradePanel";
-import { formatApy, formatTokenAmount, formatUsd } from "@/lib/utils/formatters";
+import { formatApy, formatNetworkFee, formatPriceImpact, formatTokenAmount } from "@/lib/utils/formatters";
 import type { FixedYieldQuote, LongYieldQuote } from "@/types/quote";
 import type { QuoteUiState } from "@/lib/markets/quote-state";
 import { YieldMarket } from "@/types/market";
+import { getMarketStatus, isMarketTradable } from "@/lib/markets/status";
 import { ArrowLeft } from "lucide-react";
 import {
   buildTradeWorkspaceHref,
@@ -34,9 +37,9 @@ export function TradeWorkspaceClient({
   const assetSymbol = market.assetMetadata?.symbol || market.symbol;
   const assetName = market.assetMetadata?.name || market.name;
   const sourceName = market.sourceProtocol || market.protocolMetadata?.name || market.yieldSource;
-  const isTradeable =
-    (market.status === "active" || market.status === "maturing") &&
-    market.daysRemaining > 0;
+  const isTradeable = isMarketTradable(market);
+  const marketStatus = getMarketStatus(market);
+  const isMaturing = marketStatus === "maturing";
 
   useEffect(() => {
     setQuoteContext(createEmptyQuoteContext(market.id, initialAmount));
@@ -53,49 +56,68 @@ export function TradeWorkspaceClient({
         <Navbar isLanding={false} />
 
         <main id="main-content" className="flex-grow max-w-[1240px] w-full mx-auto px-4 sm:px-6 lg:px-10 py-8 sm:py-12">
-          <Link
-            href="/trade"
-            className="inline-flex items-center gap-2 text-[14px] text-muted hover:text-white transition-colors mb-6"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Choose Another Market</span>
-          </Link>
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+            <Link
+              href="/trade"
+              className="inline-flex items-center gap-2 text-[14px] text-muted hover:text-white transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>All Tradeable Markets</span>
+            </Link>
+            <Link
+              href={`/markets/${market.id}`}
+              className="text-[13px] text-ice hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ice"
+            >
+              View Market Details →
+            </Link>
+          </div>
 
-          <div className="flex flex-col gap-6 pb-8 border-b border-white/12">
-            <div className="flex items-start justify-between gap-5 flex-wrap">
-              <div className="flex items-center gap-3.5">
-                <AssetIcon
-                  symbol={assetSymbol}
-                  name={assetName}
-                  iconUrl={market.assetMetadata?.iconUrl}
-                  size="lg"
-                />
-                <div>
-                  <div className="mono text-[11px] tracking-[0.16em] text-muted-dark uppercase">
-                    Trade Yield Workspace
+          <div className="flex flex-col gap-8">
+            <div className="flex flex-col gap-4 pb-6 border-b border-white/10">
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div className="flex items-center gap-3.5">
+                  <AssetIcon
+                    symbol={assetSymbol}
+                    name={assetName}
+                    iconUrl={market.assetMetadata?.iconUrl}
+                    size="lg"
+                  />
+                  <div>
+                    <div className="mono mb-1 text-[11px] uppercase tracking-[0.16em] text-muted-dark">
+                      {assetSymbol} / Trade Yield
+                    </div>
+                    <h1 className="text-[28px] sm:text-[34px] font-normal tracking-[-0.02em] m-0 text-foreground">
+                      {assetName}
+                    </h1>
+                    <span className="text-[14px] text-muted">
+                      {sourceName} · Built on Robinhood Chain
+                    </span>
                   </div>
-                  <h1 className="mt-1 text-[32px] sm:text-[40px] font-normal tracking-[-0.03em] text-foreground">
-                    {assetSymbol}
-                  </h1>
-                  <p className="text-[14px] text-muted">
-                    {assetName} · {sourceName}
-                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <DataModeBadge mode={market.dataMode} />
+                  <span className="mono text-[12px] text-muted-dark border border-white/15 rounded-full pl-1.5 pr-3 py-1 flex items-center gap-1.5">
+                    <ProtocolIcon
+                      name={market.yieldSourceMetadata?.name || sourceName}
+                      iconUrl={market.yieldSourceMetadata?.iconUrl || market.protocolMetadata?.iconUrl}
+                      size="xs"
+                    />
+                    {sourceName}
+                  </span>
+                  <span className="mono text-[12px] text-muted-light border border-white/15 rounded-full px-3 py-1 flex items-center gap-1.5">
+                    <span
+                      className="w-2 h-2 rounded-full"
+                      style={{ background: isMaturing ? "#F0A85C" : "#A9C8EE" }}
+                      aria-hidden="true"
+                    />
+                    <span className="capitalize">{marketStatus}</span>
+                  </span>
                 </div>
               </div>
-              <Link
-                href={`/markets/${market.id}`}
-                className="text-[13px] text-ice hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ice"
-              >
-                View Market Details →
-              </Link>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <MarketMetric label="Implied APY" value={formatApy(market.impliedApy)} tone="ice" />
-              <MarketMetric label="Underlying APY" value={formatApy(market.underlyingApy)} />
-              <MarketMetric label="Maturity" value={market.maturity} />
-              <MarketMetric label="Liquidity" value={formatUsd(market.liquidityUsd)} />
-            </div>
+            <MarketMetricsStrip market={market} />
           </div>
 
           <div className="mt-8 grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-8 lg:gap-12 items-start">
@@ -106,7 +128,7 @@ export function TradeWorkspaceClient({
               <div
                 role="group"
                 aria-label="Yield strategy"
-                className="grid grid-cols-2 border border-white/18 rounded-lg overflow-hidden"
+                className="grid grid-cols-2 border border-white/20 rounded-lg overflow-hidden"
               >
                 <button
                   type="button"
@@ -145,24 +167,33 @@ export function TradeWorkspaceClient({
                   onQuoteContextChange={setQuoteContext}
                 />
               ) : strategy ? (
-                <div className="border border-white/16 rounded-[10px] bg-surface p-5 sm:p-7 text-center">
+                <div className="border border-white/15 rounded-[10px] bg-surface p-5 sm:p-7 text-center">
                   <div className="mono text-[11px] uppercase tracking-[0.14em] text-muted-dark">
                     Execution unavailable
                   </div>
                   <p className="mt-3 text-[14px] leading-6 text-muted">
-                    {market.status === "paused"
+                    {marketStatus === "paused"
                       ? "This market is currently paused and cannot be traded."
                       : "This market has passed maturity and cannot be traded."}
                   </p>
                 </div>
               ) : (
-                <div className="border border-white/16 rounded-[10px] bg-surface p-5 sm:p-7 text-center">
-                  <div className="mono text-[11px] uppercase tracking-[0.14em] text-muted-dark">
-                    Strategy required
-                  </div>
-                  <p className="mt-3 text-[14px] leading-6 text-muted">
-                    Select Fixed Yield or Long Yield to load the matching quote and execution flow.
-                  </p>
+                <div className="border border-white/15 rounded-[10px] bg-surface p-5 sm:p-6 flex flex-col gap-3">
+                  <div className="mono text-[11px] uppercase tracking-[0.14em] text-muted-dark">Choose your yield exposure</div>
+                  <StrategyChoice
+                    tone="ice"
+                    title="Fixed Yield"
+                    figure={formatApy(market.impliedApy)}
+                    caption="Market implied APY · predictable outcome"
+                    onSelect={() => handleStrategyChange("fixed")}
+                  />
+                  <StrategyChoice
+                    tone="amber"
+                    title="Long Yield"
+                    figure={formatApy(market.underlyingApy)}
+                    caption="Underlying APY · exposure to future yield"
+                    onSelect={() => handleStrategyChange("long")}
+                  />
                 </div>
               )}
             </div>
@@ -214,8 +245,7 @@ function StrategyContext({
   const sourceProtocol = market.sourceProtocol || market.protocolMetadata?.name;
   const sourceLabel = sourceProtocol ? `${market.yieldSource} via ${sourceProtocol}` : market.yieldSource;
   const timeRemaining = market.daysRemaining > 0 ? `${market.daysRemaining} days remaining` : "maturity reached";
-  const marketIsTradeable =
-    (market.status === "active" || market.status === "maturing") && market.daysRemaining > 0;
+  const marketIsTradeable = isMarketTradable(market);
 
   const positionContext = fixed
     ? getFixedPositionContext({
@@ -280,9 +310,9 @@ function StrategyContext({
 
       <dl className="border-y border-white/10">
         {points.map(([label, value]) => (
-          <div key={label} className="flex items-center justify-between gap-4 border-b border-white/10 py-2.5 last:border-b-0">
-            <dt className="text-[13px] text-muted-dark">{label}</dt>
-            <dd className="mono text-right text-[12px] text-foreground">{value}</dd>
+          <div key={label} className="grid gap-1 border-b border-white/10 py-3 last:border-b-0 sm:grid-cols-[120px_1fr] sm:gap-6">
+            <dt className="mono text-[11px] uppercase tracking-[0.12em] text-muted-dark">{label}</dt>
+            <dd className="m-0 text-[13px] leading-6 text-muted-light">{value}</dd>
           </div>
         ))}
       </dl>
@@ -314,8 +344,8 @@ function getFixedPositionContext({
 
   const fee = quote.networkFeeEstimate === undefined
     ? "the network fee is shown before confirmation"
-    : `the estimated network fee is ~${formatTokenAmount(quote.networkFeeEstimate, 4)} ETH`;
-  return `For ${formatTokenAmount(inputAmount)} ${market.quoteAsset}, the quote returns ${formatTokenAmount(quote.ptReceived)} ${market.symbol} at ${formatApy(quote.quotedFixedApy)} Fixed APY. It estimates ${formatTokenAmount(quote.estimatedMaturityValue)} ${market.symbol} at maturity with ${quote.priceImpact}% price impact; ${fee}.`;
+    : `the estimated network fee is ${formatNetworkFee(quote.networkFeeEstimate)}`;
+  return `For ${formatTokenAmount(inputAmount)} ${market.quoteAsset}, the quote returns ${formatTokenAmount(quote.ptReceived)} ${market.symbol} at ${formatApy(quote.quotedFixedApy)} Fixed APY. It estimates ${formatTokenAmount(quote.estimatedMaturityValue)} ${market.symbol} at maturity with ${formatPriceImpact(quote.priceImpact)} price impact; ${fee}.`;
 }
 
 function getLongPositionContext({
@@ -341,25 +371,38 @@ function getLongPositionContext({
 
   const fee = quote.networkFeeEstimate === undefined
     ? "the network fee is shown before confirmation"
-    : `the estimated network fee is ~${formatTokenAmount(quote.networkFeeEstimate, 4)} ETH`;
-  return `For ${formatTokenAmount(inputAmount)} ${market.quoteAsset}, the quote returns ${formatTokenAmount(quote.ytReceived)} ${market.symbol} YT with a ${formatApy(quote.estimatedBreakEvenApy)} break-even APY and ${formatTokenAmount(quote.estimatedYieldExposure)} ${market.symbol} estimated yield exposure. Price impact is ${quote.priceImpact}%; ${fee}.`;
+    : `the estimated network fee is ${formatNetworkFee(quote.networkFeeEstimate)}`;
+  return `For ${formatTokenAmount(inputAmount)} ${market.quoteAsset}, the quote returns ${formatTokenAmount(quote.ytReceived)} ${market.symbol} YT with a ${formatApy(quote.estimatedBreakEvenApy)} break-even APY and ${formatTokenAmount(quote.estimatedYieldExposure)} ${market.symbol} estimated yield exposure. Price impact is ${formatPriceImpact(quote.priceImpact)}; ${fee}.`;
 }
 
-function MarketMetric({
-  label,
-  value,
-  tone = "foreground",
+function StrategyChoice({
+  tone,
+  title,
+  figure,
+  caption,
+  onSelect,
 }: {
-  label: string;
-  value: string;
-  tone?: "foreground" | "ice";
+  tone: "ice" | "amber";
+  title: string;
+  figure: string;
+  caption: string;
+  onSelect: () => void;
 }) {
   return (
-    <div className="p-3.5 sm:p-4 rounded-xl border border-white/10 bg-surface/50 backdrop-blur-sm flex flex-col gap-1">
-      <span className="mono text-[10px] text-muted-dark uppercase tracking-wider">{label}</span>
-      <span className={`mono text-[16px] sm:text-[18px] font-medium ${tone === "ice" ? "text-ice" : "text-foreground"}`}>
-        {value}
+    <button
+      type="button"
+      onClick={onSelect}
+      className={`flex min-h-[88px] items-center justify-between gap-4 border p-4 text-left transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice ${
+        tone === "ice"
+          ? "border-ice/25 bg-ice/5 hover:border-ice/55 hover:bg-ice/10"
+          : "border-amber/25 bg-amber/5 hover:border-amber/55 hover:bg-amber/10"
+      }`}
+    >
+      <span>
+        <span className={`block text-[15px] font-medium ${tone === "ice" ? "text-ice" : "text-amber"}`}>{title}</span>
+        <span className="mono mt-1 block text-[10px] uppercase tracking-wider text-muted-dark">{caption}</span>
       </span>
-    </div>
+      <span className="mono text-[22px] text-foreground">{figure}</span>
+    </button>
   );
 }

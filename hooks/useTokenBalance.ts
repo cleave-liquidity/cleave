@@ -48,6 +48,8 @@ export function useTokenBalance(
 
   return {
     balance: query.data ?? 0,
+    /** True once a balance has actually been read (balance falls back to 0 until then). */
+    hasBalance: query.data !== undefined,
     isLoading: query.isFetching,
     error: query.error,
   };

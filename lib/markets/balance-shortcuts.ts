@@ -23,6 +23,27 @@ export function hasResolvedWalletBalance(state: WalletBalanceState): boolean {
   );
 }
 
+/**
+ * A shortfall is only real against a balance that was actually read. The balance hook falls back to 0 until
+ * the first read lands (and when it fails), so without `hasBalance` every amount would look unaffordable.
+ */
+export function hasInsufficientBalance(state: {
+  isConnected: boolean;
+  hasBalance: boolean;
+  error?: unknown;
+  balance: number;
+  amount: number;
+}): boolean {
+  return Boolean(
+    state.isConnected &&
+      state.hasBalance &&
+      !state.error &&
+      Number.isFinite(state.amount) &&
+      state.amount > 0 &&
+      state.amount > state.balance,
+  );
+}
+
 export function applyBalanceShortcut(
   state: BalanceShortcutState,
   shortcut: BalanceShortcut,

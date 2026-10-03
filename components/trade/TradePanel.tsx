@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { YieldMarket } from "@/types/market";
@@ -13,16 +13,18 @@ import { useTokenAllowance } from "@/hooks/useTokenAllowance";
 import { useApproveToken } from "@/hooks/useApproveToken";
 import { useOpenFixedPosition } from "@/hooks/useOpenFixedPosition";
 import { useOpenLongPosition } from "@/hooks/useOpenLongPosition";
-import { formatApy, formatTokenAmount } from "@/lib/utils/formatters";
+import { formatApy, formatNetworkFee, formatPriceImpact, formatTokenAmount } from "@/lib/utils/formatters";
 import { toast } from "sonner";
 import { TransactionState } from "@/types/transaction";
 import { YieldDomainError, getYieldErrorMessage } from "@/types/errors";
 import { AlertCircle, CheckCircle2, ChevronDown, Loader2 } from "lucide-react";
 import { yieldAdapter } from "@/lib/adapters/mock-adapter";
 import { getContractByName } from "@/lib/contracts/deployments";
+import { getMarketStatus, isMarketTradable } from "@/lib/markets/status";
 import {
   getTradeResetState,
   isQuoteEnabledForStrategy,
+  isSettledTransactionStep,
   type TradeStrategy,
 } from "@/lib/markets/trade-strategy";
 import {
@@ -39,6 +41,7 @@ import {
 import {
   applyBalanceShortcut,
   applyManualAmount,
+  hasInsufficientBalance,
   hasResolvedWalletBalance,
   type BalanceShortcut,
 } from "@/lib/markets/balance-shortcuts";
@@ -64,7 +67,7 @@ export function TradePanel({
 }) {
   const router = useRouter();
   const { address, chainId, isConnected, status: networkStatus, switchToRobinhood } = useNetworkGuard();
-  const { balance, isLoading: balanceLoading, error: balanceError } = useTokenBalance(
+  const { balance, hasBalance, isLoading: balanceLoading, error: balanceError } = useTokenBalance(
     address,
     market.quoteAsset,
     market.underlyingTokenAddress,
@@ -89,6 +92,15 @@ export function TradePanel({
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [currentTime, setCurrentTime] = useState(() => Date.now());
   const [selectedShortcut, setSelectedShortcut] = useState<BalanceShortcut | null>(null);
+  const resetTimerRef = useRef<number | null>(null);
+  const redirectTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (resetTimerRef.current !== null) window.clearTimeout(resetTimerRef.current);
+      if (redirectTimerRef.current !== null) window.clearTimeout(redirectTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     const timer = window.setInterval(() => setCurrentTime(Date.now()), 1_000);
@@ -126,7 +138,15 @@ export function TradePanel({
     networkStatus === "unsupported-chain" ||
     (isConnected && chainId !== market.chainId);
   const isInvalidAmount = !hasNumericAmount || inputAmount <= 0;
-  const isInsufficientBalance = isConnected && !isInvalidAmount && inputAmount > balance;
+  // Only flag a shortfall against a balance that was really read; before it loads (or if the read fails) the
+  // balance falls back to 0, which would otherwise show "Insufficient balance" for any amount.
+  const isInsufficientBalance = hasInsufficientBalance({
+    isConnected,
+    hasBalance,
+    error: balanceError,
+    balance,
+    amount: inputAmount,
+  });
   const canUseBalanceShortcuts = hasResolvedWalletBalance({
     isConnected,
     isLoading: balanceLoading,
@@ -138,7 +158,8 @@ export function TradePanel({
     if (!canUseBalanceShortcuts) setSelectedShortcut(null);
   }, [canUseBalanceShortcuts]);
 
-  const isMarketUnavailable = market.status === "paused" || market.status === "matured";
+  const marketStatus = getMarketStatus(market);
+  const isMarketUnavailable = !isMarketTradable(market);
   const activeQuote = isFixed ? fixedQuote : longQuote;
   const quoteError = isFixed ? fixedQuoteError : longQuoteError;
   const activeQuoteLoading = isFixed ? loadingFixed : loadingLong;
@@ -186,7 +207,7 @@ export function TradePanel({
   );
 
   const formatScenarioChange = (change: number) =>
-    `${change >= 0 ? "+" : ""}${change}%`;
+    `${change >= 0 ? "+" : ""}${change.toFixed(2)}%`;
 
   const handleConnectWallet = () => {
     if (openConnectModal) {
@@ -228,7 +249,7 @@ export function TradePanel({
   const handleNetworkSwitch = async () => {
     try {
       setTxState({ step: "validating" });
-      await switchToRobinhood();
+      await switchToRobinhood(market.chainId);
       setTxState({ step: "ready" });
     } catch {
       const error = new YieldDomainError(
@@ -264,6 +285,9 @@ export function TradePanel({
       return;
     }
 
+    // A reset scheduled by the previous attempt must not wipe the state of this one.
+    if (resetTimerRef.current !== null) window.clearTimeout(resetTimerRef.current);
+
     try {
       setTxState({ step: "validating" });
 
@@ -278,8 +302,8 @@ export function TradePanel({
       }
       if (isMarketUnavailable) {
         throw new YieldDomainError(
-          market.status === "paused" ? "market-paused" : "market-expired",
-          market.status === "paused"
+          marketStatus === "paused" ? "market-paused" : "market-expired",
+          marketStatus === "paused"
             ? "This market is currently paused."
             : "This market has passed maturity."
         );
@@ -372,7 +396,7 @@ export function TradePanel({
         );
       }
 
-      setTimeout(() => {
+      redirectTimerRef.current = window.setTimeout(() => {
         router.push("/portfolio");
       }, 1200);
     } catch (err: unknown) {
@@ -386,14 +410,15 @@ export function TradePanel({
       });
       toast.error(message);
     } finally {
-      setTimeout(() => {
-        setTxState({ step: "idle" });
+      // Clear the result banner after a moment, but only if the flow has actually finished.
+      resetTimerRef.current = window.setTimeout(() => {
+        setTxState((current) => (isSettledTransactionStep(current.step) ? { step: "idle" } : current));
       }, 3000);
     }
   };
 
   return (
-    <div className="border border-white/16 rounded-[10px] bg-surface p-5 sm:p-7 flex flex-col gap-5">
+    <div className="border border-white/15 rounded-[10px] bg-surface p-5 sm:p-7 flex flex-col gap-5">
       {/* Panel Header */}
       <div className="flex justify-between items-center pb-2 border-b border-white/10">
         <span className="mono text-[13px] tracking-wider text-muted-dark uppercase">
@@ -419,7 +444,7 @@ export function TradePanel({
           </div>
         </div>
 
-        <div className="flex items-center justify-between gap-3 border border-white/18 rounded-lg bg-surface-raised px-4 min-h-[58px] focus-within:border-white/35 transition-colors">
+        <div className="flex items-center justify-between gap-3 border border-white/20 rounded-lg bg-surface-raised px-4 min-h-[58px] focus-within:border-white/35 transition-colors">
           <input
             id="trade-amount"
             type="number"
@@ -445,7 +470,7 @@ export function TradePanel({
             className={`px-2.5 py-1 text-[11px] mono border rounded transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice disabled:cursor-not-allowed disabled:opacity-50 ${
               selectedShortcut === 0.25 && canUseBalanceShortcuts
                 ? "border-foreground bg-foreground/15 text-foreground font-medium"
-                : "border-white/12 text-muted hover:border-white/30"
+                : "border-white/10 text-muted hover:border-white/30"
             }`}
           >
             25%
@@ -458,7 +483,7 @@ export function TradePanel({
             className={`px-2.5 py-1 text-[11px] mono border rounded transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice disabled:cursor-not-allowed disabled:opacity-50 ${
               selectedShortcut === 0.5 && canUseBalanceShortcuts
                 ? "border-foreground bg-foreground/15 text-foreground font-medium"
-                : "border-white/12 text-muted hover:border-white/30"
+                : "border-white/10 text-muted hover:border-white/30"
             }`}
           >
             50%
@@ -471,7 +496,7 @@ export function TradePanel({
             className={`px-2.5 py-1 text-[11px] mono border rounded transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice disabled:cursor-not-allowed disabled:opacity-50 ${
               selectedShortcut === 1 && canUseBalanceShortcuts
                 ? "border-foreground bg-foreground/15 text-foreground font-medium"
-                : "border-white/12 text-muted hover:border-white/30"
+                : "border-white/10 text-muted hover:border-white/30"
             }`}
           >
             MAX
@@ -523,16 +548,26 @@ export function TradePanel({
               </span>
             </div>
             <div className="flex justify-between py-2.5 border-b border-white/10">
+              <span className="text-muted-dark">Implied APY</span>
+              <span className="mono text-muted">{formatApy(market.impliedApy)}</span>
+            </div>
+            <div className="flex justify-between py-2.5 border-b border-white/10">
+              <span className="text-muted-dark">Maturity</span>
+              <span className="mono text-muted">
+                {market.maturity} · {market.daysRemaining}d left
+              </span>
+            </div>
+            <div className="flex justify-between py-2.5 border-b border-white/10">
               <span className="text-muted-dark">Price Impact</span>
               <span className="mono text-muted">
-                {fixedQuote ? `${fixedQuote.priceImpact}%` : "Available after quote"}
+                {fixedQuote ? formatPriceImpact(fixedQuote.priceImpact) : "Available after quote"}
               </span>
             </div>
             <div className="flex justify-between py-2.5 border-b border-white/10">
               <span className="text-muted-dark">Network Fee</span>
               <span className="text-muted-dark text-[13px]">
                 {fixedQuote && fixedQuote.networkFeeEstimate !== undefined
-                  ? `~${fixedQuote.networkFeeEstimate} ETH`
+                  ? formatNetworkFee(fixedQuote.networkFeeEstimate)
                   : "Shown before you confirm"}
               </span>
             </div>
@@ -563,9 +598,9 @@ export function TradePanel({
                 If average realized rate is…
               </span>
               <div className="grid grid-cols-2 gap-2">
-                <div className="border border-white/12 rounded p-2.5 flex flex-col">
+                <div className="border border-white/10 rounded p-2.5 flex flex-col">
                   <span className="mono text-[12px] text-muted-dark">
-                    {longQuote.estimatedReturns.currentRate.apy}% (Rate now)
+                    {formatApy(longQuote.estimatedReturns.currentRate.apy)} (Rate now)
                   </span>
                   <span className="mono text-[16px] text-foreground font-medium">
                     ~{longQuote.estimatedReturns.currentRate.returnAmount}
@@ -582,9 +617,9 @@ export function TradePanel({
                     )}
                   </span>
                 </div>
-                <div className="border border-white/12 rounded p-2.5 flex flex-col">
+                <div className="border border-white/10 rounded p-2.5 flex flex-col">
                   <span className="mono text-[12px] text-muted-dark">
-                    {longQuote.estimatedReturns.lowerRate.apy}% (Rate drops)
+                    {formatApy(longQuote.estimatedReturns.lowerRate.apy)} (Rate drops)
                   </span>
                   <span className="mono text-[16px] text-foreground font-medium">
                     ~{longQuote.estimatedReturns.lowerRate.returnAmount}
@@ -622,25 +657,43 @@ export function TradePanel({
               <span className="mono text-right text-muted">{longQuote ? `${formatTokenAmount(longQuote.ytReceived)} ${market.symbol}` : "Available after quote"}</span>
             </div>
             <div className="flex justify-between py-2 border-b border-white/10">
+              <span className="text-muted-dark">Underlying APY</span>
+              <span className="mono text-muted">{formatApy(market.underlyingApy)}</span>
+            </div>
+            <div className="flex justify-between py-2 border-b border-white/10">
+              <span className="text-muted-dark">Implied APY</span>
+              <span className="mono text-muted">{formatApy(market.impliedApy)}</span>
+            </div>
+            <div className="flex justify-between py-2 border-b border-white/10">
               <span className="text-muted-dark">Break-Even APY</span>
               <span className="mono text-muted">
-                {longQuote ? `${longQuote.estimatedBreakEvenApy}%` : "Available after quote"}
+                {longQuote ? formatApy(longQuote.estimatedBreakEvenApy) : "Available after quote"}
+              </span>
+            </div>
+            <div className="flex justify-between py-2 border-b border-white/10">
+              <span className="text-muted-dark">Maturity</span>
+              <span className="mono text-muted">
+                {market.maturity} · {market.daysRemaining}d left
               </span>
             </div>
             <div className="flex justify-between py-2 border-b border-white/10">
               <span className="text-muted-dark">Price Impact</span>
               <span className="mono text-muted">
-                {longQuote ? `${longQuote.priceImpact}%` : "Available after quote"}
+                {longQuote ? formatPriceImpact(longQuote.priceImpact) : "Available after quote"}
               </span>
             </div>
             <div className="flex justify-between py-2 border-b border-white/10">
               <span className="text-muted-dark">Network Fee</span>
               <span className="text-muted-dark text-[13px]">
                 {longQuote && longQuote.networkFeeEstimate !== undefined
-                  ? `~${longQuote.networkFeeEstimate} ETH`
+                  ? formatNetworkFee(longQuote.networkFeeEstimate)
                   : "Shown before you confirm"}
               </span>
             </div>
+            <p className="m-0 pt-3 text-[12px] leading-[1.5] text-muted-dark">
+              Break-even: this position benefits when average realized yield until maturity is higher than the implied
+              yield priced by the market.
+            </p>
           </div>
         </div>
           )
@@ -872,7 +925,7 @@ function QuoteStateNotice({
               };
 
   return (
-    <div className="border border-white/12 bg-surface-raised/40 p-5 text-center">
+    <div className="border border-white/10 bg-surface-raised/40 p-5 text-center">
       <div className="mono text-[11px] uppercase tracking-[0.14em] text-muted-dark">
         {content.title}
       </div>

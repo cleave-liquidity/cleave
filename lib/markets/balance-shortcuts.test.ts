@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import {
   applyBalanceShortcut,
   applyManualAmount,
+  hasInsufficientBalance,
   type BalanceShortcutState,
 } from "./balance-shortcuts";
 
@@ -75,5 +76,28 @@ describe("trade balance shortcuts", () => {
       inputAmount: "777.25",
       selectedShortcut: null,
     });
+  });
+});
+
+describe("insufficient balance check", () => {
+  const read = { isConnected: true, hasBalance: true, error: undefined, balance: 100 };
+
+  it("flags an amount above a balance that was actually read", () => {
+    expect(hasInsufficientBalance({ ...read, amount: 150 })).toBe(true);
+    expect(hasInsufficientBalance({ ...read, amount: 100 })).toBe(false);
+  });
+
+  it("does not flag anything before the balance has loaded", () => {
+    expect(hasInsufficientBalance({ ...read, hasBalance: false, balance: 0, amount: 1_000 })).toBe(false);
+  });
+
+  it("does not flag when the balance read failed or the wallet is disconnected", () => {
+    expect(hasInsufficientBalance({ ...read, error: new Error("rpc"), amount: 150 })).toBe(false);
+    expect(hasInsufficientBalance({ ...read, isConnected: false, amount: 150 })).toBe(false);
+  });
+
+  it("ignores empty or non-positive amounts", () => {
+    expect(hasInsufficientBalance({ ...read, amount: 0 })).toBe(false);
+    expect(hasInsufficientBalance({ ...read, amount: Number.NaN })).toBe(false);
   });
 });

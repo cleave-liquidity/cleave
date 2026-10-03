@@ -6,14 +6,21 @@ import { YieldMarket } from "@/types/market";
 import { formatApy, formatUsd } from "@/lib/utils/formatters";
 import { AssetIcon, ProtocolIcon } from "./AssetIcon";
 
-export function MarketCard({ market, href }: { market: YieldMarket; href?: string }) {
+export function MarketCard({
+  market,
+  href,
+  tradeHrefs,
+}: {
+  market: YieldMarket;
+  href?: string;
+  /** When given the card is a static summary with Fixed / Long trade actions (the Trade hub). */
+  tradeHrefs?: { fixed: string; long: string };
+}) {
   const isMaturing = market.status === "maturing";
+  const symbol = market.assetMetadata?.symbol || market.symbol;
 
-  return (
-    <Link
-      href={href ?? `/markets/${market.id}`}
-      className="group block border border-white/14 bg-surface p-4 transition-colors hover:border-ice/40 hover:bg-surface-raised sm:p-5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice"
-    >
+  const body = (
+    <>
       <div className="flex items-center justify-between gap-3 pb-3 border-b border-white/10">
         <div className="flex items-center gap-3">
           <AssetIcon
@@ -87,6 +94,39 @@ export function MarketCard({ market, href }: { market: YieldMarket; href?: strin
           </span>
         </div>
       </div>
+    </>
+  );
+
+  if (tradeHrefs) {
+    return (
+      <article className="border border-white/15 bg-surface p-4 sm:p-5">
+        {body}
+        <div className="mt-4 grid grid-cols-2 gap-2.5">
+          <Link
+            href={tradeHrefs.fixed}
+            aria-label={`Trade Fixed Yield on ${symbol}`}
+            className="flex min-h-[44px] items-center justify-center rounded-lg border border-ice/30 bg-ice/10 text-[13px] font-medium text-ice transition-colors hover:border-ice/60 hover:bg-ice/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice"
+          >
+            Trade Fixed →
+          </Link>
+          <Link
+            href={tradeHrefs.long}
+            aria-label={`Trade Long Yield on ${symbol}`}
+            className="flex min-h-[44px] items-center justify-center rounded-lg border border-amber/30 bg-amber/10 text-[13px] font-medium text-amber transition-colors hover:border-amber/60 hover:bg-amber/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice"
+          >
+            Trade Long →
+          </Link>
+        </div>
+      </article>
+    );
+  }
+
+  return (
+    <Link
+      href={href ?? `/markets/${market.id}`}
+      className="group block border border-white/14 bg-surface p-4 transition-colors hover:border-ice/40 hover:bg-surface-raised sm:p-5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice"
+    >
+      {body}
     </Link>
   );
 }

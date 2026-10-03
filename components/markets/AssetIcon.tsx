@@ -3,9 +3,10 @@
 /* eslint-disable @next/next/no-img-element */
 import { useState } from "react";
 
-type IconSize = "sm" | "md" | "lg";
+type IconSize = "xs" | "sm" | "md" | "lg";
 
 const sizeClasses: Record<IconSize, string> = {
+  xs: "w-5 h-5 text-[8px]",
   sm: "w-8 h-8 text-[9px]",
   md: "w-10 h-10 text-[10px]",
   lg: "w-12 h-12 text-[12px]",

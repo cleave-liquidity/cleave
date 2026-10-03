@@ -37,3 +37,8 @@ export function getTradeResetState(
     transactionState: { step: "idle" },
   };
 }
+
+/** Steps that only report an outcome; the panel may clear them. Anything else is still in flight. */
+export function isSettledTransactionStep(step: TransactionState["step"]): boolean {
+  return step === "success" || step === "error" || step === "approval-success";
+}

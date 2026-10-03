@@ -8,6 +8,15 @@ Use this checklist only with a wallet and account intended for a small, controll
 - Confirm the app is in `Live Data` mode and the market is on Robinhood Chain Mainnet `4663`.
 - Keep enough ETH for gas and leave a safety margin. Do not proceed if the wallet cannot comfortably pay the displayed fee.
 
+## Wallet and network preflight
+
+1. While disconnected, browse `/markets`, open a market detail page, and preview both Fixed and Long quotes. Browsing and quote preview must not require a wallet signature.
+2. Connect the intended canary wallet through RainbowKit and verify the displayed address is the account being tested.
+3. Confirm the wallet is on Robinhood Chain Mainnet `4663`. If it is on another supported chain, use the app's network switch action and verify the wallet reports Mainnet afterward.
+4. If the wallet is on an unsupported chain or the switch is rejected, stop and record the typed error; do not attempt a write.
+5. Verify the wallet's ETH gas balance and the selected market's underlying ERC-20 balance. Confirm the displayed token, decimals, and selected market match the intended test.
+6. Disconnect and reconnect once before the write flow. Confirm portfolio access is wallet-scoped and that no previous account's positions or balances are shown.
+
 ## Fixed Yield
 
 1. Connect the wallet.
@@ -24,7 +33,7 @@ Use this checklist only with a wallet and account intended for a small, controll
 
 ## Long Yield
 
-Repeat the same wallet, chain, gas, smallest-practical-amount, quote, exact-approval, signature, receipt, and Portfolio checks with Long Yield. Confirm the YT amount, break-even APY, risk notice, and that the resulting position is a YT position.
+Repeat the same wallet, chain, gas, smallest-practical-amount, quote, exact-approval, signature, receipt, and Portfolio checks with Long Yield. Confirm the YT amount, break-even APY, risk notice, and that the resulting position is a YT position with no PT or principal-redemption state.
 
 ## Sell
 
@@ -42,3 +51,10 @@ Only after a PT market has reached verified maturity, choose Redeem at Maturity,
 
 - Record only real transaction hashes, chain IDs, receipts, and observed balances.
 - If any step fails, preserve the typed error and do not retry a wallet-confirmed transaction blindly.
+
+## Canary limits
+
+- A disconnected browser session can prove browsing, market discovery, routing, quote states, and user-facing validation only; it cannot prove a balance-dependent approval or transaction.
+- A funded token balance is required to prove Fixed/Long opening and sell flows.
+- ETH is required to prove approval, claim, redeem, sell, and open-position gas behavior.
+- A human wallet signature is required to prove approval and transaction submission. Do not mark any write as successful from a mock response, UI toast, or locally fabricated hash.
