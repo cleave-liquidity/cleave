@@ -132,7 +132,7 @@ export function MarketDetailClient({
             </details>
           </div>
 
-          <div className="w-full lg:sticky lg:top-28">
+          <div className="w-full lg:sticky lg:top-32">
             <div className="border border-white/15 bg-surface/70 p-5 sm:p-6">
               <div className="mono text-[11px] uppercase tracking-[0.14em] text-muted-dark">
                 Trade this market
@@ -156,14 +156,7 @@ export function MarketDetailClient({
                   href={isTradeable ? buildTradeWorkspaceHref(market.id, "long") : undefined}
                 />
               </div>
-              {isTradeable ? (
-                <Link
-                  href={`/trade/${market.id}`}
-                  className="mt-5 flex min-h-[48px] items-center justify-center bg-amber px-4 text-[14px] font-medium text-[#0A0B0C] transition-all hover:text-[#0A0B0C] hover:brightness-110 hover:shadow-[0_8px_30px_rgba(239,95,34,0.45)] active:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice"
-                >
-                  Trade Yield →
-                </Link>
-              ) : (
+              {!isTradeable && (
                 <div className="mt-5 border border-white/15 bg-surface px-4 py-3 text-center text-[13px] text-muted-dark">
                   {marketStatus === "paused" ? "Trading is currently paused." : "This market has passed maturity."}
                 </div>

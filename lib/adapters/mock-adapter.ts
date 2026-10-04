@@ -1,7 +1,7 @@
 import { YieldDomainError } from "@/types/errors";
 import { MOCK_MARKETS } from "@/lib/markets/mock-markets";
 import { YieldMarket } from "@/types/market";
-import { FixedYieldQuote, LongYieldQuote } from "@/types/quote";
+import { ExitQuote, FixedYieldQuote, LongYieldQuote } from "@/types/quote";
 import {
   FixedYieldPosition,
   LongYieldPosition,
@@ -30,12 +30,13 @@ import {
 import { isSupportedRobinhoodChain } from "@/lib/web3/chains";
 import { pendleLiveYieldAdapter } from "./pendle-live-adapter";
 import { getConfiguredDataMode } from "./config";
-import { PositionTransactionResult, YieldMarketAdapter } from "./types";
+import { PositionTransactionResult, YieldMarketAdapter, YieldAdapterRuntime } from "./types";
 import { TokenApprovalRequest, TransactionHash, TransactionReceiptResult } from "@/types/transaction";
 
 const STORAGE_PREFIX = "cleave:mock-positions:v1:";
 const QUOTE_TTL_MS = 30_000;
 const MOCK_INITIAL_CLAIMABLE_YIELD_RATE = 0.01;
+const MOCK_EXIT_ADDRESS = "0x0000000000000000000000000000000000000001" as `0x${string}`;
 const DEMO_OWNER =
   "0x000000000000000000000000000000000000dEaD" as `0x${string}`;
 
@@ -420,6 +421,49 @@ export class MockYieldMarketAdapter implements YieldMarketAdapter {
     };
   }
 
+  async getExitQuote(
+    positionId: string,
+    userAddress: `0x${string}`,
+    chainId?: number,
+  ): Promise<ExitQuote> {
+    const owner = this.requireOwner(userAddress);
+    this.assertOptionalNetwork(chainId);
+    const { position } = this.findOwnedPosition(positionId, owner);
+    if (!canSellPosition(position)) {
+      throw new YieldDomainError(
+        "position-not-sellable",
+        "Only an active position can be sold before maturity.",
+      );
+    }
+    const market = this.resolveMarket(position.marketId);
+    const inputAmount = position.strategy === "fixed" ? position.ptAmount : position.ytAmount;
+    const claimable = position.strategy === "long" ? position.claimableYield : 0;
+    const outputAmount = round(position.currentValue + claimable);
+    const quoteTimestamp = Date.now();
+    return {
+      quoteId: `mock-exit:${position.id}:${quoteTimestamp}`,
+      positionId: position.id,
+      marketId: position.marketId,
+      chainId: chainId ?? 0,
+      inputToken: MOCK_EXIT_ADDRESS,
+      inputSymbol: position.strategy === "fixed" ? "PT" : "YT",
+      inputAmount,
+      outputToken: MOCK_EXIT_ADDRESS,
+      outputSymbol: market.quoteAsset,
+      outputAmount,
+      minimumReceived: round(outputAmount * 0.99, 4),
+      priceImpact: 0,
+      networkFeeEstimate: MOCK_NETWORK_FEE_ETH,
+      maturity: position.maturity,
+      quoteTimestamp,
+      quoteExpiry: quoteTimestamp + QUOTE_TTL_MS,
+      inputBaseUnits: BigInt(Math.max(0, Math.round(inputAmount * 1_000_000))),
+      outputBaseUnits: BigInt(Math.max(0, Math.round(outputAmount * 1_000_000))),
+      spender: MOCK_EXIT_ADDRESS,
+      transaction: { to: MOCK_EXIT_ADDRESS, data: "0x", value: BigInt(0) },
+    };
+  }
+
   async openFixedPosition(
     marketId: string,
     inputAmount: number,
@@ -600,6 +644,8 @@ export class MockYieldMarketAdapter implements YieldMarketAdapter {
     positionId: string,
     userAddress: `0x${string}`,
     chainId?: number,
+    _runtime?: YieldAdapterRuntime,
+    _exitQuote?: ExitQuote,
   ): Promise<PositionTransactionResult> {
     const owner = this.requireOwner(userAddress);
     this.assertOptionalNetwork(chainId);

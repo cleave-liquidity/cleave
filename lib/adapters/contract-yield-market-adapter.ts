@@ -1,6 +1,6 @@
 import { YieldDomainError } from "@/types/errors";
 import { YieldMarket } from "@/types/market";
-import { FixedYieldQuote, LongYieldQuote } from "@/types/quote";
+import { ExitQuote, FixedYieldQuote, LongYieldQuote } from "@/types/quote";
 import { FixedYieldPosition, LongYieldPosition, YieldPosition } from "@/types/position";
 import { TokenApprovalRequest, TransactionHash, TransactionReceiptResult } from "@/types/transaction";
 import { PositionTransactionResult, YieldAdapterRuntime, YieldMarketAdapter } from "./types";
@@ -38,6 +38,10 @@ export class ContractYieldMarketAdapter implements YieldMarketAdapter {
   }
 
   getLongQuote(_marketId: string, _inputAmount: number, _runtime?: YieldAdapterRuntime): Promise<LongYieldQuote> {
+    return this.unavailable();
+  }
+
+  getExitQuote(_positionId: string, _userAddress: `0x${string}`, _chainId?: number, _runtime?: YieldAdapterRuntime): Promise<ExitQuote> {
     return this.unavailable();
   }
 
@@ -83,7 +87,7 @@ export class ContractYieldMarketAdapter implements YieldMarketAdapter {
     return this.unavailable();
   }
 
-  sellPosition(_positionId: string, _userAddress: `0x${string}`, _chainId?: number, _runtime?: YieldAdapterRuntime): Promise<PositionTransactionResult> {
+  sellPosition(_positionId: string, _userAddress: `0x${string}`, _chainId?: number, _runtime?: YieldAdapterRuntime, _exitQuote?: ExitQuote): Promise<PositionTransactionResult> {
     return this.unavailable();
   }
 }

@@ -27,7 +27,7 @@ import {
 } from "@/lib/contracts/cleave-runtime";
 import { normalizeYieldError, YieldDomainError } from "@/types/errors";
 import type { HistoricalYieldPoint, MarketTokenMetadata, YieldMarket } from "@/types/market";
-import type { FixedYieldQuote, LongYieldQuote } from "@/types/quote";
+import type { ExitQuote, FixedYieldQuote, LongYieldQuote } from "@/types/quote";
 import type { FixedYieldPosition, LongYieldPosition, YieldPosition } from "@/types/position";
 import type { TokenApprovalRequest, TransactionHash, TransactionReceiptResult } from "@/types/transaction";
 import type { TokenMetadata } from "@/types/token";
@@ -695,6 +695,86 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
     };
   }
 
+  async getExitQuote(
+    positionId: string,
+    userAddress: Address,
+    chainId?: number,
+    runtime?: YieldAdapterRuntime,
+  ): Promise<ExitQuote> {
+    const parts = this.positionParts(positionId);
+    if (parts.owner.toLowerCase() !== userAddress.toLowerCase()) {
+      throw new YieldDomainError("position-owner-mismatch", "This live position belongs to another wallet.");
+    }
+    const selectedChain = this.getChainId(chainId);
+    const market = await this.getMarketOrThrow(parts.marketId, runtime);
+    if (market.status === "matured") {
+      throw new YieldDomainError("position-not-sellable", "A matured live position must use its maturity action.");
+    }
+
+    const inputToken = parts.strategy === "fixed" ? market.ptAddress : market.ytAddress;
+    const inputDecimals = parts.strategy === "fixed" ? market.ptDecimals : market.ytDecimals;
+    const outputToken = market.underlyingTokenAddress;
+    if (!inputToken || inputDecimals === undefined || !outputToken || market.underlyingDecimals === undefined) {
+      throw new YieldDomainError("unsupported-operation", "This live market does not expose a verified sell route.");
+    }
+
+    const { publicClient } = this.assertWalletRuntime(selectedChain, runtime);
+    const lifecycle = await readCleaveLifecycle(parts.marketId, parts.strategy, publicClient);
+    if (!lifecycle.sellEarlyEligible) {
+      throw new YieldDomainError("position-not-sellable", "CLEAVE reports that this position is not eligible for early sale.");
+    }
+    await validateCleaveExecution(parts.marketId, publicClient);
+    const inputBaseUnits = await this.readTokenBalance(publicClient, inputToken, userAddress);
+    if (inputBaseUnits <= BigInt(0)) {
+      throw new YieldDomainError("position-not-sellable", "No live token balance is available to sell.");
+    }
+
+    const response = await this.convert(selectedChain, userAddress, inputToken, inputBaseUnits, [outputToken]);
+    const route = this.getRoute(response);
+    const transaction = normalizePendleTransaction(route.tx, "exit transaction");
+    const verifiedRouter = getContractByName(selectedChain, "Pendle Router V2")?.address;
+    if (!verifiedRouter || lower(transaction.to) !== lower(verifiedRouter)) {
+      throw new YieldDomainError("live-source-unavailable", "Pendle returned an unverified exit router address.");
+    }
+    if (transaction.from && lower(transaction.from) !== lower(userAddress)) {
+      throw new YieldDomainError("live-source-unavailable", "Pendle returned exit calldata for a different wallet.");
+    }
+    const output = route.outputs?.find((item) => lower(String(item.token || "")) === lower(outputToken));
+    const outputBaseUnits = parseRawAmount(output?.amount, "exit output");
+    const approval = response.requiredApprovals?.find((item) => lower(String(item.token || "")) === lower(inputToken));
+    const approvalToken = approval ? toAddress(approval.token) : undefined;
+    const approvalAmount = approval ? parseRawAmount(approval.amount, "exit approval") : undefined;
+    const slippageBps = Math.round(DEFAULT_SLIPPAGE * 10_000);
+    const minimumReceivedBaseUnits = outputBaseUnits * BigInt(10_000 - slippageBps) / BigInt(10_000);
+    const quoteTimestamp = Date.now();
+
+    return {
+      quoteId: `pendle-exit:${positionId}:${quoteTimestamp}`,
+      positionId,
+      marketId: parts.marketId,
+      chainId: selectedChain,
+      inputToken,
+      inputSymbol: parts.strategy === "fixed" ? "PT" : "YT",
+      inputAmount: Number(formatUnits(inputBaseUnits, inputDecimals)),
+      outputToken,
+      outputSymbol: market.quoteAsset,
+      outputAmount: Number(formatUnits(outputBaseUnits, market.underlyingDecimals)),
+      minimumReceived: Number(formatUnits(minimumReceivedBaseUnits, market.underlyingDecimals)),
+      priceImpact: Math.abs(asFiniteNumber(route.data?.priceImpact) || 0) * 100,
+      networkFeeEstimate: await this.feeEstimate(route, runtime),
+      maturity: market.maturity,
+      quoteTimestamp,
+      quoteExpiry: quoteTimestamp + 15_000,
+      inputBaseUnits,
+      outputBaseUnits,
+      approvalToken,
+      approvalAmount,
+      spender: transaction.to,
+      transaction,
+      source: `${PENDLE_API_BASE}/v3/sdk/${selectedChain}/convert`,
+    };
+  }
+
   private assertWalletRuntime(chainId: number, runtime?: YieldAdapterRuntime): { publicClient: PublicClient; walletClient: WalletClient } {
     const publicClient = this.resolvePublicClient(chainId, runtime);
     const walletClient = runtime?.walletClient;
@@ -723,6 +803,7 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
     expectedInputToken: Address,
     marketId: string,
     runtime?: YieldAdapterRuntime,
+    options?: { allowApproval?: boolean },
   ): Promise<{ txHash: TransactionHash; blockNumber?: bigint; outputAmount?: bigint }> {
     const route = this.getRoute(response);
     const transaction = normalizePendleTransaction(route.tx, "transaction");
@@ -750,6 +831,9 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
         args: [owner, transaction.to],
       });
       if (allowance < amount) {
+        if (options?.allowApproval === false) {
+          throw new YieldDomainError("approval-required", "Approve the PT before selling this position.");
+        }
         const approvalHash = await walletClient.writeContract({
           account: owner,
           address: token,
@@ -780,6 +864,7 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
       value: transaction.value,
       chain: walletClient.chain,
     });
+    runtime?.onTransactionSubmitted?.(hash);
     const receipt = await publicClient.waitForTransactionReceipt({ hash });
     if (receipt.status !== "success") {
       throw new YieldDomainError("transaction-reverted", "The live transaction was reverted by the network.");
@@ -820,6 +905,7 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
       value: transaction.value,
       chain: walletClient.chain,
     });
+    runtime?.onTransactionSubmitted?.(hash);
     const receipt = await publicClient.waitForTransactionReceipt({ hash });
     if (receipt.status !== "success") {
       throw new YieldDomainError("transaction-reverted", "The live claim transaction was reverted by the network.");
@@ -1122,7 +1208,16 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
     return { redeemedAmount, txHash: execution.txHash, chainId: ROBINHOOD_CHAIN_ID, status: "confirmed", blockNumber: execution.blockNumber, timestamp: Date.now() };
   }
 
-  async sellPosition(positionId: string, userAddress: Address, chainId?: number, runtime?: YieldAdapterRuntime): Promise<PositionTransactionResult> {
+  async sellPosition(
+    positionId: string,
+    userAddress: Address,
+    chainId?: number,
+    runtime?: YieldAdapterRuntime,
+    exitQuote?: ExitQuote,
+  ): Promise<PositionTransactionResult> {
+    if (!exitQuote) {
+      throw new YieldDomainError("quote-expired", "Fetch and review a live exit quote before selling this position.");
+    }
     const parts = this.positionParts(positionId);
     if (parts.owner.toLowerCase() !== userAddress.toLowerCase()) throw new YieldDomainError("position-owner-mismatch", "This live position belongs to another wallet.");
     const market = await this.getMarketOrThrow(parts.marketId, runtime);
@@ -1134,8 +1229,36 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
     if (!lifecycle.sellEarlyEligible) throw new YieldDomainError("position-not-sellable", "CLEAVE reports that this position is not eligible for early sale.");
     const amount = await this.readTokenBalance(publicClient, token, userAddress);
     if (amount <= BigInt(0)) throw new YieldDomainError("position-not-sellable", "No live token balance is available to sell.");
-    const response = await this.convert(ROBINHOOD_CHAIN_ID, userAddress, token, amount, [market.underlyingTokenAddress]);
-    const execution = await this.executeTransaction(response, userAddress, ROBINHOOD_CHAIN_ID, token, parts.marketId, runtime);
+    if (exitQuote) {
+      if (
+        exitQuote.positionId !== positionId ||
+        exitQuote.marketId !== parts.marketId ||
+        exitQuote.chainId !== ROBINHOOD_CHAIN_ID ||
+        exitQuote.quoteExpiry <= Date.now() ||
+        exitQuote.inputToken.toLowerCase() !== token.toLowerCase() ||
+        exitQuote.inputBaseUnits !== amount
+      ) {
+        throw new YieldDomainError("quote-expired", "Refresh the live exit quote before selling this position.");
+      }
+    }
+    const response: ConvertResponse = {
+      requiredApprovals: exitQuote.approvalToken && exitQuote.approvalAmount
+        ? [{ token: exitQuote.approvalToken, amount: exitQuote.approvalAmount.toString() }]
+        : [],
+      routes: [{
+        tx: exitQuote.transaction,
+        outputs: [{ token: exitQuote.outputToken, amount: exitQuote.outputBaseUnits.toString() }],
+      }],
+    };
+    const execution = await this.executeTransaction(
+      response,
+      userAddress,
+      ROBINHOOD_CHAIN_ID,
+      token,
+      parts.marketId,
+      runtime,
+      { allowApproval: false },
+    );
     const returnedAmount = execution.outputAmount ? Number(formatUnits(execution.outputAmount, market.underlyingDecimals)) : undefined;
     return { returnedAmount, txHash: execution.txHash, chainId: ROBINHOOD_CHAIN_ID, status: "confirmed", blockNumber: execution.blockNumber, timestamp: Date.now() };
   }

@@ -19,7 +19,7 @@ export function hasResolvedWalletBalance(state: WalletBalanceState): boolean {
       !state.error &&
       typeof state.balance === "number" &&
       Number.isFinite(state.balance) &&
-      state.balance >= 0,
+      state.balance > 0,
   );
 }
 

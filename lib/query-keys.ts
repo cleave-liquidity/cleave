@@ -22,4 +22,6 @@ export const queryKeys = {
     ["fixed-quote", dataMode(), adapter(), marketId, inputAmount, chainId ?? "unknown"] as const,
   longQuote: (marketId: string, inputAmount: number, chainId?: number) =>
     ["long-quote", dataMode(), adapter(), marketId, inputAmount, chainId ?? "unknown"] as const,
+  exitQuote: (positionId: string, address?: string, chainId?: number) =>
+    ["exit-quote", dataMode(), adapter(), positionId, address?.toLowerCase() ?? "disconnected", chainId ?? "unknown"] as const,
 };

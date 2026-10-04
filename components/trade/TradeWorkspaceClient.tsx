@@ -121,7 +121,8 @@ export function TradeWorkspaceClient({
           </div>
 
           <div className="mt-8 grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-8 lg:gap-12 items-start">
-            <div className="flex flex-col gap-4 max-w-[620px]">
+            {strategy && (
+              <div className="flex flex-col gap-4 max-w-[620px]">
               <div className="mono text-[11px] tracking-[0.14em] text-muted-dark uppercase">
                 Choose how to trade this yield
               </div>
@@ -156,8 +157,9 @@ export function TradeWorkspaceClient({
                 </button>
               </div>
               <StrategyContext strategy={strategy} market={market} quoteContext={quoteContext} />
-            </div>
-            <div className="w-full lg:sticky lg:top-28">
+              </div>
+            )}
+            <div className={`w-full lg:sticky lg:top-28 ${strategy ? "" : "lg:col-span-2 lg:mx-auto lg:max-w-[420px]"}`}>
               {strategy && isTradeable ? (
                 <TradePanel
                   key={strategy}

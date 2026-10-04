@@ -4,10 +4,14 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { yieldAdapter } from "@/lib/adapters/mock-adapter";
 import { queryKeys } from "@/lib/query-keys";
 import { useAccount, usePublicClient, useWalletClient } from "wagmi";
+import type { ExitQuote } from "@/types/quote";
+import type { TransactionHash } from "@/types/transaction";
 
 interface PositionActionInput {
   positionId: string;
   userAddress: `0x${string}`;
+  exitQuote?: ExitQuote;
+  onTransactionSubmitted?: (hash: TransactionHash) => void;
 }
 
 export function useClaimYield() {
@@ -52,8 +56,12 @@ export function useSellPosition() {
   const publicClient = usePublicClient();
   const { data: walletClient } = useWalletClient();
   return useMutation({
-    mutationFn: ({ positionId, userAddress }: PositionActionInput) =>
-      yieldAdapter.sellPosition(positionId, userAddress, chainId, { publicClient, walletClient }),
+    mutationFn: ({ positionId, userAddress, exitQuote, onTransactionSubmitted }: PositionActionInput) =>
+      yieldAdapter.sellPosition(positionId, userAddress, chainId, {
+        publicClient,
+        walletClient,
+        onTransactionSubmitted,
+      }, exitQuote),
     onSuccess: (_, variables) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.positions(variables.userAddress, chainId) });
       void queryClient.invalidateQueries({ queryKey: queryKeys.balancePrefix(variables.userAddress, chainId) });

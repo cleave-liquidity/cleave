@@ -1,5 +1,5 @@
 import { MarketDataMode, YieldMarket } from "@/types/market";
-import { FixedYieldQuote, LongYieldQuote } from "@/types/quote";
+import { ExitQuote, FixedYieldQuote, LongYieldQuote } from "@/types/quote";
 import { FixedYieldPosition, LongYieldPosition, YieldPosition } from "@/types/position";
 import { TokenApprovalRequest, TransactionHash, TransactionReceiptResult } from "@/types/transaction";
 import type { PublicClient, WalletClient } from "viem";
@@ -7,6 +7,7 @@ import type { PublicClient, WalletClient } from "viem";
 export interface YieldAdapterRuntime {
   publicClient?: PublicClient;
   walletClient?: WalletClient;
+  onTransactionSubmitted?: (hash: TransactionHash) => void;
 }
 
 export interface PositionTransactionResult {
@@ -27,6 +28,12 @@ export interface YieldMarketAdapter {
   getPositions(userAddress?: `0x${string}`, chainId?: number, runtime?: YieldAdapterRuntime): Promise<YieldPosition[]>;
   getFixedQuote(marketId: string, inputAmount: number, runtime?: YieldAdapterRuntime): Promise<FixedYieldQuote>;
   getLongQuote(marketId: string, inputAmount: number, runtime?: YieldAdapterRuntime): Promise<LongYieldQuote>;
+  getExitQuote(
+    positionId: string,
+    userAddress: `0x${string}`,
+    chainId?: number,
+    runtime?: YieldAdapterRuntime,
+  ): Promise<ExitQuote>;
   openFixedPosition(
     marketId: string,
     inputAmount: number,
@@ -48,5 +55,11 @@ export interface YieldMarketAdapter {
   getTransactionStatus(txHash: TransactionHash, chainId: number, runtime?: YieldAdapterRuntime): Promise<TransactionReceiptResult>;
   claimYield(positionId: string, userAddress: `0x${string}`, chainId?: number, runtime?: YieldAdapterRuntime): Promise<PositionTransactionResult>;
   redeemFixed(positionId: string, userAddress: `0x${string}`, chainId?: number, runtime?: YieldAdapterRuntime): Promise<PositionTransactionResult>;
-  sellPosition(positionId: string, userAddress: `0x${string}`, chainId?: number, runtime?: YieldAdapterRuntime): Promise<PositionTransactionResult>;
+  sellPosition(
+    positionId: string,
+    userAddress: `0x${string}`,
+    chainId?: number,
+    runtime?: YieldAdapterRuntime,
+    exitQuote?: ExitQuote,
+  ): Promise<PositionTransactionResult>;
 }

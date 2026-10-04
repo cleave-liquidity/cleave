@@ -14,10 +14,10 @@ import { useTokenAllowance } from "@/hooks/useTokenAllowance";
 import { useApproveToken } from "@/hooks/useApproveToken";
 import { useOpenFixedPosition } from "@/hooks/useOpenFixedPosition";
 import { useOpenLongPosition } from "@/hooks/useOpenLongPosition";
-import { formatApy, formatNetworkFee, formatPriceImpact, formatTokenAmount } from "@/lib/utils/formatters";
+import { formatApy, formatNativeBalance, formatNetworkFee, formatPriceImpact, formatTokenAmount } from "@/lib/utils/formatters";
 import { toast } from "sonner";
 import { TransactionState } from "@/types/transaction";
-import { YieldDomainError, getYieldErrorMessage } from "@/types/errors";
+import { YieldDomainError, getYieldErrorMessage, normalizeYieldError } from "@/types/errors";
 import { AlertCircle, CheckCircle2, ChevronDown, Loader2 } from "lucide-react";
 import { yieldAdapter } from "@/lib/adapters/mock-adapter";
 import { getContractByName } from "@/lib/contracts/deployments";
@@ -25,7 +25,6 @@ import { getMarketStatus, isMarketTradable } from "@/lib/markets/status";
 import {
   getTradeResetState,
   isQuoteEnabledForStrategy,
-  isSettledTransactionStep,
   type TradeStrategy,
 } from "@/lib/markets/trade-strategy";
 import {
@@ -40,6 +39,7 @@ import {
   type QuoteUiState,
 } from "@/lib/markets/quote-state";
 import { blocksExecutionForNativeBalance } from "@/lib/markets/native-balance";
+import { getTradeActionState } from "@/lib/markets/trade-action-state";
 import {
   applyBalanceShortcut,
   applyManualAmount,
@@ -86,7 +86,7 @@ export function TradePanel({
   };
   const isNativeBalanceBlocking = blocksExecutionForNativeBalance(nativeBalanceState);
   const approvalSpender = getContractByName(market.chainId, "Pendle Router V2")?.address;
-  const { allowance, refresh: refreshAllowance } = useTokenAllowance(
+  const { allowance, isLoading: allowanceLoading, error: allowanceError, refresh: refreshAllowance } = useTokenAllowance(
     address,
     market.underlyingTokenAddress,
     approvalSpender,
@@ -103,13 +103,12 @@ export function TradePanel({
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [currentTime, setCurrentTime] = useState(() => Date.now());
   const [selectedShortcut, setSelectedShortcut] = useState<BalanceShortcut | null>(null);
+  const [quoteRefreshRequired, setQuoteRefreshRequired] = useState(false);
   const resetTimerRef = useRef<number | null>(null);
-  const redirectTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     return () => {
       if (resetTimerRef.current !== null) window.clearTimeout(resetTimerRef.current);
-      if (redirectTimerRef.current !== null) window.clearTimeout(redirectTimerRef.current);
     };
   }, []);
 
@@ -124,10 +123,13 @@ export function TradePanel({
     setShowAdvanced(resetState.showAdvanced);
     setTxState(resetState.transactionState);
     setSelectedShortcut(null);
+    setQuoteRefreshRequired(false);
   }, [strategy, initialAmount]);
 
   useEffect(() => {
     setSelectedShortcut(null);
+    setTxState({ step: "idle" });
+    setQuoteRefreshRequired(false);
   }, [market.chainId, market.id, market.quoteAsset, market.underlyingTokenAddress]);
 
   const inputAmount = Number(inputAmountStr);
@@ -164,6 +166,18 @@ export function TradePanel({
     error: balanceError,
     balance,
   });
+  const hasResolvedTokenBalance = Boolean(
+    isConnected &&
+      hasBalance &&
+      !balanceError &&
+      Number.isFinite(balance),
+  );
+  const isTokenBalanceLoading = Boolean(isConnected && balanceLoading && !hasBalance);
+  const isTokenBalanceUnavailable = Boolean(
+    isConnected &&
+      !hasResolvedTokenBalance &&
+      !isTokenBalanceLoading,
+  );
 
   useEffect(() => {
     if (!canUseBalanceShortcuts) setSelectedShortcut(null);
@@ -186,6 +200,13 @@ export function TradePanel({
   const quoteForExecution = isQuoteReady ? activeQuote : null;
   const fixedQuoteForDisplay = isQuoteReady ? fixedQuote : null;
   const longQuoteForDisplay = isQuoteReady ? longQuote : null;
+  const hasVerifiedApprovalData = Boolean(
+    quoteForExecution?.approvalToken &&
+      quoteForExecution.approvalAmount &&
+      market.underlyingTokenAddress &&
+      quoteForExecution.approvalToken.toLowerCase() === market.underlyingTokenAddress.toLowerCase(),
+  );
+  const requiredApprovalAmount = quoteForExecution?.approvalAmount;
 
   useEffect(() => {
     onQuoteContextChange?.({
@@ -209,13 +230,31 @@ export function TradePanel({
     yieldAdapter.mode === "live" &&
       isQuoteReady &&
       isConnected &&
-      quoteForExecution?.approvalToken &&
-      quoteForExecution.approvalAmount &&
-      market.underlyingTokenAddress &&
-      quoteForExecution.approvalToken.toLowerCase() === market.underlyingTokenAddress.toLowerCase() &&
+      hasVerifiedApprovalData &&
       allowance !== null &&
-      allowance < quoteForExecution.approvalAmount,
+      requiredApprovalAmount !== undefined &&
+      allowance < requiredApprovalAmount,
   );
+  const isAllowanceLoading = Boolean(
+    yieldAdapter.mode === "live" &&
+      isQuoteReady &&
+      isConnected &&
+      hasVerifiedApprovalData &&
+      approvalSpender &&
+      allowance === null &&
+      allowanceLoading &&
+      !allowanceError,
+  );
+  const isAllowanceUnavailable = Boolean(
+    yieldAdapter.mode === "live" &&
+      isQuoteReady &&
+      isConnected &&
+      !isAllowanceLoading &&
+      (!hasVerifiedApprovalData || !approvalSpender || allowance === null || allowanceError),
+  );
+  const isNativeBalanceLoading = isConnected && nativeBalance.status === "loading";
+  const isNativeBalanceUnavailable = isConnected && nativeBalance.status === "unavailable";
+  const isNativeBalanceZero = isConnected && nativeBalance.status === "resolved" && nativeBalance.balance === 0;
 
   const formatScenarioChange = (change: number) =>
     `${change >= 0 ? "+" : ""}${change.toFixed(2)}%`;
@@ -279,6 +318,8 @@ export function TradePanel({
         toast.error(getQuoteUserMessage(result.error));
         return;
       }
+      setQuoteRefreshRequired(false);
+      setTxState({ step: "idle" });
       toast.success("Quote refreshed");
     } catch (error: unknown) {
       toast.error(getQuoteUserMessage(error));
@@ -286,6 +327,10 @@ export function TradePanel({
   };
 
   const handleExecuteTrade = async () => {
+    if (["validating", "approval-required", "approving", "approval-success", "confirming", "pending", "success"].includes(txState.step)) {
+      return;
+    }
+
     if (!isConnected) {
       handleConnectWallet();
       return;
@@ -304,6 +349,12 @@ export function TradePanel({
 
       if (isInvalidAmount) {
         throw new YieldDomainError("invalid-amount", "Enter an amount greater than zero.");
+      }
+      if (isTokenBalanceLoading) {
+        throw new YieldDomainError("rpc-unavailable", `Checking ${market.quoteAsset} balance. Try again when it is available.`);
+      }
+      if (isTokenBalanceUnavailable) {
+        throw new YieldDomainError("rpc-unavailable", `Unable to verify your ${market.quoteAsset} balance.`);
       }
       if (isInsufficientBalance) {
         throw new YieldDomainError(
@@ -339,6 +390,13 @@ export function TradePanel({
       }
       if (!address || !chainId) {
         throw new YieldDomainError("wallet-disconnected", "Connect a wallet to continue.");
+      }
+
+      if (isAllowanceLoading) {
+        throw new YieldDomainError("rpc-unavailable", "Checking token allowance. Try again when it is available.");
+      }
+      if (isAllowanceUnavailable) {
+        throw new YieldDomainError("live-source-unavailable", "Unable to verify the token allowance for this quote.");
       }
 
       if (isApprovalRequired) {
@@ -380,10 +438,9 @@ export function TradePanel({
       } else {
         // The live adapter checks the verified spender, approves only the required
         // amount, waits for that receipt, and then submits the route transaction.
-        setTxState({ step: "pending" });
+        setTxState({ step: "confirming" });
       }
 
-      setTxState({ step: "pending" });
       if (isFixed) {
         const openedPosition = await openFixedPosition.mutateAsync({
           marketId: market.id,
@@ -392,6 +449,9 @@ export function TradePanel({
           quote: fixedQuote!,
           chainId,
           quoteAsset: market.quoteAsset,
+          onTransactionSubmitted: (hash) => {
+            setTxState({ step: "pending", txHash: hash });
+          },
         });
         const txHash = openedPosition.txHash ?? openedPosition.mockTxHash;
         setTxState({ step: "success", txHash });
@@ -406,6 +466,9 @@ export function TradePanel({
           quote: longQuote!,
           chainId,
           quoteAsset: market.quoteAsset,
+          onTransactionSubmitted: (hash) => {
+            setTxState({ step: "pending", txHash: hash });
+          },
         });
         const txHash = openedPosition.txHash ?? openedPosition.mockTxHash;
         setTxState({ step: "success", txHash });
@@ -413,25 +476,78 @@ export function TradePanel({
           `Successfully opened Trading Yield position for ${inputAmount} ${market.quoteAsset}!`
         );
       }
-
-      redirectTimerRef.current = window.setTimeout(() => {
-        router.push("/portfolio");
-      }, 1200);
     } catch (err: unknown) {
+      const normalizedError = err instanceof YieldDomainError ? err : normalizeYieldError(err);
       const message = isQuoteRouteUnavailableError(err)
         ? getQuoteUserMessage(err)
-        : getYieldErrorMessage(err);
+        : normalizedError.message || getYieldErrorMessage(err);
+      if (normalizedError.code === "transaction-reverted") {
+        setQuoteRefreshRequired(true);
+      }
       setTxState({
         step: "error",
-        errorCode: err instanceof YieldDomainError ? err.code : "transaction-reverted",
+        errorCode: normalizedError.code,
         errorMessage: message,
       });
       toast.error(message);
     } finally {
-      // Clear the result banner after a moment, but only if the flow has actually finished.
+      // Restore the actionable CTA after a result, while keeping successful positions visible.
       resetTimerRef.current = window.setTimeout(() => {
-        setTxState((current) => (isSettledTransactionStep(current.step) ? { step: "idle" } : current));
+        setTxState((current) => (
+          current.step === "error" || current.step === "approval-success"
+            ? { step: "idle" }
+            : current
+        ));
       }, 3000);
+    }
+  };
+
+  const tokenBalanceActionState = isTokenBalanceLoading
+    ? "loading"
+    : isTokenBalanceUnavailable
+      ? "unavailable"
+      : "resolved";
+  const nativeBalanceActionState = isNativeBalanceLoading
+    ? "loading"
+    : isNativeBalanceUnavailable
+      ? "unavailable"
+      : isNativeBalanceZero
+        ? "zero"
+        : "resolved";
+  const allowanceActionState = isAllowanceLoading
+    ? "loading"
+    : isAllowanceUnavailable
+      ? "unavailable"
+      : isApprovalRequired
+        ? "required"
+        : "sufficient";
+  const primaryAction = getTradeActionState({
+    strategy,
+    token: market.quoteAsset,
+    isConnected,
+    isWrongNetwork,
+    marketStatus,
+    hasValidAmount: !isInvalidAmount,
+    quoteState,
+    isQuoteExpired,
+    quoteRefreshRequired,
+    tokenBalanceState: tokenBalanceActionState,
+    isTokenBalanceInsufficient: isInsufficientBalance,
+    nativeBalanceState: nativeBalanceActionState,
+    allowanceState: allowanceActionState,
+    transactionStep: txState.step,
+  });
+  const handlePrimaryAction = () => {
+    if (primaryAction.kind === "connect") {
+      handleConnectWallet();
+    } else if (primaryAction.kind === "switch-network") {
+      void handleNetworkSwitch();
+    } else if (primaryAction.kind === "refresh-quote") {
+      void handleRefreshQuote();
+    } else if (primaryAction.kind === "success") {
+      router.push("/portfolio");
+    } else if (primaryAction.kind === "write") {
+      void handleExecuteTrade();
     }
   };
 
@@ -452,9 +568,9 @@ export function TradePanel({
             <span>
               BALANCE: {!isConnected
                 ? "—"
-                : balanceLoading
+                : balanceLoading && !hasBalance
                   ? "Loading…"
-                  : balanceError
+                  : balanceError || !hasBalance
                     ? "Unavailable"
                     : formatTokenAmount(balance)}
             </span>
@@ -465,8 +581,9 @@ export function TradePanel({
                 : nativeBalance.status === "loading"
                   ? "Loading…"
                   : nativeBalance.status === "unavailable"
-                    ? "Unavailable"
-                    : formatTokenAmount(nativeBalance.balance ?? 0, 6)} ETH
+                  ? "Unavailable"
+                    : `${formatNativeBalance(nativeBalance.balance ?? 0)} ETH`
+              }
             </span>
           </div>
         </div>
@@ -534,19 +651,34 @@ export function TradePanel({
             Enter an amount greater than zero.
           </span>
         )}
-        {isInsufficientBalance && (
-          <span role="alert" className="text-[12px] text-negative">
-            Insufficient {market.quoteAsset} balance.
+        {isTokenBalanceLoading && (
+          <span role="status" className="text-[12px] text-muted">
+            Checking {market.quoteAsset} balance…
           </span>
         )}
-        {isConnected && !isWrongNetwork && nativeBalance.status === "resolved" && nativeBalance.balance === 0 && (
+        {isTokenBalanceUnavailable && (
+          <span role="alert" className="text-[12px] text-negative">
+            Unable to verify your {market.quoteAsset} balance.
+          </span>
+        )}
+        {isInsufficientBalance && (
+          <span role="alert" className="text-[12px] text-negative">
+            You need {formatTokenAmount(inputAmount)} {market.quoteAsset} to continue.
+          </span>
+        )}
+        {isConnected && !isWrongNetwork && isNativeBalanceZero && (
           <span role="alert" className="text-[12px] text-negative">
             Insufficient ETH for network fees.
           </span>
         )}
-        {isConnected && !isWrongNetwork && nativeBalance.status === "unavailable" && (
+        {isConnected && !isWrongNetwork && isNativeBalanceUnavailable && (
           <span role="alert" className="text-[12px] text-negative">
             Unable to verify ETH for network fees.
+          </span>
+        )}
+        {isConnected && !isWrongNetwork && isNativeBalanceLoading && (
+          <span role="status" className="text-[12px] text-muted">
+            Checking ETH for network fees…
           </span>
         )}
       </div>
@@ -738,6 +870,17 @@ export function TradePanel({
           <QuoteStateNotice state={quoteState} isExpired={isQuoteExpired} />
         )}
 
+      {txState.step === "error" && txState.errorMessage && !quoteRefreshRequired && (
+        <div role="alert" className="border border-negative/30 bg-negative/5 px-3.5 py-3 text-[12px] leading-5 text-negative">
+          {txState.errorMessage}
+        </div>
+      )}
+      {quoteRefreshRequired && (
+        <div role="alert" className="border border-amber/30 bg-amber/5 px-3.5 py-3 text-[12px] leading-5 text-amber">
+          {txState.errorMessage || "The previous transaction did not complete."} Refresh the quote before retrying.
+        </div>
+      )}
+
       {/* Advanced Details Toggle */}
 
       <div className="border-t border-white/10 pt-2">
@@ -804,136 +947,28 @@ export function TradePanel({
       </div>
 
       {/* Primary Action Button */}
-      {(() => {
-        if (market.status === "paused") {
-          return (
-            <button
-              type="button"
-              disabled
-              className="min-h-[52px] border border-white/20 rounded-lg bg-surface text-muted-dark text-[15px] font-medium flex items-center justify-center cursor-not-allowed"
-            >
-              Market Paused
-            </button>
-          );
-        }
-
-        if (market.status === "matured") {
-          return (
-            <button
-              type="button"
-              disabled
-              className="min-h-[52px] border border-white/20 rounded-lg bg-surface text-muted-dark text-[15px] font-medium flex items-center justify-center cursor-not-allowed"
-            >
-              Market Expired
-            </button>
-          );
-        }
-
-        if (isQuoteExpired) {
-          return (
-            <button
-              type="button"
-              onClick={handleRefreshQuote}
-              className="min-h-[52px] border border-white/20 rounded-lg bg-surface text-foreground text-[15px] font-medium flex items-center justify-center cursor-pointer"
-            >
-              Refresh Quote
-            </button>
-          );
-        }
-
-        if (quoteState === "unavailable" || quoteState === "error") {
-          return (
-            <button
-              type="button"
-              onClick={handleRefreshQuote}
-              className="min-h-[52px] border border-white/20 rounded-lg bg-surface text-foreground text-[15px] font-medium flex items-center justify-center cursor-pointer"
-            >
-              Quote Unavailable — Retry
-            </button>
-          );
-        }
-
-        if (!isConnected) {
-          return (
-            <button
-              type="button"
-              onClick={handleConnectWallet}
-              className="min-h-[52px] border-0 rounded-lg bg-amber text-[#0A0B0C] text-[15px] font-medium flex items-center justify-center hover:brightness-105 transition-all cursor-pointer"
-            >
-              Connect wallet to execute
-            </button>
-          );
-        }
-
-        if (isWrongNetwork) {
-          return (
-            <button
-              type="button"
-              onClick={handleNetworkSwitch}
-              className="min-h-[52px] border-0 rounded-lg bg-negative text-white text-[15px] font-medium flex items-center justify-center hover:brightness-105 transition-all cursor-pointer"
-            >
-              Switch to Robinhood Chain
-            </button>
-          );
-        }
-
-        if (isInsufficientBalance) {
-          return (
-            <button
-              type="button"
-              disabled
-              className="min-h-[52px] border border-white/20 rounded-lg bg-surface text-muted-dark text-[15px] font-medium flex items-center justify-center cursor-not-allowed"
-            >
-              Insufficient {market.symbol} Balance
-            </button>
-          );
-        }
-
-        const isPending =
-          txState.step === "validating" ||
-          txState.step === "approval-required" ||
-          txState.step === "approving" ||
-          txState.step === "approval-success" ||
-          txState.step === "confirming" ||
-          txState.step === "pending";
-
-        return (
-          <button
-            type="button"
-            disabled={
-              isPending ||
-              loadingFixed ||
-              loadingLong ||
-              isInvalidAmount ||
-              isInsufficientBalance ||
-              isNativeBalanceBlocking ||
-              !isQuoteReady
-            }
-            onClick={handleExecuteTrade}
-            className={`min-h-[52px] border-0 rounded-lg text-[#0A0B0C] text-[15px] font-medium flex items-center justify-center gap-2 transition-all cursor-pointer ${
-              isFixed
-                ? "bg-ice hover:brightness-105"
-                : "bg-amber hover:brightness-105"
-            } ${isPending ? "opacity-80" : ""}`}
-          >
-            {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-            {txState.step === "approval-required" && "Approval Required"}
-            {txState.step === "approving" && `Approving ${market.quoteAsset}…`}
-            {txState.step === "approval-success" && "Approval Confirmed"}
-            {(txState.step === "confirming" || txState.step === "pending") &&
-              `Opening ${isFixed ? "Fixed Yield" : "Trading Yield"}…`}
-            {txState.step === "success" && (
-              <>
-                <CheckCircle2 className="w-4 h-4" /> Position Opened!
-              </>
-            )}
-            {isApprovalRequired && (txState.step === "idle" || txState.step === "ready") && `Approve ${market.quoteAsset}`}
-            {(txState.step === "idle" || txState.step === "ready") &&
-              !isApprovalRequired && (isFixed ? "Open Fixed Yield" : "Open Trading Yield")}
-            {txState.step === "error" && "Try Again"}
-          </button>
-        );
-      })()}
+      <button
+        type="button"
+        disabled={primaryAction.disabled}
+        onClick={primaryAction.disabled ? undefined : handlePrimaryAction}
+        className={`min-h-[52px] rounded-lg text-[15px] font-medium flex items-center justify-center gap-2 transition-all ${
+          primaryAction.disabled
+            ? "border border-white/20 bg-surface text-muted-dark cursor-not-allowed"
+            : primaryAction.kind === "write"
+              ? `border-0 text-[#0A0B0C] cursor-pointer ${isFixed ? "bg-ice hover:brightness-105" : "bg-amber hover:brightness-105"}`
+              : primaryAction.kind === "connect"
+                ? "border-0 bg-amber text-[#0A0B0C] hover:brightness-105 cursor-pointer"
+                : primaryAction.kind === "switch-network"
+                  ? "border-0 bg-negative text-white hover:brightness-105 cursor-pointer"
+                  : primaryAction.kind === "success"
+                    ? "border-0 bg-positive text-[#0A0B0C] hover:brightness-105 cursor-pointer"
+                    : "border border-white/20 bg-surface text-foreground cursor-pointer"
+        }`}
+      >
+        {primaryAction.busy && <Loader2 className="w-4 h-4 animate-spin" />}
+        {primaryAction.kind === "success" && <CheckCircle2 className="w-4 h-4" />}
+        {primaryAction.label}
+      </button>
     </div>
   );
 }

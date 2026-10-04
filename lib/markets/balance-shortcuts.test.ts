@@ -45,6 +45,10 @@ describe("trade balance shortcuts", () => {
     ).toEqual(manualAmount);
   });
 
+  it("disables shortcuts when the resolved wallet balance is zero", () => {
+    expect(applyBalanceShortcut(manualAmount, 1, connected(0))).toEqual(manualAmount);
+  });
+
   it("sets 25% of a resolved wallet balance", () => {
     expect(applyBalanceShortcut(manualAmount, 0.25, connected(2_500))).toEqual({
       inputAmount: "625.00",
