@@ -20,6 +20,11 @@ import {
 import { verifiedTokenMetadata } from "@/lib/metadata/tokens";
 import { displayAmountToBaseUnits } from "@/lib/utils/amounts";
 import { getContractByName } from "@/lib/contracts/deployments";
+import {
+  readCleaveLifecycle,
+  readCleaveMarketSummary,
+  validateCleaveExecution,
+} from "@/lib/contracts/cleave-runtime";
 import { normalizeYieldError, YieldDomainError } from "@/types/errors";
 import type { HistoricalYieldPoint, MarketTokenMetadata, YieldMarket } from "@/types/market";
 import type { FixedYieldQuote, LongYieldQuote } from "@/types/quote";
@@ -613,6 +618,7 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
       if (!market.underlyingTokenAddress || !market.ptAddress || market.underlyingDecimals === undefined || market.ptDecimals === undefined) {
         throw new YieldDomainError("live-source-unavailable", "This live market is missing verified token metadata.");
       }
+      await validateCleaveExecution(market.id, this.resolvePublicClient(ROBINHOOD_CHAIN_ID, runtime));
       const inputBaseUnits = displayAmountToBaseUnits(inputAmount, market.underlyingDecimals);
       const response = await this.convert(ROBINHOOD_CHAIN_ID, QUOTE_RECEIVER, market.underlyingTokenAddress, inputBaseUnits, [market.ptAddress]);
       const route = this.getRoute(response);
@@ -656,6 +662,7 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
     if (!market.underlyingTokenAddress || !market.ytAddress || market.underlyingDecimals === undefined || market.ytDecimals === undefined) {
       throw new YieldDomainError("live-source-unavailable", "This live market is missing verified token metadata.");
     }
+    await validateCleaveExecution(market.id, this.resolvePublicClient(ROBINHOOD_CHAIN_ID, runtime));
     const inputBaseUnits = displayAmountToBaseUnits(inputAmount, market.underlyingDecimals);
     const response = await this.convert(ROBINHOOD_CHAIN_ID, QUOTE_RECEIVER, market.underlyingTokenAddress, inputBaseUnits, [market.ytAddress]);
     const route = this.getRoute(response);
@@ -714,6 +721,7 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
     owner: Address,
     chainId: 4663,
     expectedInputToken: Address,
+    marketId: string,
     runtime?: YieldAdapterRuntime,
   ): Promise<{ txHash: TransactionHash; blockNumber?: bigint; outputAmount?: bigint }> {
     const route = this.getRoute(response);
@@ -727,6 +735,7 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
     }
     const { publicClient, walletClient } = this.assertWalletRuntime(chainId, runtime);
     await this.assertNativeGasBalance(publicClient, owner);
+    await validateCleaveExecution(marketId, publicClient);
     for (const approval of response.requiredApprovals || []) {
       const token = toAddress(approval.token);
       const amount = parseRawAmount(approval.amount, "approval");
@@ -787,6 +796,7 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
     response: SdkTransactionResponse,
     owner: Address,
     chainId: 4663,
+    marketId: string,
     runtime?: YieldAdapterRuntime,
   ): Promise<{ txHash: TransactionHash; blockNumber?: bigint }> {
     const transaction = normalizePendleTransaction(response.tx, "claim transaction");
@@ -802,6 +812,7 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
     }
     const { publicClient, walletClient } = this.assertWalletRuntime(chainId, runtime);
     await this.assertNativeGasBalance(publicClient, owner);
+    await validateCleaveExecution(marketId, publicClient);
     const hash = await walletClient.sendTransaction({
       account: owner,
       to: transaction.to,
@@ -882,7 +893,16 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
         if (readPt !== undefined) ptRaw = readPt;
         if (readYt !== undefined) ytRaw = readYt;
       }
-      const status = market.status === "matured" ? "matured" : "active";
+      const cleaveSummary = client
+        ? await readCleaveMarketSummary(market.id, client).catch(() => undefined)
+        : undefined;
+      const fallbackStatus = market.status === "matured" ? "matured" : "active";
+      const fixedStatus = cleaveSummary
+        ? cleaveSummary.fixedState >= 2 ? "matured" : cleaveSummary.fixedState === 1 ? "active" : fallbackStatus
+        : fallbackStatus;
+      const longStatus = cleaveSummary
+        ? cleaveSummary.tradingYieldState >= 2 ? "matured" : cleaveSummary.tradingYieldState === 1 ? "active" : fallbackStatus
+        : fallbackStatus;
       if (ptRaw > BigInt(0)) {
         output.push({
           id: this.positionId(userAddress, market, "fixed"),
@@ -901,7 +921,7 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
           openedAt: "Live source",
           txHash: undefined,
           entryDataAvailable: false,
-          status,
+          status: fixedStatus,
         });
       }
       if (ytRaw > BigInt(0)) {
@@ -926,7 +946,7 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
           lastClaimedAt: "Live source",
           txHash: undefined,
           entryDataAvailable: false,
-          status,
+          status: longStatus,
         });
       }
     }
@@ -967,8 +987,9 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
     const outputToken = strategy === "fixed" ? market.ptAddress : market.ytAddress;
     const outputDecimals = strategy === "fixed" ? market.ptDecimals : market.ytDecimals;
     if (!outputToken || outputDecimals === undefined) throw new YieldDomainError("live-source-unavailable", "This live market is missing PT/YT metadata.");
+    await validateCleaveExecution(market.id, this.resolvePublicClient(selectedChain, runtime));
     const response = await this.convert(selectedChain, owner, market.underlyingTokenAddress, inputBaseUnits, [outputToken]);
-    const execution = await this.executeTransaction(response, owner, selectedChain, market.underlyingTokenAddress, runtime);
+    const execution = await this.executeTransaction(response, owner, selectedChain, market.underlyingTokenAddress, market.id, runtime);
     const outputRaw = execution.outputAmount || BigInt(0);
     const outputAmount = Number(formatUnits(outputRaw, outputDecimals));
     const txHash = execution.txHash;
@@ -1036,6 +1057,7 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
     const { publicClient, walletClient } = this.assertWalletRuntime(request.chainId, runtime);
     if (request.amount <= BigInt(0)) throw new YieldDomainError("invalid-amount", "Approval amount must be greater than zero.");
     await this.assertNativeGasBalance(publicClient, request.owner);
+    await validateCleaveExecution(request.marketId, publicClient);
     try {
       const txHash = await walletClient.writeContract({
         account: request.owner,
@@ -1069,11 +1091,14 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
     if (parts.strategy !== "long") throw new YieldDomainError("unsupported-operation", "Only YT positions can claim yield.");
     const market = await this.getMarketOrThrow(parts.marketId, runtime);
     if (!market.ytAddress || !market.syAddress) throw new YieldDomainError("unsupported-operation", "This live market does not expose a verified claim route.");
+    const { publicClient } = this.assertWalletRuntime(this.getChainId(chainId), runtime);
+    const lifecycle = await readCleaveLifecycle(parts.marketId, "long", publicClient);
+    if (!lifecycle.claimYieldEligible) throw new YieldDomainError("nothing-claimable", "CLEAVE reports no yield available to claim for this position.");
     const before = await this.getPositions(userAddress, this.getChainId(chainId), runtime);
     const livePosition = before.find((position) => position.id === positionId);
     if (!livePosition || livePosition.strategy !== "long" || livePosition.claimableYield <= 0) throw new YieldDomainError("nothing-claimable", "The live source reports no yield available to claim.");
     const response = await this.request<SdkTransactionResponse>(`/v1/sdk/${ROBINHOOD_CHAIN_ID}/redeem-interests-and-rewards?receiver=${userAddress}&sys=${market.syAddress}&yts=${market.ytAddress}`);
-    const execution = await this.executeSdkTransaction(response, userAddress, ROBINHOOD_CHAIN_ID, runtime);
+    const execution = await this.executeSdkTransaction(response, userAddress, ROBINHOOD_CHAIN_ID, parts.marketId, runtime);
     return { claimedAmount: livePosition.claimableYield, txHash: execution.txHash, chainId: ROBINHOOD_CHAIN_ID, status: "confirmed", blockNumber: execution.blockNumber, timestamp: Date.now() };
   }
 
@@ -1085,10 +1110,12 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
     if (market.status !== "matured") throw new YieldDomainError("pt-not-redeemable", "PT can only be redeemed after the verified market maturity.");
     if (!market.ptAddress || !market.underlyingTokenAddress || market.ptDecimals === undefined) throw new YieldDomainError("unsupported-operation", "This live market does not expose a verified PT redemption route.");
     const { publicClient } = this.assertWalletRuntime(this.getChainId(chainId), runtime);
+    const lifecycle = await readCleaveLifecycle(parts.marketId, "fixed", publicClient);
+    if (!lifecycle.redeemAtMaturityEligible) throw new YieldDomainError("pt-not-redeemable", "CLEAVE reports that this PT position is not redeemable yet.");
     const amount = await this.readTokenBalance(publicClient, market.ptAddress, userAddress);
     if (amount <= BigInt(0)) throw new YieldDomainError("pt-already-redeemed", "No PT balance is available to redeem.");
     const response = await this.convert(ROBINHOOD_CHAIN_ID, userAddress, market.ptAddress, amount, [market.underlyingTokenAddress]);
-    const execution = await this.executeTransaction(response, userAddress, ROBINHOOD_CHAIN_ID, market.ptAddress, runtime);
+    const execution = await this.executeTransaction(response, userAddress, ROBINHOOD_CHAIN_ID, market.ptAddress, parts.marketId, runtime);
     const redeemedAmount = execution.outputAmount && market.underlyingDecimals !== undefined
       ? Number(formatUnits(execution.outputAmount, market.underlyingDecimals))
       : undefined;
@@ -1103,10 +1130,12 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
     const token = parts.strategy === "fixed" ? market.ptAddress : market.ytAddress;
     if (!token || !market.underlyingTokenAddress || market.underlyingDecimals === undefined) throw new YieldDomainError("unsupported-operation", "This live market does not expose a verified sell route.");
     const { publicClient } = this.assertWalletRuntime(this.getChainId(chainId), runtime);
+    const lifecycle = await readCleaveLifecycle(parts.marketId, parts.strategy, publicClient);
+    if (!lifecycle.sellEarlyEligible) throw new YieldDomainError("position-not-sellable", "CLEAVE reports that this position is not eligible for early sale.");
     const amount = await this.readTokenBalance(publicClient, token, userAddress);
     if (amount <= BigInt(0)) throw new YieldDomainError("position-not-sellable", "No live token balance is available to sell.");
     const response = await this.convert(ROBINHOOD_CHAIN_ID, userAddress, token, amount, [market.underlyingTokenAddress]);
-    const execution = await this.executeTransaction(response, userAddress, ROBINHOOD_CHAIN_ID, token, runtime);
+    const execution = await this.executeTransaction(response, userAddress, ROBINHOOD_CHAIN_ID, token, parts.marketId, runtime);
     const returnedAmount = execution.outputAmount ? Number(formatUnits(execution.outputAmount, market.underlyingDecimals)) : undefined;
     return { returnedAmount, txHash: execution.txHash, chainId: ROBINHOOD_CHAIN_ID, status: "confirmed", blockNumber: execution.blockNumber, timestamp: Date.now() };
   }

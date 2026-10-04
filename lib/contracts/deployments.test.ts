@@ -12,11 +12,22 @@ describe("verified contract deployment registry", () => {
     expect(router?.usedByRuntime).toBe(true);
   });
 
-  it("keeps the confirmed CLEAVE-owned deployment isolated to Testnet", () => {
-    expect(getProjectContractDeployments(4663)).toEqual([]);
+  it("preserves the confirmed CLEAVE-owned deployments on both networks", () => {
+    const mainnet = getProjectContractDeployments(4663);
     const registry = getProjectContractDeployments(46630);
 
+    expect(mainnet).toHaveLength(8);
     expect(registry).toHaveLength(8);
+    expect(mainnet.map((deployment) => deployment.name)).toEqual([
+      "CleaveAccessManager",
+      "CleaveRegistry",
+      "CleaveAdapterRegistry",
+      "CleaveMarketRegistry",
+      "CleaveRiskGuard",
+      "CleaveExecutionRouter",
+      "CleaveLifecycleManager",
+      "CleaveLens",
+    ]);
     expect(registry.map((deployment) => deployment.name)).toEqual([
       "CleaveRegistry",
       "CleaveAccessManager",
@@ -36,7 +47,18 @@ describe("verified contract deployment registry", () => {
       expect(deployment.deploymentBlock).toBeGreaterThan(0);
       expect(deployment.gasUsed).toMatch(/^[0-9]+$/);
     }
+    for (const deployment of mainnet) {
+      expect(deployment.chainId).toBe(4663);
+      expect(deployment.ownership).toBe("project");
+      expect(deployment.verified).toBe(false);
+      expect(deployment.verificationStatus).toBe("DEPLOYED / NOT VERIFIED");
+      expect(deployment.usedByRuntime).toBe(false);
+      expect(deployment.deploymentTx).toMatch(/^0x[0-9a-f]{64}$/);
+      expect(deployment.deploymentBlock).toBeGreaterThan(0);
+      expect(deployment.gasUsed).toMatch(/^[0-9]+$/);
+    }
+    expect(mainnet[0]?.address).toBe("0x8ba198d9275c65ee208eadd22084f38d0f193395");
     expect(registry[0]?.address).toBe("0xa5d21b39258da11152a0e63135936b1e60acfe43");
-    expect(getContractDeployments("mainnet").some((deployment) => deployment.ownership === "project")).toBe(false);
+    expect(getContractDeployments("mainnet").filter((deployment) => deployment.ownership === "project")).toHaveLength(8);
   });
 });

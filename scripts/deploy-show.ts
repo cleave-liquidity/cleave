@@ -1,4 +1,4 @@
-import { createPublicClient, http } from "viem";
+import { createPublicClient, http, parseAbiItem } from "viem";
 import { yieldAdapter } from "../lib/adapters/mock-adapter";
 import { pickFeaturedMarket } from "../components/landing/featuredMarket";
 import { isMarketTradable } from "../lib/markets/status";
@@ -22,6 +22,11 @@ const LABEL_WIDTH = 38;
 
 type RpcProbe = { status: "PASS" | "FAIL"; blockNumber?: bigint };
 type MarketProbe = { status: "PASS" | "FAIL"; total?: number };
+type RegisteredMarketProbe = { status: "PASS" | "FAIL"; total?: number };
+
+const CLEAVE_MARKET_REGISTERED_EVENT = parseAbiItem(
+  "event MarketRegistered(bytes32 indexed marketId, bytes32 indexed adapterId, address indexed market, uint256 chainId, uint256 maturity)",
+);
 
 const useColor = Boolean(process.stdout.isTTY);
 const useTypewriter = useColor;
@@ -139,6 +144,36 @@ async function probePendleMarkets(chainId: number): Promise<MarketProbe> {
   }
 }
 
+async function probeRegisteredMainnetMarkets(): Promise<RegisteredMarketProbe> {
+  const deployment = getContractByName(ROBINHOOD_CHAIN_ID, "CleaveMarketRegistry");
+  if (!deployment?.address || deployment.deploymentBlock === undefined) return { status: "FAIL" };
+
+  const rpcUrls = [
+    "https://rpc.mainnet.chain.robinhood.com",
+    process.env.ROBINHOOD_MAINNET_RPC_URL?.trim(),
+    process.env.NEXT_PUBLIC_ROBINHOOD_CHAIN_RPC_URL?.trim(),
+  ].filter((value): value is string => Boolean(value));
+
+  for (const rpcUrl of rpcUrls) {
+    try {
+      const client = createPublicClient({
+        chain: robinhoodChain,
+        transport: http(rpcUrl),
+      });
+      const logs = await client.getLogs({
+        address: deployment.address,
+        event: CLEAVE_MARKET_REGISTERED_EVENT,
+        fromBlock: BigInt(deployment.deploymentBlock),
+      });
+      return { status: "PASS", total: logs.length };
+    } catch {
+      // Try the next configured endpoint; public RPC avoids provider log-range limits.
+    }
+  }
+
+  return { status: "FAIL" };
+}
+
 async function probeQuotes(marketId: string): Promise<{ fixed: boolean; long: boolean; source?: string }> {
   try {
     const [fixed, long] = await Promise.all([
@@ -159,6 +194,7 @@ async function main(): Promise<void> {
   const mainnetRpc = await probeRpc(ROBINHOOD_CHAIN_ID);
   const testnetRpc = await probeRpc(ROBINHOOD_TESTNET_CHAIN_ID);
   const testnetMarkets = await probePendleMarkets(ROBINHOOD_TESTNET_CHAIN_ID);
+  const registeredMainnetMarkets = await probeRegisteredMainnetMarkets();
 
   let markets = [] as Awaited<ReturnType<typeof yieldAdapter.getMarkets>>;
   try {
@@ -242,6 +278,9 @@ async function main(): Promise<void> {
   const projectMainnet = mainnetDeployments.filter((deployment) => deployment.ownership === "project");
   const projectTestnet = testnetDeployments.filter((deployment) => deployment.ownership === "project");
   line("Project Contracts", `Mainnet ${projectMainnet.length} · Testnet ${projectTestnet.length}`);
+  line("Registered CLEAVE Markets", registeredMainnetMarkets.status === "PASS"
+    ? `Mainnet ${registeredMainnetMarkets.total}`
+    : "Mainnet UNAVAILABLE");
   line("Mainnet CLEAVE Modules", projectMainnet.length ? `${projectMainnet.length} deployed` : "PREPARED · NOT DEPLOYED");
   for (const deployment of projectMainnet) {
     line("Project / deployment", `${deploymentStatus(deployment)} · ${deployment.address}`);

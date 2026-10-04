@@ -17,6 +17,8 @@ export interface TokenApprovalRequest {
   spender: `0x${string}`;
   amount: bigint;
   chainId: number;
+  /** Canonical live market ID used for CLEAVE execution preflight. */
+  marketId: string;
 }
 
 export type TransactionStep =
