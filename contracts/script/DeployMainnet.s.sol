@@ -11,7 +11,7 @@ import {CleaveRegistry} from "../src/CleaveRegistry.sol";
 import {CleaveRiskGuard} from "../src/CleaveRiskGuard.sol";
 
 interface VmMainnet {
-    function envUint(string calldata name) external returns (uint256 value);
+    function envOr(string calldata name, uint256 defaultValue) external returns (uint256 value);
     function envString(string calldata name) external returns (string memory value);
     function envOr(string calldata name, address defaultValue) external returns (address value);
     function envOr(string calldata name, bytes32 defaultValue) external returns (bytes32 value);
@@ -28,7 +28,7 @@ contract DeployMainnet {
     VmMainnet private constant vm = VmMainnet(address(uint160(uint256(keccak256("hevm cheat code")))));
 
     error WrongChain(uint256 actualChainId);
-    error MissingPrivateKey();
+    error MissingMainnetPrivateKey();
     error MissingMainnetConfirmation();
     error DeployerNeedsMainnetEth(address deployer);
 
@@ -62,8 +62,8 @@ contract DeployMainnet {
         string memory confirmation = vm.envString("CLEAVE_MAINNET_CONFIRMATION");
         if (keccak256(bytes(confirmation)) != CONFIRMATION_HASH) revert MissingMainnetConfirmation();
 
-        uint256 privateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
-        if (privateKey == 0) revert MissingPrivateKey();
+        uint256 privateKey = vm.envOr("MAINNET_DEPLOYER_PRIVATE_KEY", uint256(0));
+        if (privateKey == 0) revert MissingMainnetPrivateKey();
         address deployer = vm.addr(privateKey);
         if (deployer.balance == 0) revert DeployerNeedsMainnetEth(deployer);
 

@@ -15,6 +15,7 @@
     "contracts:deploy:testnet": "bun run deploy:testnet",
     "contracts:verify:testnet": "bun scripts/verify-testnet-modules.ts",
     "contracts:sync": "bun scripts/sync-project-deployments.ts",
+    "contracts:sync-mainnet": "bun scripts/sync-mainnet-project-deployments.ts",
     "contracts:sync-mainnet-markets": "bun scripts/sync-mainnet-markets.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",

@@ -127,6 +127,7 @@ describe("Pendle live market normalization", () => {
       spender: "0x0000000000000000000000000000000000000001",
       amount: BigInt(1),
       chainId: 4663,
+      marketId: underlying.address,
     })).rejects.toMatchObject({ code: "live-source-unavailable" });
   });
 
@@ -150,6 +151,7 @@ describe("Pendle live market normalization", () => {
       spender: "0x888888888889758F76e7103c6CbF23ABbF58F946",
       amount: BigInt(1),
       chainId: 4663,
+      marketId: underlying.address,
     }, { publicClient, walletClient })).rejects.toMatchObject({
       code: "insufficient-eth-for-gas",
     });
@@ -163,10 +165,12 @@ describe("Pendle live market normalization", () => {
       spender: "0x888888888889758F76e7103c6CbF23ABbF58F946" as `0x${string}`,
       amount: BigInt(1),
       chainId: 4663 as const,
+      marketId: underlying.address,
     };
     const publicClient = {
       chain: { id: 4663 },
       getBalance: async () => BigInt(1),
+      readContract: async () => [true, "0x50454e444c450000000000000000000000000000000000000000000000000000", "0x888888888889758F76e7103c6CbF23ABbF58F946"],
       waitForTransactionReceipt: async () => ({ status: "success", blockNumber: BigInt(42) }),
     } as any;
     const rejectingWalletClient = {

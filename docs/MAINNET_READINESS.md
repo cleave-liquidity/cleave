@@ -9,6 +9,12 @@
 - Verified external Pendle router/factory deployments are listed in the contract registry.
 - Production writes are implemented, but still require the human-wallet canary below.
 
+## Deployment identity
+
+- Testnet deployment uses `DEPLOYER_PRIVATE_KEY` with `ROBINHOOD_TESTNET_RPC_URL`.
+- Mainnet deployment uses the separate `MAINNET_DEPLOYER_PRIVATE_KEY` with `ROBINHOOD_MAINNET_RPC_URL`.
+- Never reuse the Testnet private key for Mainnet, and never commit either private key.
+
 ## Mainnet gate
 
 Mainnet is **not yet signed off for unrestricted user funds**. The live adapter has typed market, quote, approval, transaction, receipt, and portfolio boundaries; the operational and human-wallet checks below remain release gates.

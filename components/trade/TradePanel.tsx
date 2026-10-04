@@ -359,6 +359,7 @@ export function TradePanel({
           spender: approvalSpender,
           amount: quoteForExecution.approvalAmount,
           chainId: market.chainId,
+          marketId: market.id,
         });
         await refreshAllowance();
         setTxState({ step: "approval-success" });

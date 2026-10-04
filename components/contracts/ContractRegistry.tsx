@@ -111,6 +111,9 @@ function ProjectOwnedContracts({
   network: RobinhoodNetwork;
   deployments: readonly ContractDeployment[];
 }) {
+  const verifiedCount = deployments.filter((deployment) => deployment.verified).length;
+  const allVerified = verifiedCount === deployments.length;
+
   return (
     <section className="flex flex-col gap-3">
       <div className="mono text-[10px] uppercase tracking-[0.16em] text-muted-dark">Project-owned contracts</div>
@@ -121,12 +124,12 @@ function ProjectOwnedContracts({
         </div>
       ) : (
         <div className="flex flex-col gap-3 border border-white/15 bg-surface/70 px-5 py-5 text-[13px] leading-6 text-muted">
-          {network === "testnet" && (
-            <div className="border-b border-white/10 pb-4">
-              <span className="block text-foreground">{deployments.length} contracts deployed and verified</span>
-              <span>CLEAVE&apos;s project-owned contracts are deployed and verified on Robinhood Chain Testnet 46630.</span>
-            </div>
-          )}
+          <div className="border-b border-white/10 pb-4">
+            <span className="block text-foreground">{deployments.length} contracts deployed{allVerified ? " and verified" : ""}</span>
+            <span>{allVerified
+              ? `CLEAVE's project-owned contracts are deployed and verified on Robinhood Chain ${network === "mainnet" ? "Mainnet 4663" : "Testnet 46630"}.`
+              : `CLEAVE's project-owned contracts are deployed on Robinhood Chain ${network === "mainnet" ? "Mainnet 4663" : "Testnet 46630"}. Source verification status is shown per contract.`}</span>
+          </div>
           {deployments.map((deployment) => (
             <div key={deployment.id} className="grid gap-2 sm:grid-cols-[1.1fr_2fr_1fr] sm:items-start">
               <div>
@@ -157,7 +160,7 @@ export function ContractRegistry() {
   const filteredDeployments = category === "all"
     ? externalDeployments
     : externalDeployments.filter((deployment) => deployment.category === category);
-  const summaryDeployments = network === "testnet" ? projectDeployments : filteredDeployments;
+  const summaryDeployments = projectDeployments;
 
   const copyAddress = async (deployment: ContractDeployment) => {
     if (!navigator.clipboard) return;
@@ -202,9 +205,7 @@ export function ContractRegistry() {
         {network === "mainnet" ? "Robinhood Chain Mainnet · Chain 4663" : "Robinhood Chain Testnet · Chain 46630"}
       </div>
 
-      {network === "testnet" && (
-        <ProjectOwnedContracts network={network} deployments={projectDeployments} />
-      )}
+      <ProjectOwnedContracts network={network} deployments={projectDeployments} />
 
       {representedCategories.length > 0 && (
         <div className="flex flex-wrap items-center gap-2" aria-label="Filter contract categories">
@@ -259,9 +260,6 @@ export function ContractRegistry() {
 
       {network === "mainnet" && <LiveMarketContracts network={network} />}
 
-      {network === "mainnet" && (
-        <ProjectOwnedContracts network={network} deployments={projectDeployments} />
-      )}
     </div>
   );
 }

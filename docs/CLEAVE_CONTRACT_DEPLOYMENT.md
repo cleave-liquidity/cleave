@@ -72,7 +72,7 @@ Use the explorer’s current verification API URL if its endpoint differs. Do no
 
 ## Exact Mainnet next step
 
-There is no Mainnet deployment in this repository and this turn does not broadcast one. Before any Mainnet action, review the source and deployment simulation, create a separate Mainnet-only script guarded for chain `4663`, set `ROBINHOOD_MAINNET_RPC_URL`, fund the deployer with Mainnet ETH, confirm the chain ID, and obtain an explicit human approval for the broadcast. Then verify the resulting address and synchronize only the confirmed Mainnet broadcast metadata.
+There is no Mainnet deployment in this repository and this turn does not broadcast one. Before any Mainnet action, review the source and deployment simulation, use the dedicated `MAINNET_DEPLOYER_PRIVATE_KEY`, set `ROBINHOOD_MAINNET_RPC_URL`, fund only that Mainnet deployer with Mainnet ETH, confirm the chain ID, and obtain explicit human approval for the broadcast. Then verify the resulting address and synchronize only the confirmed Mainnet broadcast metadata.
 
 Do not reuse the Testnet broadcast flag or copy a Testnet address to Mainnet. No gas threshold is fabricated; use the simulation and the actual deployer balance to decide whether the transaction is fundable.
 
@@ -121,7 +121,15 @@ Mainnet has a separate script and separate wrapper:
 bun deploy:mainnet
 ```
 
-It requires chain `4663`, `ROBINHOOD_MAINNET_RPC_URL`, a funded deployer, and the exact explicit confirmation `CLEAVE_MAINNET_DEPLOY_4663`. It defaults to simulation; broadcasting additionally requires `DEPLOY_BROADCAST_MAINNET=1`. It never reuses Testnet addresses. Deployment order is:
+Mainnet uses a dedicated deployer key and never reads the Testnet `DEPLOYER_PRIVATE_KEY`:
+
+```bash
+export ROBINHOOD_MAINNET_RPC_URL="<Robinhood Chain Mainnet RPC>"
+export MAINNET_DEPLOYER_PRIVATE_KEY="<separate Mainnet secret>"
+export CLEAVE_MAINNET_CONFIRMATION="CLEAVE_MAINNET_DEPLOY_4663"
+```
+
+It requires chain `4663`, `ROBINHOOD_MAINNET_RPC_URL`, `MAINNET_DEPLOYER_PRIVATE_KEY`, a funded Mainnet deployer, and the exact explicit confirmation `CLEAVE_MAINNET_DEPLOY_4663`. It defaults to simulation; broadcasting additionally requires `DEPLOY_BROADCAST_MAINNET=1`. It never reuses Testnet addresses. Deployment order is:
 
 1. `CleaveAccessManager`
 2. fresh `CleaveRegistry`
