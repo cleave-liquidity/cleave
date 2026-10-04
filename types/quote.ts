@@ -47,3 +47,35 @@ export interface LongYieldQuote {
   approvalToken?: `0x${string}`;
   approvalAmount?: bigint;
 }
+
+export interface ExitQuote {
+  quoteId: string;
+  positionId: string;
+  marketId: string;
+  chainId: number;
+  inputToken: Address;
+  inputSymbol: string;
+  inputAmount: number;
+  outputToken: Address;
+  outputSymbol: string;
+  outputAmount: number;
+  minimumReceived: number;
+  priceImpact: number;
+  networkFeeEstimate?: number;
+  maturity: string;
+  quoteTimestamp: number;
+  quoteExpiry: number;
+  inputBaseUnits: bigint;
+  outputBaseUnits: bigint;
+  approvalToken?: Address;
+  approvalAmount?: bigint;
+  spender: Address;
+  transaction: {
+    to: Address;
+    data: Hex;
+    value: bigint;
+    from?: Address;
+  };
+  source?: string;
+}
+import type { Address, Hex } from "viem";

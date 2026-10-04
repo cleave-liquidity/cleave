@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { formatNetworkFee, formatPriceImpact } from "./formatters";
+import { formatNativeBalance, formatNetworkFee, formatPriceImpact } from "./formatters";
 
 describe("formatPriceImpact", () => {
   it("rounds readable impacts to two decimals", () => {
@@ -25,5 +25,18 @@ describe("formatNetworkFee", () => {
   it("never rounds a real fee down to a misleading zero", () => {
     expect(formatNetworkFee(0.0000000042)).toBe("<0.000001 ETH");
     expect(formatNetworkFee(0)).toBe("0 ETH");
+  });
+});
+
+describe("formatNativeBalance", () => {
+  it("keeps a small positive ETH balance visible", () => {
+    expect(formatNativeBalance(0.00069)).toBe("0.00069");
+    expect(formatNativeBalance(0.0042)).toBe("0.0042");
+    expect(formatNativeBalance(0)).toBe("0");
+  });
+
+  it("does not round a tiny positive balance down to zero", () => {
+    expect(formatNativeBalance(0.0000004)).toBe("<0.000001");
+    expect(formatNativeBalance(Number.NaN)).toBe("—");
   });
 });

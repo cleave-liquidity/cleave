@@ -27,6 +27,14 @@ export function formatNetworkFee(fee: number): string {
   return `~${fee.toFixed(6)} ETH`;
 }
 
+/** Keep small positive native balances visible instead of rounding them to zero. */
+export function formatNativeBalance(balance: number): string {
+  if (!Number.isFinite(balance)) return "—";
+  if (balance === 0) return "0";
+  if (balance > 0 && balance < 0.000001) return "<0.000001";
+  return balance.toFixed(6).replace(/\.?(0+)$/, "").replace(/\.$/, "");
+}
+
 export function formatUsd(amount: number): string {
   if (amount >= 1_000_000) {
     return `$${(amount / 1_000_000).toFixed(1)}M`;
