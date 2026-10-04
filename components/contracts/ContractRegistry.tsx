@@ -134,9 +134,24 @@ function ProjectOwnedContracts({
             <div key={deployment.id} className="grid gap-2 sm:grid-cols-[1.1fr_2fr_1fr] sm:items-start">
               <div>
                 <span className="block text-foreground">{deployment.name}</span>
-                <span className="mono text-[10px] uppercase tracking-[0.12em] text-amber">{deployment.verificationStatus || (deployment.verified ? "VERIFIED" : "UNVERIFIED")}</span>
+                {network === "mainnet" ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="mono text-[10px] uppercase tracking-[0.12em] text-muted-dark">ON MAINNET</span>
+                    <span aria-hidden="true" className="text-muted-dark">·</span>
+                    <span className="mono text-[10px] uppercase tracking-[0.12em] text-amber">{deployment.verificationStatus || (deployment.verified ? "VERIFIED" : "UNVERIFIED")}</span>
+                  </div>
+                ) : (
+                  <span className="mono text-[10px] uppercase tracking-[0.12em] text-amber">{deployment.verificationStatus || (deployment.verified ? "VERIFIED" : "UNVERIFIED")}</span>
+                )}
               </div>
-              <code className="break-all text-[11px]">{deployment.address}</code>
+              {network === "mainnet" && deployment.explorerUrl ? (
+                <a href={deployment.explorerUrl} target="_blank" rel="noopener noreferrer" aria-label={`Open ${deployment.name} on Robinhood Chain Mainnet Blockscout`} className="inline-flex items-start gap-1 text-[11px] text-muted underline decoration-white/25 underline-offset-2 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice">
+                  <code className="break-all">{deployment.address}</code>
+                  <ExternalLink className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                </a>
+              ) : (
+                <code className="break-all text-[11px]">{deployment.address}</code>
+              )}
               <span className="text-[12px]">Used by current runtime: {deployment.usedByRuntime ? "YES" : "NO · registry only"}</span>
             </div>
           ))}

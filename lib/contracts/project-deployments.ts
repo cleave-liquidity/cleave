@@ -11,7 +11,7 @@ export const projectContractDeployments: Readonly<Record<ContractChainId, readon
       "runtimeRole": "Shared admin, operator, and guardian authorization layer for CLEAVE modules.",
       "chainId": 4663,
       "address": "0x8ba198d9275c65ee208eadd22084f38d0f193395",
-      "verified": false,
+      "verified": true,
       "ownership": "project",
       "explorerUrl": "https://robinhoodchain.blockscout.com/address/0x8ba198d9275c65ee208eadd22084f38d0f193395",
       "usedByRuntime": false,
@@ -19,7 +19,7 @@ export const projectContractDeployments: Readonly<Record<ContractChainId, readon
       "deploymentBlock": 79841471,
       "deployer": "0x67214bdf8597d46aaef7110983e2276dd2235f6e",
       "gasUsed": "401762",
-      "verificationStatus": "DEPLOYED / NOT VERIFIED"
+      "verificationStatus": "VERIFIED"
     },
     {
       "id": "cleave-registry-mainnet",
@@ -29,7 +29,7 @@ export const projectContractDeployments: Readonly<Record<ContractChainId, readon
       "runtimeRole": "Top-level CLEAVE discovery/configuration anchor; not part of the Pendle trade execution path.",
       "chainId": 4663,
       "address": "0xaa58afad613b2048ef526325c6989ec74703152b",
-      "verified": false,
+      "verified": true,
       "ownership": "project",
       "explorerUrl": "https://robinhoodchain.blockscout.com/address/0xaa58afad613b2048ef526325c6989ec74703152b",
       "usedByRuntime": false,
@@ -37,7 +37,7 @@ export const projectContractDeployments: Readonly<Record<ContractChainId, readon
       "deploymentBlock": 79841476,
       "deployer": "0x67214bdf8597d46aaef7110983e2276dd2235f6e",
       "gasUsed": "283560",
-      "verificationStatus": "DEPLOYED / NOT VERIFIED"
+      "verificationStatus": "VERIFIED"
     },
     {
       "id": "cleave-adapter-registry-mainnet",
@@ -47,7 +47,7 @@ export const projectContractDeployments: Readonly<Record<ContractChainId, readon
       "runtimeRole": "Registry-only external adapter configuration; no arbitrary protocol execution.",
       "chainId": 4663,
       "address": "0xc6a3d3e37f917f971d73f3aa4ec4019a04cb7cac",
-      "verified": false,
+      "verified": true,
       "ownership": "project",
       "explorerUrl": "https://robinhoodchain.blockscout.com/address/0xc6a3d3e37f917f971d73f3aa4ec4019a04cb7cac",
       "usedByRuntime": false,
@@ -55,7 +55,7 @@ export const projectContractDeployments: Readonly<Record<ContractChainId, readon
       "deploymentBlock": 79841482,
       "deployer": "0x67214bdf8597d46aaef7110983e2276dd2235f6e",
       "gasUsed": "464469",
-      "verificationStatus": "DEPLOYED / NOT VERIFIED"
+      "verificationStatus": "VERIFIED"
     },
     {
       "id": "cleave-market-registry-mainnet",
@@ -65,7 +65,7 @@ export const projectContractDeployments: Readonly<Record<ContractChainId, readon
       "runtimeRole": "Registry-only market, PT, YT, SY, underlying, maturity, and adapter metadata.",
       "chainId": 4663,
       "address": "0xf48ac38c6a4342135c3ff4e45c4cd750576fe8e7",
-      "verified": false,
+      "verified": true,
       "ownership": "project",
       "explorerUrl": "https://robinhoodchain.blockscout.com/address/0xf48ac38c6a4342135c3ff4e45c4cd750576fe8e7",
       "usedByRuntime": false,
@@ -73,7 +73,7 @@ export const projectContractDeployments: Readonly<Record<ContractChainId, readon
       "deploymentBlock": 79841487,
       "deployer": "0x67214bdf8597d46aaef7110983e2276dd2235f6e",
       "gasUsed": "711510",
-      "verificationStatus": "DEPLOYED / NOT VERIFIED"
+      "verificationStatus": "VERIFIED"
     },
     {
       "id": "cleave-risk-guard-mainnet",
@@ -83,7 +83,7 @@ export const projectContractDeployments: Readonly<Record<ContractChainId, readon
       "runtimeRole": "Risk state consumed by the CLEAVE execution boundary.",
       "chainId": 4663,
       "address": "0x4f3e119ddcd8d12b57b7c5b856f40ff85544913b",
-      "verified": false,
+      "verified": true,
       "ownership": "project",
       "explorerUrl": "https://robinhoodchain.blockscout.com/address/0x4f3e119ddcd8d12b57b7c5b856f40ff85544913b",
       "usedByRuntime": false,
@@ -91,7 +91,7 @@ export const projectContractDeployments: Readonly<Record<ContractChainId, readon
       "deploymentBlock": 79841492,
       "deployer": "0x67214bdf8597d46aaef7110983e2276dd2235f6e",
       "gasUsed": "502842",
-      "verificationStatus": "DEPLOYED / NOT VERIFIED"
+      "verificationStatus": "VERIFIED"
     },
     {
       "id": "cleave-execution-router-mainnet",
@@ -119,7 +119,7 @@ export const projectContractDeployments: Readonly<Record<ContractChainId, readon
       "runtimeRole": "Read-only sell, maturity, expiry, and yield-claim eligibility rules; no settlement or amount fabrication.",
       "chainId": 4663,
       "address": "0xc3c60d0680a5db41d68187c62af2dd499220a865",
-      "verified": false,
+      "verified": true,
       "ownership": "project",
       "explorerUrl": "https://robinhoodchain.blockscout.com/address/0xc3c60d0680a5db41d68187c62af2dd499220a865",
       "usedByRuntime": false,
@@ -127,7 +127,7 @@ export const projectContractDeployments: Readonly<Record<ContractChainId, readon
       "deploymentBlock": 79841502,
       "deployer": "0x67214bdf8597d46aaef7110983e2276dd2235f6e",
       "gasUsed": "269790",
-      "verificationStatus": "DEPLOYED / NOT VERIFIED"
+      "verificationStatus": "VERIFIED"
     },
     {
       "id": "cleave-lens-mainnet",
@@ -137,7 +137,7 @@ export const projectContractDeployments: Readonly<Record<ContractChainId, readon
       "runtimeRole": "Canonical combined read surface for frontend and deployment diagnostics.",
       "chainId": 4663,
       "address": "0x8a41d30eb2ea283d12505449a478f20c314c2cf9",
-      "verified": false,
+      "verified": true,
       "ownership": "project",
       "explorerUrl": "https://robinhoodchain.blockscout.com/address/0x8a41d30eb2ea283d12505449a478f20c314c2cf9",
       "usedByRuntime": false,
@@ -145,7 +145,7 @@ export const projectContractDeployments: Readonly<Record<ContractChainId, readon
       "deploymentBlock": 79841507,
       "deployer": "0x67214bdf8597d46aaef7110983e2276dd2235f6e",
       "gasUsed": "864996",
-      "verificationStatus": "DEPLOYED / NOT VERIFIED"
+      "verificationStatus": "VERIFIED"
     }
   ],
   46630:   [
