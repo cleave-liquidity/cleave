@@ -312,7 +312,7 @@ export function PositionCard({
 
   return (
     <div
-      className={`relative overflow-hidden border border-white/10 rounded-xl bg-surface/80 p-5 flex flex-col gap-4 md:grid md:grid-cols-[minmax(220px,2fr)_minmax(96px,0.85fr)_minmax(160px,1.35fr)_minmax(125px,1fr)_minmax(125px,1fr)_minmax(190px,1.5fr)] md:items-start md:gap-x-5 md:gap-y-0 md:rounded-none md:border-0 md:border-b md:border-white/[0.06] last:md:border-b-0 md:px-6 md:py-5 hover:bg-white/[0.025] transition-colors ${
+      className={`relative overflow-hidden border border-white/10 rounded-xl bg-surface/80 p-5 flex flex-col gap-4 md:grid md:grid-cols-[minmax(220px,2fr)_minmax(96px,0.85fr)_minmax(160px,1.35fr)_minmax(125px,1fr)_minmax(125px,1fr)_minmax(270px,1.8fr)] md:items-start md:gap-x-5 md:gap-y-0 md:rounded-none md:border-0 md:border-b md:border-white/[0.06] last:md:border-b-0 md:px-6 md:py-5 hover:bg-white/[0.025] transition-colors ${
         isFixed ? "border-l-2 border-l-ice" : "border-l-2 border-l-amber"
       }`}
     >
@@ -411,7 +411,7 @@ export function PositionCard({
           <span className="mono text-[10px] uppercase tracking-[0.14em] text-muted-dark">
             Maturity / Action
           </span>
-          <span className={`mono text-[17px] ${isFixed ? "text-ice" : "text-amber"}`}>
+          <span className={`mono max-w-full break-words text-[15px] leading-5 ${isFixed ? "text-ice" : "text-amber"}`}>
             {isFixed
               ? `At Maturity: ${formatPositionTokenAmount(fixedPos?.ptAmount ?? Number.NaN)} ${position.assetSymbol}`
               : `Claimable: ${formatPositionTokenAmount(longPos?.claimableYield ?? Number.NaN)} ${position.assetSymbol}`}
@@ -420,12 +420,12 @@ export function PositionCard({
 
         <Link
           href={`/markets/${position.marketId}`}
-          className="text-[13px] text-muted transition-colors hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ice"
+          className="whitespace-nowrap text-right text-[13px] text-muted transition-colors hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ice"
         >
           View Market →
         </Link>
 
-        <div className="flex items-center gap-3">
+        <div className="flex w-full flex-wrap items-center justify-end gap-2 md:w-full md:flex-nowrap">
           {/* Trading Yield (long) actions */}
           {!isFixed && (isActive || isMatured) && (
             <button
@@ -434,12 +434,15 @@ export function PositionCard({
                 loadingAction !== null || !canClaim || isWrongNetwork || isNativeBalanceBlocking
               }
               onClick={handleClaim}
-              className="min-h-[42px] px-4.5 rounded-lg bg-amber text-[#0A0B0C] text-[14px] font-medium flex items-center gap-1.5 hover:brightness-105 transition-all disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber"
+              className="inline-flex h-10 min-h-10 min-w-[154px] max-w-full shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-md bg-amber px-2.5 text-[12px] font-medium text-[#0A0B0C] transition-all hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber"
             >
               {loadingAction === "claim" && (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
               )}
-              <span>Claim Yield ({formatTokenAmount(longPos?.claimableYield || 0)})</span>
+              <span className="shrink-0">Claim Yield</span>
+              <span className="mono shrink-0 text-[10px] opacity-70">
+                {formatTokenAmount(longPos?.claimableYield || 0)} {position.assetSymbol}
+              </span>
             </button>
           )}
 
@@ -468,12 +471,12 @@ export function PositionCard({
               type="button"
               disabled={loadingAction !== null || sellFlowBusy || isWrongNetwork || isNativeBalanceBlocking}
               onClick={handleStartSellReview}
-              className="min-h-[42px] px-4 border border-white/25 rounded-lg bg-transparent text-foreground hover:border-white/50 text-[14px] flex items-center gap-1.5 transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice"
+              className="inline-flex h-10 min-h-10 min-w-[96px] max-w-full shrink-0 items-center justify-center whitespace-nowrap rounded-md border border-white/25 bg-transparent px-3 text-[12px] text-foreground transition-colors hover:border-white/50 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice"
             >
               {sellFlowStep === "quoting" && (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
               )}
-              <span>Sell Early</span>
+              <span className="shrink-0">Sell Early</span>
             </button>
           )}
         </div>
