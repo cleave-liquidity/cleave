@@ -171,6 +171,16 @@ function toHex(value: unknown): Hex | undefined {
   return typeof value === "string" && isHex(value) ? value : undefined;
 }
 
+function transactionValue(value: unknown): string | undefined {
+  // Pendle may omit `tx.value`; reviewed exit quotes store the normalized value as bigint.
+  if (value === undefined) return "0";
+  if (typeof value === "bigint") return value >= BigInt(0) ? value.toString() : undefined;
+  if (typeof value === "number") {
+    return Number.isSafeInteger(value) && value >= 0 ? String(value) : undefined;
+  }
+  return asString(value);
+}
+
 export type NormalizedPendleTransaction = {
   to: Address;
   data: Hex;
@@ -185,9 +195,17 @@ export function normalizePendleTransaction(
   const to = toAddress(transaction?.to);
   const data = toHex(transaction?.data);
   const from = transaction?.from === undefined ? undefined : toAddress(transaction.from);
-  const rawValue = transaction?.value === undefined ? "0" : asString(transaction.value);
+  const rawValue = transactionValue(transaction?.value);
 
-  if (!to || !data || (transaction?.from !== undefined && !from) || !rawValue || !/^(?:0x[0-9a-f]+|[0-9]+)$/i.test(rawValue)) {
+  if (
+    !to ||
+    !data ||
+    data.length <= 2 ||
+    (data.length - 2) % 2 !== 0 ||
+    (transaction?.from !== undefined && !from) ||
+    !rawValue ||
+    !/^(?:0x[0-9a-f]+|[0-9]+)$/i.test(rawValue)
+  ) {
     throw new YieldDomainError("live-source-unavailable", `Pendle returned invalid ${label} calldata.`);
   }
 

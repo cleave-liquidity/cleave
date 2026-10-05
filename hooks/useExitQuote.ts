@@ -30,6 +30,7 @@ export function useExitQuote(
     error: query.error,
     isFetching: query.isFetching,
     refetch: query.refetch,
+    invalidate: () => queryClient.invalidateQueries({ queryKey: queryKeys.exitQuote(positionId, userAddress, chainId) }),
     reset: () => queryClient.removeQueries({ queryKey: queryKeys.exitQuote(positionId, userAddress, chainId) }),
   };
 }

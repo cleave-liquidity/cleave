@@ -24,7 +24,16 @@ import {
   formatPositionTokenAmount,
   getFixedApyPresentation,
 } from "@/lib/positions/presentation";
-import { getSellFlowActionLabel, isSellFlowBusy, type SellFlowStep } from "@/lib/positions/sell-flow";
+import {
+  EXIT_TRANSACTION_UNAVAILABLE_MESSAGE,
+  getSellFlowActionLabel,
+  getSellQuoteContext,
+  hasSellQuoteContextChanged,
+  isExecutableExitQuote,
+  isSellFlowBusy,
+  requiresSellApproval,
+  type SellFlowStep,
+} from "@/lib/positions/sell-flow";
 import type { ExitQuote } from "@/types/quote";
 
 export function PositionCard({
@@ -92,20 +101,43 @@ export function PositionCard({
     ? formatUsd(position.currentValue)
     : "—";
   const sellQuoteExpired = Boolean(exitQuote && exitQuote.quoteExpiry <= sellNow);
-  const sellApprovalRequired = Boolean(
-    exitQuote?.approvalToken &&
-      exitQuote.approvalAmount &&
-      exitQuote.approvalAmount > BigInt(0) &&
-      !sellApprovalConfirmed &&
-      (exitAllowance.allowance === null || exitAllowance.allowance < exitQuote.approvalAmount),
-  );
+  const sellApprovalRequired = requiresSellApproval(exitQuote, exitAllowance.allowance, sellApprovalConfirmed);
   const sellFlowBusy = isSellFlowBusy(sellFlowStep);
+  const sellQuoteExecutable = isExecutableExitQuote(exitQuote);
+  const quoteContext = getSellQuoteContext(address, chainId, positionChainId);
+  const previousQuoteContext = useRef(quoteContext);
 
   useEffect(() => {
     if (!sellReviewOpen) return;
     const timer = window.setInterval(() => setSellNow(Date.now()), 1_000);
     return () => window.clearInterval(timer);
   }, [sellReviewOpen]);
+
+  useEffect(() => {
+    if (!hasSellQuoteContextChanged(previousQuoteContext.current, quoteContext)) return;
+    previousQuoteContext.current = quoteContext;
+    exitQuoteQuery.reset();
+    if (address) void exitAllowance.refresh();
+    setSellApprovalConfirmed(false);
+    setSellReceivedAmount(undefined);
+    if (sellReviewOpen && !sellFlowBusy) {
+      setSellError("Wallet or network changed. Refresh the exit quote before continuing.");
+      setSellFlowStep("error");
+    }
+  }, [address, exitAllowance, exitQuoteQuery, quoteContext, sellFlowBusy, sellReviewOpen]);
+
+  useEffect(() => {
+    if (!sellReviewOpen || !exitQuote || !sellQuoteExpired || sellFlowBusy || sellFlowStep === "error") return;
+    void exitQuoteQuery.invalidate();
+    setSellError("This exit quote expired. Refresh the quote before continuing.");
+    setSellFlowStep("error");
+  }, [exitQuote, exitQuoteQuery, sellFlowBusy, sellFlowStep, sellQuoteExpired, sellReviewOpen]);
+
+  useEffect(() => {
+    if (!sellReviewOpen || !exitQuote || sellQuoteExecutable || sellFlowBusy || sellFlowStep === "error") return;
+    setSellError(EXIT_TRANSACTION_UNAVAILABLE_MESSAGE);
+    setSellFlowStep("error");
+  }, [exitQuote, sellFlowBusy, sellFlowStep, sellQuoteExecutable, sellReviewOpen]);
 
   const handleClaim = async () => {
     if (!longPos || !canClaim) return;
@@ -152,7 +184,15 @@ export function PositionCard({
     exitQuoteQuery.reset();
     const result = await exitQuoteQuery.refetch();
     if (result.error || !result.data) {
-      setSellError(getYieldErrorMessage(result.error ?? new Error("Unable to fetch an exit quote.")));
+      const message = getYieldErrorMessage(result.error ?? new Error("Unable to fetch an exit quote."));
+      setSellError(message.toLowerCase().includes("calldata") && message.toLowerCase().includes("invalid")
+        ? EXIT_TRANSACTION_UNAVAILABLE_MESSAGE
+        : message);
+      setSellFlowStep("error");
+      return;
+    }
+    if (!isExecutableExitQuote(result.data)) {
+      setSellError(EXIT_TRANSACTION_UNAVAILABLE_MESSAGE);
       setSellFlowStep("error");
       return;
     }
@@ -171,6 +211,11 @@ export function PositionCard({
 
   const handleExecuteSell = async () => {
     if (!address || !exitQuote) return;
+    if (!sellQuoteExecutable) {
+      setSellError(EXIT_TRANSACTION_UNAVAILABLE_MESSAGE);
+      setSellFlowStep("error");
+      return;
+    }
     if (isWrongNetwork) {
       setSellError("Switch your wallet to Robinhood Chain before selling.");
       setSellFlowStep("ready");
@@ -214,6 +259,11 @@ export function PositionCard({
 
   const handleContinueSell = async () => {
     if (!exitQuote || sellFlowBusy) return;
+    if (!sellQuoteExecutable) {
+      setSellError(EXIT_TRANSACTION_UNAVAILABLE_MESSAGE);
+      setSellFlowStep("error");
+      return;
+    }
     if (sellQuoteExpired) {
       setSellError("This exit quote expired. Fetch a new quote before selling.");
       setSellFlowStep("error");
@@ -243,6 +293,12 @@ export function PositionCard({
         });
         setSellApprovalConfirmed(true);
         await exitAllowance.refresh();
+        const refreshedQuote = await exitQuoteQuery.refetch();
+        if (refreshedQuote.error || !refreshedQuote.data || !isExecutableExitQuote(refreshedQuote.data)) {
+          setSellError(EXIT_TRANSACTION_UNAVAILABLE_MESSAGE);
+          setSellFlowStep("error");
+          return;
+        }
         setSellFlowStep("ready");
       } catch (error: unknown) {
         setSellError(getYieldErrorMessage(error));
@@ -477,7 +533,7 @@ function SellReviewPanel({
 }) {
   const isBusy = isSellFlowBusy(step);
   const isSuccess = step === "success";
-  const quoteUnavailable = step === "error" && !quote;
+  const quoteUnavailable = (step === "error" && !quote) || Boolean(quote && !isExecutableExitQuote(quote));
   const statusLabel = isBusy || isSuccess
     ? getSellFlowActionLabel(step)
     : quoteUnavailable
@@ -640,6 +696,11 @@ function SellReviewPanel({
               <Loader2 className="h-4 w-4 animate-spin text-ice" />
               Fetching exit quote…
             </div>
+          ) : quoteUnavailable ? (
+            <div className="my-5 border border-negative/30 bg-negative/5 px-3.5 py-4 text-[13px] leading-5 text-negative" role="alert">
+              <div className="font-medium">Exit quote unavailable</div>
+              <div className="mt-1 text-negative/80">{error ?? EXIT_TRANSACTION_UNAVAILABLE_MESSAGE}</div>
+            </div>
           ) : quote ? (
             <>
               {quoteExpired && (
@@ -671,11 +732,6 @@ function SellReviewPanel({
                 Your position stays open until the sell transaction is confirmed.
               </div>
             </>
-          ) : quoteUnavailable ? (
-            <div className="my-5 border border-negative/30 bg-negative/5 px-3.5 py-4 text-[13px] leading-5 text-negative" role="alert">
-              <div className="font-medium">Exit quote unavailable</div>
-              <div className="mt-1 text-negative/80">{error ?? "Refresh the quote before continuing."}</div>
-            </div>
           ) : null}
 
           {step === "ready" && (

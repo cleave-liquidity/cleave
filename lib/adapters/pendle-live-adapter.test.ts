@@ -81,6 +81,15 @@ describe("Pendle live market normalization", () => {
 
     expect(transaction.value).toBe(BigInt(0));
     expect(() => normalizePendleTransaction({ to: "0x0000000000000000000000000000000000000001", data: "0x1234" })).not.toThrow();
+    expect(() => normalizePendleTransaction({
+      to: "0x888888888889758F76e7103c6CbF23ABbF58F946",
+      data: "0x594a88cc",
+      value: BigInt(0),
+    })).not.toThrow();
+    expect(() => normalizePendleTransaction({
+      to: "0x888888888889758F76e7103c6CbF23ABbF58F946",
+      data: "0x",
+    })).toThrow();
     expect(() => normalizePendleTransaction({ to: "0x0000000000000000000000000000000000000001", data: "0x1234", value: "-1" })).toThrow();
   });
 

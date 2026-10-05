@@ -30,10 +30,11 @@ const CLEAVE_MARKET_REGISTERED_EVENT = parseAbiItem(
 
 const useColor = Boolean(process.stdout.isTTY);
 const useTypewriter = useColor;
+const CLEAVE_BLUE = "\u001b[38;2;59;130;246m";
 const ANSI = {
   reset: "\u001b[0m",
   dim: "\u001b[2m",
-  cyan: "\u001b[38;5;117m",
+  cleaveBlue: CLEAVE_BLUE,
   ice: "\u001b[38;5;159m",
   green: "\u001b[38;5;120m",
   yellow: "\u001b[38;5;221m",
@@ -61,7 +62,7 @@ function line(label: string, value: string): void {
 
 function section(title: string): void {
   console.log();
-  console.log(paint(`◆ ${title}`, "cyan"));
+  console.log(paint(`◆ ${title}`, "cleaveBlue"));
   console.log(paint("─".repeat(66), "dim"));
 }
 
@@ -78,7 +79,7 @@ function deploymentOwnership(deployment: { ownership?: "external" | "project" })
 }
 
 function badge(label: string, tone: "success" | "warning" | "info"): string {
-  const color = tone === "success" ? "green" : tone === "warning" ? "yellow" : "cyan";
+  const color = tone === "success" ? "green" : tone === "warning" ? "yellow" : "cleaveBlue";
   return paint(`[${label}]`, color);
 }
 
@@ -232,12 +233,12 @@ async function main(): Promise<void> {
       longReady,
   );
 
-  console.log(paint(" ██████╗██╗     ███████╗ █████╗ ██╗   ██╗███████╗", "cyan"));
-  console.log(paint("██╔════╝██║     ██╔════╝██╔══██╗██║   ██║██╔════╝", "cyan"));
-  console.log(paint("██║     ██║     █████╗  ███████║██║   ██║█████╗  ", "cyan"));
-  console.log(paint("██║     ██║     ██╔══╝  ██╔══██║╚██╗ ██╔╝██╔══╝  ", "cyan"));
-  console.log(paint("╚██████╗███████╗███████╗██║  ██║ ╚████╔╝ ███████╗", "cyan"));
-  console.log(paint(" ╚═════╝╚══════╝╚══════╝╚═╝  ╚═╝  ╚═══╝  ╚══════╝", "cyan"));
+  console.log(paint(" ██████╗██╗     ███████╗ █████╗ ██╗   ██╗███████╗", "cleaveBlue"));
+  console.log(paint("██╔════╝██║     ██╔════╝██╔══██╗██║   ██║██╔════╝", "cleaveBlue"));
+  console.log(paint("██║     ██║     █████╗  ███████║██║   ██║█████╗  ", "cleaveBlue"));
+  console.log(paint("██║     ██║     ██╔══╝  ██╔══██║╚██╗ ██╔╝██╔══╝  ", "cleaveBlue"));
+  console.log(paint("╚██████╗███████╗███████╗██║  ██║ ╚████╔╝ ███████╗", "cleaveBlue"));
+  console.log(paint(" ╚═════╝╚══════╝╚══════╝╚═╝  ╚═╝  ╚═══╝  ╚══════╝", "cleaveBlue"));
   console.log(paint("                 DEPLOYMENT / NETWORK AUDIT", "dim"));
   await showConnectionSequence(mainnetRpc, markets.length, testnetRpc);
 
