@@ -434,14 +434,16 @@ export function PositionCard({
                 loadingAction !== null || !canClaim || isWrongNetwork || isNativeBalanceBlocking
               }
               onClick={handleClaim}
-              className="inline-flex h-10 min-h-10 min-w-[154px] max-w-full shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-md bg-amber px-2.5 text-[12px] font-medium text-[#0A0B0C] transition-all hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber"
+              className="inline-flex h-10 min-h-10 min-w-[136px] max-w-full shrink-0 items-center justify-center gap-1 rounded-md bg-amber px-3 text-[12px] font-medium text-[#0A0B0C] transition-all hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber"
             >
               {loadingAction === "claim" && (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
               )}
-              <span className="shrink-0">Claim Yield</span>
-              <span className="mono shrink-0 text-[10px] opacity-70">
-                {formatTokenAmount(longPos?.claimableYield || 0)} {position.assetSymbol}
+              <span className="flex min-w-0 flex-col items-center justify-center leading-none">
+                <span className="whitespace-nowrap">Claim Yield</span>
+                <span className="mono mt-0.5 whitespace-nowrap text-[10px] opacity-70">
+                  {formatTokenAmount(longPos?.claimableYield || 0)} {position.assetSymbol}
+                </span>
               </span>
             </button>
           )}
