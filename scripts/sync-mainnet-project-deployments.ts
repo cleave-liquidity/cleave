@@ -20,59 +20,59 @@ type ContractMetadata = Pick<ProjectEntry, "id" | "name" | "category" | "descrip
 
 const metadata: readonly ContractMetadata[] = [
   {
-    id: "cleave-access-manager-mainnet",
+    id: "yeltra-access-manager-mainnet",
     name: "CleaveAccessManager",
     category: "core",
-    description: "Central CLEAVE protocol role authority.",
-    runtimeRole: "Shared admin, operator, and guardian authorization layer for CLEAVE modules.",
+    description: "Central YELTRA protocol role authority.",
+    runtimeRole: "Shared admin, operator, and guardian authorization layer for YELTRA modules.",
   },
   {
-    id: "cleave-registry-mainnet",
+    id: "yeltra-registry-mainnet",
     name: "CleaveRegistry",
     category: "core",
-    description: "CLEAVE-owned configuration anchor.",
-    runtimeRole: "Top-level CLEAVE discovery/configuration anchor; not part of the Pendle trade execution path.",
+    description: "YELTRA-owned configuration anchor.",
+    runtimeRole: "Top-level YELTRA discovery/configuration anchor; not part of the Pendle trade execution path.",
   },
   {
-    id: "cleave-adapter-registry-mainnet",
+    id: "yeltra-adapter-registry-mainnet",
     name: "CleaveAdapterRegistry",
     category: "integration",
     description: "Approved external yield protocol integration registry.",
     runtimeRole: "Registry-only external adapter configuration; no arbitrary protocol execution.",
   },
   {
-    id: "cleave-market-registry-mainnet",
+    id: "yeltra-market-registry-mainnet",
     name: "CleaveMarketRegistry",
     category: "integration",
     description: "Verified external market metadata registry.",
     runtimeRole: "Registry-only market, PT, YT, SY, underlying, maturity, and adapter metadata.",
   },
   {
-    id: "cleave-risk-guard-mainnet",
+    id: "yeltra-risk-guard-mainnet",
     name: "CleaveRiskGuard",
     category: "risk",
     description: "Non-custodial global, market, and adapter pause controls.",
-    runtimeRole: "Risk state consumed by the CLEAVE execution boundary.",
+    runtimeRole: "Risk state consumed by the YELTRA execution boundary.",
   },
   {
-    id: "cleave-execution-router-mainnet",
+    id: "yeltra-execution-router-mainnet",
     name: "CleaveExecutionRouter",
     category: "execution",
-    description: "Validated CLEAVE execution boundary without arbitrary external calls.",
+    description: "Validated YELTRA execution boundary without arbitrary external calls.",
     runtimeRole: "Validates market, adapter, and risk state; current frontend Pendle execution remains direct.",
   },
   {
-    id: "cleave-lifecycle-manager-mainnet",
+    id: "yeltra-lifecycle-manager-mainnet",
     name: "CleaveLifecycleManager",
     category: "execution",
     description: "Fixed Yield and Trading Yield lifecycle eligibility rules.",
     runtimeRole: "Read-only sell, maturity, expiry, and yield-claim eligibility rules; no settlement or amount fabrication.",
   },
   {
-    id: "cleave-lens-mainnet",
+    id: "yeltra-lens-mainnet",
     name: "CleaveLens",
     category: "read",
-    description: "Read-only aggregation layer for CLEAVE modules and market state.",
+    description: "Read-only aggregation layer for YELTRA modules and market state.",
     runtimeRole: "Canonical combined read surface for frontend and deployment diagnostics.",
   },
 ];
@@ -170,7 +170,7 @@ function main(): void {
   const testnetJson = JSON.stringify(testnetEntries, null, 2).replace(/^/gm, "  ");
   const content = `import type { ContractChainId, ContractDeployment } from "./deployments";\n\n/** Generated from the confirmed Foundry Mainnet and Testnet broadcasts. */\nexport const projectContractDeployments: Readonly<Record<ContractChainId, readonly ContractDeployment[]>> = {\n  4663: ${entriesJson},\n  46630: ${testnetJson},\n};\n\nexport function getProjectContractDeployments(\n  chainId: ContractChainId,\n): readonly ContractDeployment[] {\n  return projectContractDeployments[chainId];\n}\n`;
   writeFileSync(outputPath, content, "utf8");
-  console.log(`Synchronized ${mainnetEntries.length} CLEAVE Mainnet deployments and preserved ${testnetEntries.length} Testnet deployments.`);
+  console.log(`Synchronized ${mainnetEntries.length} YELTRA Mainnet deployments and preserved ${testnetEntries.length} Testnet deployments.`);
   console.log(`Mainnet source verification: ${verified ? "VERIFIED" : "DEPLOYED / NOT VERIFIED"}`);
 }
 

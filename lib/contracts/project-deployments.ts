@@ -4,11 +4,11 @@ import type { ContractChainId, ContractDeployment } from "./deployments";
 export const projectContractDeployments: Readonly<Record<ContractChainId, readonly ContractDeployment[]>> = {
   4663:   [
     {
-      "id": "cleave-access-manager-mainnet",
+      "id": "yeltra-access-manager-mainnet",
       "name": "CleaveAccessManager",
       "category": "core",
-      "description": "Central CLEAVE protocol role authority.",
-      "runtimeRole": "Shared admin, operator, and guardian authorization layer for CLEAVE modules.",
+      "description": "Central YELTRA protocol role authority.",
+      "runtimeRole": "Shared admin, operator, and guardian authorization layer for YELTRA modules.",
       "chainId": 4663,
       "address": "0x8ba198d9275c65ee208eadd22084f38d0f193395",
       "verified": true,
@@ -22,11 +22,11 @@ export const projectContractDeployments: Readonly<Record<ContractChainId, readon
       "verificationStatus": "VERIFIED"
     },
     {
-      "id": "cleave-registry-mainnet",
+      "id": "yeltra-registry-mainnet",
       "name": "CleaveRegistry",
       "category": "core",
-      "description": "CLEAVE-owned configuration anchor.",
-      "runtimeRole": "Top-level CLEAVE discovery/configuration anchor; not part of the Pendle trade execution path.",
+      "description": "YELTRA-owned configuration anchor.",
+      "runtimeRole": "Top-level YELTRA discovery/configuration anchor; not part of the Pendle trade execution path.",
       "chainId": 4663,
       "address": "0xaa58afad613b2048ef526325c6989ec74703152b",
       "verified": true,
@@ -40,7 +40,7 @@ export const projectContractDeployments: Readonly<Record<ContractChainId, readon
       "verificationStatus": "VERIFIED"
     },
     {
-      "id": "cleave-adapter-registry-mainnet",
+      "id": "yeltra-adapter-registry-mainnet",
       "name": "CleaveAdapterRegistry",
       "category": "integration",
       "description": "Approved external yield protocol integration registry.",
@@ -58,7 +58,7 @@ export const projectContractDeployments: Readonly<Record<ContractChainId, readon
       "verificationStatus": "VERIFIED"
     },
     {
-      "id": "cleave-market-registry-mainnet",
+      "id": "yeltra-market-registry-mainnet",
       "name": "CleaveMarketRegistry",
       "category": "integration",
       "description": "Verified external market metadata registry.",
@@ -76,11 +76,11 @@ export const projectContractDeployments: Readonly<Record<ContractChainId, readon
       "verificationStatus": "VERIFIED"
     },
     {
-      "id": "cleave-risk-guard-mainnet",
+      "id": "yeltra-risk-guard-mainnet",
       "name": "CleaveRiskGuard",
       "category": "risk",
       "description": "Non-custodial global, market, and adapter pause controls.",
-      "runtimeRole": "Risk state consumed by the CLEAVE execution boundary.",
+      "runtimeRole": "Risk state consumed by the YELTRA execution boundary.",
       "chainId": 4663,
       "address": "0x4f3e119ddcd8d12b57b7c5b856f40ff85544913b",
       "verified": true,
@@ -94,10 +94,10 @@ export const projectContractDeployments: Readonly<Record<ContractChainId, readon
       "verificationStatus": "VERIFIED"
     },
     {
-      "id": "cleave-execution-router-mainnet",
+      "id": "yeltra-execution-router-mainnet",
       "name": "CleaveExecutionRouter",
       "category": "execution",
-      "description": "Validated CLEAVE execution boundary without arbitrary external calls.",
+      "description": "Validated YELTRA execution boundary without arbitrary external calls.",
       "runtimeRole": "Validates market, adapter, and risk state; current frontend Pendle execution remains direct.",
       "chainId": 4663,
       "address": "0xc392c88a59d129af9a0c8dc2fcaaf9de3f635b03",
@@ -112,7 +112,7 @@ export const projectContractDeployments: Readonly<Record<ContractChainId, readon
       "verificationStatus": "DEPLOYED / NOT VERIFIED"
     },
     {
-      "id": "cleave-lifecycle-manager-mainnet",
+      "id": "yeltra-lifecycle-manager-mainnet",
       "name": "CleaveLifecycleManager",
       "category": "execution",
       "description": "Fixed Yield and Trading Yield lifecycle eligibility rules.",
@@ -130,10 +130,10 @@ export const projectContractDeployments: Readonly<Record<ContractChainId, readon
       "verificationStatus": "VERIFIED"
     },
     {
-      "id": "cleave-lens-mainnet",
+      "id": "yeltra-lens-mainnet",
       "name": "CleaveLens",
       "category": "read",
-      "description": "Read-only aggregation layer for CLEAVE modules and market state.",
+      "description": "Read-only aggregation layer for YELTRA modules and market state.",
       "runtimeRole": "Canonical combined read surface for frontend and deployment diagnostics.",
       "chainId": 4663,
       "address": "0x8a41d30eb2ea283d12505449a478f20c314c2cf9",
@@ -150,11 +150,11 @@ export const projectContractDeployments: Readonly<Record<ContractChainId, readon
   ],
   46630:   [
     {
-      "id": "cleave-registry-testnet",
+      "id": "yeltra-registry-testnet",
       "name": "CleaveRegistry",
       "category": "core",
-      "description": "Existing CLEAVE-owned configuration anchor; preserved without redeployment.",
-      "runtimeRole": "Top-level CLEAVE discovery/configuration anchor; not part of the Pendle trade execution path.",
+      "description": "Existing YELTRA-owned configuration anchor; preserved without redeployment.",
+      "runtimeRole": "Top-level YELTRA discovery/configuration anchor; not part of the Pendle trade execution path.",
       "chainId": 46630,
       "address": "0xa5d21b39258da11152a0e63135936b1e60acfe43",
       "verified": true,
@@ -168,11 +168,11 @@ export const projectContractDeployments: Readonly<Record<ContractChainId, readon
       "verificationStatus": "VERIFIED"
     },
     {
-      "id": "cleave-access-manager-testnet",
+      "id": "yeltra-access-manager-testnet",
       "name": "CleaveAccessManager",
       "category": "core",
-      "description": "Central CLEAVE protocol role authority.",
-      "runtimeRole": "Shared admin, operator, and guardian authorization layer for CLEAVE modules.",
+      "description": "Central YELTRA protocol role authority.",
+      "runtimeRole": "Shared admin, operator, and guardian authorization layer for YELTRA modules.",
       "chainId": 46630,
       "address": "0x92ba9171bcbd8c03333dad4ea2349816e9378724",
       "verified": true,
@@ -186,7 +186,7 @@ export const projectContractDeployments: Readonly<Record<ContractChainId, readon
       "verificationStatus": "VERIFIED"
     },
     {
-      "id": "cleave-adapter-registry-testnet",
+      "id": "yeltra-adapter-registry-testnet",
       "name": "CleaveAdapterRegistry",
       "category": "integration",
       "description": "Approved external yield protocol integration registry.",
@@ -204,7 +204,7 @@ export const projectContractDeployments: Readonly<Record<ContractChainId, readon
       "verificationStatus": "VERIFIED"
     },
     {
-      "id": "cleave-market-registry-testnet",
+      "id": "yeltra-market-registry-testnet",
       "name": "CleaveMarketRegistry",
       "category": "integration",
       "description": "Verified external market metadata registry.",
@@ -222,11 +222,11 @@ export const projectContractDeployments: Readonly<Record<ContractChainId, readon
       "verificationStatus": "VERIFIED"
     },
     {
-      "id": "cleave-risk-guard-testnet",
+      "id": "yeltra-risk-guard-testnet",
       "name": "CleaveRiskGuard",
       "category": "risk",
       "description": "Non-custodial global, market, and adapter pause controls.",
-      "runtimeRole": "Risk state consumed by the CLEAVE execution boundary.",
+      "runtimeRole": "Risk state consumed by the YELTRA execution boundary.",
       "chainId": 46630,
       "address": "0xae71f3982621ddd823adc93f51365b30e1e8d171",
       "verified": true,
@@ -240,10 +240,10 @@ export const projectContractDeployments: Readonly<Record<ContractChainId, readon
       "verificationStatus": "VERIFIED"
     },
     {
-      "id": "cleave-execution-router-testnet",
+      "id": "yeltra-execution-router-testnet",
       "name": "CleaveExecutionRouter",
       "category": "execution",
-      "description": "Validated CLEAVE execution boundary without arbitrary external calls.",
+      "description": "Validated YELTRA execution boundary without arbitrary external calls.",
       "runtimeRole": "Validates market, adapter, and risk state; current frontend Pendle execution remains direct.",
       "chainId": 46630,
       "address": "0xfcd780963a7e5f60d4f9d1021f3c90f966251a97",
@@ -258,7 +258,7 @@ export const projectContractDeployments: Readonly<Record<ContractChainId, readon
       "verificationStatus": "VERIFIED"
     },
     {
-      "id": "cleave-lifecycle-manager-testnet",
+      "id": "yeltra-lifecycle-manager-testnet",
       "name": "CleaveLifecycleManager",
       "category": "execution",
       "description": "Fixed Yield and Trading Yield lifecycle eligibility rules.",
@@ -276,10 +276,10 @@ export const projectContractDeployments: Readonly<Record<ContractChainId, readon
       "verificationStatus": "VERIFIED"
     },
     {
-      "id": "cleave-lens-testnet",
+      "id": "yeltra-lens-testnet",
       "name": "CleaveLens",
       "category": "read",
-      "description": "Read-only aggregation layer for CLEAVE modules and market state.",
+      "description": "Read-only aggregation layer for YELTRA modules and market state.",
       "runtimeRole": "Canonical combined read surface for frontend and deployment diagnostics.",
       "chainId": 46630,
       "address": "0x2323d2c46b497492499bbd4131d50dbe5f305627",

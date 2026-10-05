@@ -1,4 +1,5 @@
 import type { MarketDataMode, RobinhoodNetwork } from "@/types/market";
+import { getConfiguredDataMode } from "@/lib/adapters/config";
 import {
   ROBINHOOD_CHAIN_ID,
   ROBINHOOD_TESTNET_CHAIN_ID,
@@ -39,7 +40,7 @@ export function getWalletConnectProjectId(): string | undefined {
 export function getRuntimeEnvironmentValidation(): RuntimeEnvironmentValidation {
   const browseNetwork = getConfiguredNetwork();
   const browseChainId = getConfiguredChainId();
-  const dataMode: MarketDataMode = process.env.NEXT_PUBLIC_CLEAVE_DATA_MODE === "mock" ? "mock" : "live";
+  const dataMode: MarketDataMode = getConfiguredDataMode();
   const mainnetRpcConfigured = isPublicHttpUrl(process.env.NEXT_PUBLIC_ROBINHOOD_CHAIN_RPC_URL);
   const testnetRpcConfigured = isPublicHttpUrl(process.env.NEXT_PUBLIC_ROBINHOOD_CHAIN_TESTNET_RPC_URL);
   const walletConnectProjectIdValid = getWalletConnectProjectId() !== undefined;

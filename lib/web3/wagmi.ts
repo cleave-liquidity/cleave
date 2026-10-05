@@ -23,7 +23,7 @@ function transportFor(chain: Chain): Transport {
 }
 
 export const config = getDefaultConfig({
-  appName: "CLEAVE",
+  appName: "YELTRA",
   projectId: WALLET_CONNECT_PROJECT_ID,
   chains: [robinhoodChain, robinhoodChainTestnet],
   transports: {

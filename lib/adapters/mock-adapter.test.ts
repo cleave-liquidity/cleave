@@ -114,4 +114,42 @@ describe("mock yield market adapter", () => {
       adapter.openFixedPosition(MOCK_MARKETS[0].id, 3_000, ownerA, quote, ROBINHOOD_CHAIN_ID)
     ).rejects.toMatchObject({ code: "insufficient-token-balance" });
   });
+
+  it("migrates legacy CLEAVE position storage to YELTRA without duplicating it", async () => {
+    const values = new Map<string, string>();
+    const localStorage = {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+      removeItem: (key: string) => values.delete(key),
+    };
+    const previousWindow = (globalThis as typeof globalThis & { window?: unknown }).window;
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: { localStorage },
+    });
+
+    try {
+      const sourceAdapter = new MockYieldMarketAdapter();
+      const quote = await sourceAdapter.getFixedQuote(MOCK_MARKETS[0].id, 100);
+      const position = await sourceAdapter.openFixedPosition(
+        MOCK_MARKETS[0].id,
+        100,
+        ownerA,
+        quote,
+        ROBINHOOD_CHAIN_ID,
+      );
+      values.delete(`yeltra:mock-positions:v1:${ownerA.toLowerCase()}`);
+      values.set(`cleave:mock-positions:v1:${ownerA.toLowerCase()}`, JSON.stringify([position]));
+
+      const migrated = await new MockYieldMarketAdapter().getPositions(ownerA);
+
+      expect(migrated).toHaveLength(1);
+      expect(migrated[0]?.id).toBe(position.id);
+      expect(values.has(`yeltra:mock-positions:v1:${ownerA.toLowerCase()}`)).toBe(true);
+      expect(values.has(`cleave:mock-positions:v1:${ownerA.toLowerCase()}`)).toBe(false);
+    } finally {
+      if (previousWindow === undefined) delete (globalThis as typeof globalThis & { window?: unknown }).window;
+      else Object.defineProperty(globalThis, "window", { configurable: true, value: previousWindow });
+    }
+  });
 });

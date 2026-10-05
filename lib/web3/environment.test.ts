@@ -27,14 +27,14 @@ describe("configured Robinhood network", () => {
       rpc: process.env.NEXT_PUBLIC_ROBINHOOD_CHAIN_RPC_URL,
       testnetRpc: process.env.NEXT_PUBLIC_ROBINHOOD_CHAIN_TESTNET_RPC_URL,
       network: process.env.NEXT_PUBLIC_ROBINHOOD_CHAIN_ENV,
-      mode: process.env.NEXT_PUBLIC_CLEAVE_DATA_MODE,
+      mode: process.env.NEXT_PUBLIC_YELTRA_DATA_MODE,
       projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID,
     };
     try {
       process.env.NEXT_PUBLIC_ROBINHOOD_CHAIN_RPC_URL = "https://mainnet.example/rpc";
       process.env.NEXT_PUBLIC_ROBINHOOD_CHAIN_TESTNET_RPC_URL = "https://testnet.example/rpc";
       process.env.NEXT_PUBLIC_ROBINHOOD_CHAIN_ENV = "mainnet";
-      process.env.NEXT_PUBLIC_CLEAVE_DATA_MODE = "live";
+      process.env.NEXT_PUBLIC_YELTRA_DATA_MODE = "live";
       process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID = "a".repeat(32);
 
       expect(getRuntimeEnvironmentValidation()).toMatchObject({
@@ -52,7 +52,7 @@ describe("configured Robinhood network", () => {
         NEXT_PUBLIC_ROBINHOOD_CHAIN_RPC_URL: previous.rpc,
         NEXT_PUBLIC_ROBINHOOD_CHAIN_TESTNET_RPC_URL: previous.testnetRpc,
         NEXT_PUBLIC_ROBINHOOD_CHAIN_ENV: previous.network,
-        NEXT_PUBLIC_CLEAVE_DATA_MODE: previous.mode,
+        NEXT_PUBLIC_YELTRA_DATA_MODE: previous.mode,
         NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: previous.projectId,
       })) {
         if (value === undefined) delete process.env[key];

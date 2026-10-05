@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { getContractByName, getContractDeployments } from "./deployments";
+import { getContractByName, getContractDeployments, getContractDisplayName } from "./deployments";
 import { getProjectContractDeployments } from "./project-deployments";
 
 describe("verified contract deployment registry", () => {
@@ -12,7 +12,7 @@ describe("verified contract deployment registry", () => {
     expect(router?.usedByRuntime).toBe(true);
   });
 
-  it("preserves the confirmed CLEAVE-owned deployments on both networks", () => {
+  it("preserves the confirmed YELTRA-owned deployments on both networks", () => {
     const mainnet = getProjectContractDeployments(4663);
     const registry = getProjectContractDeployments(46630);
 
@@ -78,5 +78,11 @@ describe("verified contract deployment registry", () => {
     expect(mainnet[0]?.address).toBe("0x8ba198d9275c65ee208eadd22084f38d0f193395");
     expect(registry[0]?.address).toBe("0xa5d21b39258da11152a0e63135936b1e60acfe43");
     expect(getContractDeployments("mainnet").filter((deployment) => deployment.ownership === "project")).toHaveLength(8);
+  });
+
+  it("keeps legacy artifact names internal while exposing YELTRA display names", () => {
+    const deployment = getContractByName(4663, "CleaveExecutionRouter");
+    expect(deployment?.name).toBe("CleaveExecutionRouter");
+    expect(deployment && getContractDisplayName(deployment)).toBe("YELTRA Execution Router");
   });
 });

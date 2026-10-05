@@ -38,6 +38,21 @@ export type ContractDeployment = {
   verificationStatus?: "VERIFIED" | "DEPLOYED / NOT VERIFIED";
 };
 
+const YELTRA_CONTRACT_DISPLAY_NAMES: Readonly<Record<string, string>> = {
+  CleaveAccessManager: "YELTRA Access Manager",
+  CleaveRegistry: "YELTRA Registry",
+  CleaveAdapterRegistry: "YELTRA Adapter Registry",
+  CleaveMarketRegistry: "YELTRA Market Registry",
+  CleaveRiskGuard: "YELTRA Risk Guard",
+  CleaveExecutionRouter: "YELTRA Execution Router",
+  CleaveLifecycleManager: "YELTRA Lifecycle Manager",
+  CleaveLens: "YELTRA Lens",
+};
+
+export function getContractDisplayName(deployment: Pick<ContractDeployment, "name">): string {
+  return YELTRA_CONTRACT_DISPLAY_NAMES[deployment.name] || deployment.name;
+}
+
 export const contractDeployments: Readonly<Record<ContractChainId, readonly ContractDeployment[]>> = {
   4663: [
     {

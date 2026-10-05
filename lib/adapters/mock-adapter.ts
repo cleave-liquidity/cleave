@@ -33,7 +33,8 @@ import { getConfiguredDataMode } from "./config";
 import { PositionTransactionResult, YieldMarketAdapter, YieldAdapterRuntime } from "./types";
 import { TokenApprovalRequest, TransactionHash, TransactionReceiptResult } from "@/types/transaction";
 
-const STORAGE_PREFIX = "cleave:mock-positions:v1:";
+const STORAGE_PREFIX = "yeltra:mock-positions:v1:";
+const LEGACY_STORAGE_PREFIX = "cleave:mock-positions:v1:";
 const QUOTE_TTL_MS = 30_000;
 const MOCK_INITIAL_CLAIMABLE_YIELD_RATE = 0.01;
 const MOCK_EXIT_ADDRESS = "0x0000000000000000000000000000000000000001" as `0x${string}`;
@@ -127,32 +128,51 @@ export class MockYieldMarketAdapter implements YieldMarketAdapter {
     return `${STORAGE_PREFIX}${owner}`;
   }
 
+  private legacyStorageKey(owner: string): string {
+    return `${LEGACY_STORAGE_PREFIX}${owner}`;
+  }
+
   private readStoredPositions(owner: string): YieldPosition[] {
     if (typeof window === "undefined") return [];
-    try {
-      const raw = window.localStorage.getItem(this.storageKey(owner));
-      if (!raw) return [];
-      const parsed: unknown = JSON.parse(raw);
-      if (
-        !Array.isArray(parsed) ||
-        !parsed.every(
-          (position) =>
-            isPositionRecord(position) &&
-            position.owner.toLowerCase() === owner.toLowerCase(),
-        )
-      ) {
-        window.localStorage.removeItem(this.storageKey(owner));
+    const readKey = (key: string): YieldPosition[] | undefined => {
+      try {
+        const raw = window.localStorage.getItem(key);
+        if (!raw) return undefined;
+        const parsed: unknown = JSON.parse(raw);
+        if (
+          !Array.isArray(parsed) ||
+          !parsed.every(
+            (position) =>
+              isPositionRecord(position) &&
+              position.owner.toLowerCase() === owner.toLowerCase(),
+          )
+        ) {
+          window.localStorage.removeItem(key);
+          return [];
+        }
+        return parsed as YieldPosition[];
+      } catch {
+        try {
+          window.localStorage.removeItem(key);
+        } catch {
+          // Storage can be blocked by privacy settings; memory fallback remains valid.
+        }
         return [];
       }
-      return parsed as YieldPosition[];
+    };
+
+    const current = readKey(this.storageKey(owner));
+    if (current !== undefined) return current;
+
+    const legacy = readKey(this.legacyStorageKey(owner));
+    if (legacy === undefined) return [];
+    this.persistPositions(owner, legacy);
+    try {
+      window.localStorage.removeItem(this.legacyStorageKey(owner));
     } catch {
-      try {
-        window.localStorage.removeItem(this.storageKey(owner));
-      } catch {
-        // Storage can be blocked by privacy settings; memory fallback remains valid.
-      }
-      return [];
+      // A copied YELTRA value remains usable even if cleanup is blocked.
     }
+    return legacy;
   }
 
   private persistPositions(owner: string, positions: YieldPosition[]): void {

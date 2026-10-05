@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { getContractDisplayName } from "../lib/contracts/deployments";
 
 const chainId = 46630;
 const repoDir = process.cwd();
@@ -37,17 +38,18 @@ function main(): void {
   const transactions = Array.isArray(broadcast.transactions) ? broadcast.transactions.map(asObject) : [];
 
   for (const spec of specs) {
+    const displayName = getContractDisplayName({ name: spec.name });
     const transaction = transactions.find((candidate) =>
       candidate.contractName === spec.name && candidate.transactionType === "CREATE",
     );
-    if (!transaction) throw new Error(`No ${spec.name} CREATE transaction found.`);
+    if (!transaction) throw new Error(`No ${displayName} CREATE transaction found.`);
 
-    const address = asString(transaction.contractAddress, `${spec.name} address`);
+    const address = asString(transaction.contractAddress, `${displayName} address`);
     const constructorArgs = Array.isArray(transaction.arguments)
-      ? transaction.arguments.map((argument) => asString(argument, `${spec.name} constructor argument`))
+      ? transaction.arguments.map((argument) => asString(argument, `${displayName} constructor argument`))
       : [];
     if (constructorArgs.length !== spec.constructorTypes.length) {
-      throw new Error(`${spec.name} constructor argument count does not match the reviewed source.`);
+      throw new Error(`${displayName} constructor argument count does not match the reviewed source.`);
     }
 
     const encodedArgs = execFileSync("cast", [
@@ -56,7 +58,7 @@ function main(): void {
       ...constructorArgs,
     ], { encoding: "utf8" }).trim();
     const source = `src/${spec.name}.sol:${spec.name}`;
-    console.log(`Verifying ${spec.name} at ${address}`);
+    console.log(`Verifying ${displayName} at ${address}`);
     execFileSync("forge", [
       "verify-contract",
       "--root", "contracts",

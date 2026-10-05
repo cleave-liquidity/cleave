@@ -125,59 +125,59 @@ function main(): void {
 
   const entries: ProjectEntry[] = [
     readDeployment(existingBroadcast, "CleaveRegistry", {
-      id: "cleave-registry-testnet",
+      id: "yeltra-registry-testnet",
       name: "CleaveRegistry",
       category: "core",
-      description: "Existing CLEAVE-owned configuration anchor; preserved without redeployment.",
-      runtimeRole: "Top-level CLEAVE discovery/configuration anchor; not part of the Pendle trade execution path.",
+      description: "Existing YELTRA-owned configuration anchor; preserved without redeployment.",
+      runtimeRole: "Top-level YELTRA discovery/configuration anchor; not part of the Pendle trade execution path.",
     }, true),
     readDeployment(moduleBroadcast, "CleaveAccessManager", {
-      id: "cleave-access-manager-testnet",
+      id: "yeltra-access-manager-testnet",
       name: "CleaveAccessManager",
       category: "core",
-      description: "Central CLEAVE protocol role authority.",
-      runtimeRole: "Shared admin, operator, and guardian authorization layer for CLEAVE modules.",
+      description: "Central YELTRA protocol role authority.",
+      runtimeRole: "Shared admin, operator, and guardian authorization layer for YELTRA modules.",
     }, verifiedModules),
     readDeployment(moduleBroadcast, "CleaveAdapterRegistry", {
-      id: "cleave-adapter-registry-testnet",
+      id: "yeltra-adapter-registry-testnet",
       name: "CleaveAdapterRegistry",
       category: "integration",
       description: "Approved external yield protocol integration registry.",
       runtimeRole: "Registry-only external adapter configuration; no arbitrary protocol execution.",
     }, verifiedModules),
     readDeployment(moduleBroadcast, "CleaveMarketRegistry", {
-      id: "cleave-market-registry-testnet",
+      id: "yeltra-market-registry-testnet",
       name: "CleaveMarketRegistry",
       category: "integration",
       description: "Verified external market metadata registry.",
       runtimeRole: "Registry-only market, PT, YT, SY, underlying, maturity, and adapter metadata.",
     }, verifiedModules),
     readDeployment(moduleBroadcast, "CleaveRiskGuard", {
-      id: "cleave-risk-guard-testnet",
+      id: "yeltra-risk-guard-testnet",
       name: "CleaveRiskGuard",
       category: "risk",
       description: "Non-custodial global, market, and adapter pause controls.",
-      runtimeRole: "Risk state consumed by the CLEAVE execution boundary.",
+      runtimeRole: "Risk state consumed by the YELTRA execution boundary.",
     }, verifiedModules),
     readDeployment(moduleBroadcast, "CleaveExecutionRouter", {
-      id: "cleave-execution-router-testnet",
+      id: "yeltra-execution-router-testnet",
       name: "CleaveExecutionRouter",
       category: "execution",
-      description: "Validated CLEAVE execution boundary without arbitrary external calls.",
+      description: "Validated YELTRA execution boundary without arbitrary external calls.",
       runtimeRole: "Validates market, adapter, and risk state; current frontend Pendle execution remains direct.",
     }, verifiedModules),
     readDeployment(moduleBroadcast, "CleaveLifecycleManager", {
-      id: "cleave-lifecycle-manager-testnet",
+      id: "yeltra-lifecycle-manager-testnet",
       name: "CleaveLifecycleManager",
       category: "execution",
       description: "Fixed Yield and Trading Yield lifecycle eligibility rules.",
       runtimeRole: "Read-only sell, maturity, expiry, and yield-claim eligibility rules; no settlement or amount fabrication.",
     }, verifiedModules),
     readDeployment(moduleBroadcast, "CleaveLens", {
-      id: "cleave-lens-testnet",
+      id: "yeltra-lens-testnet",
       name: "CleaveLens",
       category: "read",
-      description: "Read-only aggregation layer for CLEAVE modules and market state.",
+      description: "Read-only aggregation layer for YELTRA modules and market state.",
       runtimeRole: "Canonical combined read surface for frontend and deployment diagnostics.",
     }, verifiedModules),
   ];
@@ -185,7 +185,7 @@ function main(): void {
   const entriesJson = JSON.stringify(entries, null, 2).replace(/^/gm, "  ");
   const content = `import type { ContractChainId, ContractDeployment } from "./deployments";\n\n/** Generated from the confirmed Foundry Testnet broadcasts. */\nexport const projectContractDeployments: Readonly<Record<ContractChainId, readonly ContractDeployment[]>> = {\n  4663: [],\n  46630: ${entriesJson},\n};\n\nexport function getProjectContractDeployments(\n  chainId: ContractChainId,\n): readonly ContractDeployment[] {\n  return projectContractDeployments[chainId];\n}\n`;
   writeFileSync(outputPath, content, "utf8");
-  console.log(`Synchronized ${entries.length} CLEAVE Testnet deployments from confirmed broadcasts.`);
+  console.log(`Synchronized ${entries.length} YELTRA Testnet deployments from confirmed broadcasts.`);
 }
 
 main();

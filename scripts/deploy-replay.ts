@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { getContractDisplayName } from "../lib/contracts/deployments";
 
 const repoDir = process.cwd();
 const broadcastRoots = ["Deploy.s.sol", "DeployTestnetModules.s.sol", "DeployMainnet.s.sol"];
@@ -14,7 +15,7 @@ function asObject(value: unknown): JsonObject {
 
 function main(): void {
   let found = 0;
-  console.log("CLEAVE DEPLOYMENT REPLAY · READ ONLY");
+  console.log("YELTRA DEPLOYMENT REPLAY · READ ONLY");
   for (const root of broadcastRoots) {
     for (const chainId of ["4663", "46630"]) {
       const path = join(repoDir, "contracts", "broadcast", root, chainId, "run-latest.json");
@@ -27,7 +28,7 @@ function main(): void {
         const hash = transaction.hash;
         const receipt = receipts.find((candidate) => candidate.transactionHash === hash) || {};
         console.log([
-          String(transaction.contractName),
+          getContractDisplayName({ name: String(transaction.contractName) }),
           `address=${String(transaction.contractAddress)}`,
           `tx=${String(hash)}`,
           `block=${String(receipt.blockNumber ?? "UNAVAILABLE")}`,

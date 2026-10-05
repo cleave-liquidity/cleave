@@ -3,7 +3,7 @@ import { getContractByName } from "@/lib/contracts/deployments";
 import { ROBINHOOD_CHAIN_ID } from "@/lib/web3/chains";
 import { YieldDomainError } from "@/types/errors";
 
-export const CLEAVE_PENDLE_ADAPTER_ID =
+export const YELTRA_PENDLE_ADAPTER_ID =
   "0x50454e444c450000000000000000000000000000000000000000000000000000" as Hex;
 
 const executionRouterAbi = [
@@ -82,7 +82,7 @@ const lensAbi = [
   },
 ] as const;
 
-export type CleaveLifecycle = {
+export type YeltraLifecycle = {
   state: number;
   sellEarlyEligible: boolean;
   redeemAtMaturityEligible: boolean;
@@ -90,7 +90,7 @@ export type CleaveLifecycle = {
   maturity: bigint;
 };
 
-export type CleaveMarketSummary = {
+export type YeltraMarketSummary = {
   marketEnabled: boolean;
   adapterEnabled: boolean;
   globalPaused: boolean;
@@ -105,14 +105,26 @@ export type CleaveMarketSummary = {
   tradingYieldClaimYieldEligible: boolean;
 };
 
-export function cleaveMarketKey(marketId: string): Hex {
+export function yeltraMarketKey(marketId: string): Hex {
   return keccak256(stringToHex(marketId));
 }
 
-function requireMainnetDeployment(name: string): Address {
-  const deployment = getContractByName(ROBINHOOD_CHAIN_ID, name);
+const LEGACY_DEPLOYMENT_NAMES = {
+  executionRouter: "CleaveExecutionRouter",
+  lifecycleManager: "CleaveLifecycleManager",
+  lens: "CleaveLens",
+} as const;
+const YELTRA_DEPLOYMENT_LABELS = {
+  executionRouter: "Execution Router",
+  lifecycleManager: "Lifecycle Manager",
+  lens: "Lens",
+} as const;
+
+function requireYeltraDeployment(name: keyof typeof LEGACY_DEPLOYMENT_NAMES): Address {
+  const legacyName = LEGACY_DEPLOYMENT_NAMES[name];
+  const deployment = getContractByName(ROBINHOOD_CHAIN_ID, legacyName);
   if (!deployment?.address || deployment.chainId !== ROBINHOOD_CHAIN_ID) {
-    throw new YieldDomainError("live-source-unavailable", `CLEAVE ${name} is not configured for Mainnet.`);
+    throw new YieldDomainError("live-source-unavailable", `YELTRA ${YELTRA_DEPLOYMENT_LABELS[name]} is not configured for Mainnet.`);
   }
   return deployment.address;
 }
@@ -126,17 +138,20 @@ function assertMainnetClient(publicClient: PublicClient): void {
 function normalizeError(error: unknown): YieldDomainError {
   return error instanceof YieldDomainError
     ? error
-    : new YieldDomainError("rpc-unavailable", "CLEAVE Mainnet validation could not be read.");
+    : new YieldDomainError("rpc-unavailable", "YELTRA Mainnet validation could not be read.");
 }
 
-export async function validateCleaveExecution(
+export async function validateYeltraExecution(
   marketId: string,
   publicClient: PublicClient,
 ): Promise<{ marketKey: Hex; adapterId: Hex; externalRouter: Address }> {
   assertMainnetClient(publicClient);
-  const marketKey = cleaveMarketKey(marketId);
-  const executionRouter = requireMainnetDeployment("CleaveExecutionRouter");
-  const pendleRouter = requireMainnetDeployment("Pendle Router V2");
+  const marketKey = yeltraMarketKey(marketId);
+  const executionRouter = requireYeltraDeployment("executionRouter");
+  const pendleRouter = getContractByName(ROBINHOOD_CHAIN_ID, "Pendle Router V2")?.address;
+  if (!pendleRouter) {
+    throw new YieldDomainError("live-source-unavailable", "YELTRA Pendle Router V2 is not configured for Mainnet.");
+  }
 
   try {
     const [allowed, adapterId, externalRouter] = await publicClient.readContract({
@@ -146,13 +161,13 @@ export async function validateCleaveExecution(
       args: [marketKey],
     });
     if (!allowed) {
-      throw new YieldDomainError("live-source-unavailable", "CLEAVE did not allow execution for this market.");
+      throw new YieldDomainError("live-source-unavailable", "YELTRA did not allow execution for this market.");
     }
-    if (adapterId.toLowerCase() !== CLEAVE_PENDLE_ADAPTER_ID.toLowerCase()) {
-      throw new YieldDomainError("live-source-unavailable", "CLEAVE returned an unapproved yield adapter.");
+    if (adapterId.toLowerCase() !== YELTRA_PENDLE_ADAPTER_ID.toLowerCase()) {
+      throw new YieldDomainError("live-source-unavailable", "YELTRA returned an unapproved yield adapter.");
     }
     if (externalRouter.toLowerCase() !== pendleRouter.toLowerCase()) {
-      throw new YieldDomainError("live-source-unavailable", "CLEAVE returned an unapproved Pendle router.");
+      throw new YieldDomainError("live-source-unavailable", "YELTRA returned an unapproved Pendle router.");
     }
     return { marketKey, adapterId, externalRouter };
   } catch (error) {
@@ -160,18 +175,18 @@ export async function validateCleaveExecution(
   }
 }
 
-export async function readCleaveLifecycle(
+export async function readYeltraLifecycle(
   marketId: string,
   strategy: "fixed" | "long",
   publicClient: PublicClient,
-): Promise<CleaveLifecycle> {
+): Promise<YeltraLifecycle> {
   assertMainnetClient(publicClient);
   try {
     const lifecycle = await publicClient.readContract({
-      address: requireMainnetDeployment("CleaveLifecycleManager"),
+      address: requireYeltraDeployment("lifecycleManager"),
       abi: lifecycleManagerAbi,
       functionName: "getLifecycle",
-      args: [cleaveMarketKey(marketId), strategy === "fixed" ? 0 : 1],
+      args: [yeltraMarketKey(marketId), strategy === "fixed" ? 0 : 1],
     });
     return {
       state: Number(lifecycle.state),
@@ -185,17 +200,17 @@ export async function readCleaveLifecycle(
   }
 }
 
-export async function readCleaveMarketSummary(
+export async function readYeltraMarketSummary(
   marketId: string,
   publicClient: PublicClient,
-): Promise<CleaveMarketSummary> {
+): Promise<YeltraMarketSummary> {
   assertMainnetClient(publicClient);
   try {
     const summary = await publicClient.readContract({
-      address: requireMainnetDeployment("CleaveLens"),
+      address: requireYeltraDeployment("lens"),
       abi: lensAbi,
       functionName: "getMarketSummary",
-      args: [cleaveMarketKey(marketId)],
+      args: [yeltraMarketKey(marketId)],
     });
     return {
       marketEnabled: summary.marketEnabled,
