@@ -4,7 +4,7 @@ This checklist covers the verified live Pendle adapter used by normal Mainnet br
 
 ## Configuration and provenance
 
-- [ ] Set `NEXT_PUBLIC_CLEAVE_DATA_MODE=live` in the production environment; use `mock` only for explicit development testing.
+- [ ] Set `NEXT_PUBLIC_YELTRA_DATA_MODE=live` in the production environment; use `mock` only for explicit development testing.
 - [ ] Configure the matching RPC URL and `NEXT_PUBLIC_ROBINHOOD_CHAIN_ENV`.
 - [ ] Register only verified token metadata for chain `4663` or `46630`.
 - [ ] Register only verified contract deployments in `lib/contracts/deployments.ts`.

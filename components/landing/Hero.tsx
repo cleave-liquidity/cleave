@@ -257,7 +257,7 @@ export function Hero() {
     <section
       id="top"
       ref={runwayRef}
-      aria-label="Cleave overview"
+      aria-label="Yeltra overview"
       className="relative bg-background lg:min-h-[275vh]"
     >
       <div className="lg:sticky lg:top-0">

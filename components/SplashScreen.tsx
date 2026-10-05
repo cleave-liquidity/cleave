@@ -31,7 +31,7 @@ export function SplashScreen() {
     <div
       className="fixed inset-0 z-[9999] overflow-hidden pointer-events-auto"
       aria-live="polite"
-      aria-label="Loading Cleave"
+      aria-label="Loading Yeltra"
     >
       {/* ── BACKGROUND COLUMN STRIPS (Reveal curtain from left to right) ── */}
       <div className="absolute inset-0 flex pointer-events-none" aria-hidden="true">
@@ -163,7 +163,7 @@ export function SplashScreen() {
             className="m-0 font-normal tracking-[-0.035em] text-foreground text-center"
             style={{ fontSize: "clamp(42px, 8vw, 84px)", lineHeight: 1 }}
           >
-            {"CLEAVE".split("").map((char, i) => (
+            {"YELTRA".split("").map((char, i) => (
               <span
                 key={i}
                 className="inline-block splash-char"
@@ -178,7 +178,7 @@ export function SplashScreen() {
             className="m-0 mono splash-sub text-muted tracking-[0.3em] uppercase text-center"
             style={{ fontSize: "clamp(10px, 1.1vw, 12px)" }}
           >
-            Cleave Liquidity
+            Yeltra Liquidity
           </p>
         </div>
 

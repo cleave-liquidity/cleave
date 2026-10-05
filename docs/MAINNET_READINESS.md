@@ -1,4 +1,4 @@
-# CLEAVE Mainnet Readiness
+# YELTRA Mainnet Readiness
 
 ## Current state
 

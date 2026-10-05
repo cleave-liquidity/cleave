@@ -146,7 +146,7 @@ Unlike the earlier passes, this round edited a few logic-adjacent files. Each ch
 - `components/landing/FloatingNav.tsx`, `liquidGlass.ts` (+ test), `.lg-*` block at the end of `globals.css`; mounted once in `app/page.tsx`. The hero keeps its own navbar inside the pinned scene; this one appears when the hero (pinned runway included) has fully left the viewport and disappears again when scrolling back.
 - **Coupled to the hero's `id="top"`** (`IntersectionObserver`; fallback is `scrollY > innerHeight`). Do not rename or remove it. While hidden the nav is `inert`.
 - Looks: dark glass (near-clear dark tint; gloss comes from rim light, specular arc and refraction, not a white fill), glass hover bead, pointer-follow highlight, one-time sweep, solid orange "Launch app" with white semibold text. `z-40`, below `SplashScreen` (`z-[9999]`).
-- Refraction is **Chromium only**: a canvas-generated displacement map (`computeLensMap`) feeds an SVG filter used from `backdrop-filter: url(#cleave-liquid-lens)`; the map is rebuilt when the pill resizes. Elsewhere the plain blur/gloss fallback is used (`supportsBackdropLens` checks for `Chrome/` in the UA; headless Chrome reports `HeadlessChrome/`).
+- Refraction is **Chromium only**: a canvas-generated displacement map (`computeLensMap`) feeds an SVG filter used from `backdrop-filter: url(#yeltra-liquid-lens)`; the map is rebuilt when the pill resizes. Elsewhere the plain blur/gloss fallback is used (`supportsBackdropLens` checks for `Chrome/` in the UA; headless Chrome reports `HeadlessChrome/`).
 - Two traps worth remembering: `<g>` wrappers inside `<filter>` are invalid and turn the pill white; `feBlend mode="screen"` for the three-channel merge also goes white in Chromium — the merge uses `feComposite operator="arithmetic"`.
 - The link list is a copy of the one in `Navbar.tsx`; keep them in sync when a menu item changes.
 
@@ -193,4 +193,3 @@ Copy only: no layout, styling, routing, hook, adapter or transaction logic chang
 ### Still open
 - Live-adapter error messages (`lib/adapters/pendle-live-adapter.ts`, e.g. "Only YT positions can claim yield.") still say PT / YT; they were not changed because adapters are logic-owned. If they can reach the UI, they should be reworded on that side.
 - `/contracts` was left alone (registry copy is transparency text with no strategy wording, and the file is under parallel edit).
-

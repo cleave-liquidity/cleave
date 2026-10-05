@@ -32,12 +32,12 @@ export function Navbar({ isLanding = false }: { isLanding?: boolean }) {
       <div className="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-10 py-5 sm:py-6 flex items-center justify-between gap-4 flex-wrap">
         <Link
           href="/"
-          aria-label="Cleave home"
+          aria-label="Yeltra home"
           className="flex items-center gap-3.5 group focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ice"
         >
-          <Image src="/logo.png" alt="Cleave logo" width={34} height={34} />
+          <Image src="/logo.png" alt="Yeltra logo" width={34} height={34} />
           <span className="text-[20px] font-medium tracking-[0.42em] text-foreground">
-            CLEAVE
+            YELTRA
           </span>
         </Link>
 
@@ -87,7 +87,7 @@ export function Navbar({ isLanding = false }: { isLanding?: boolean }) {
             href={X_URL}
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="CLEAVE on X (opens in a new tab)"
+            aria-label="YELTRA on X (opens in a new tab)"
             className={`items-center justify-center border border-white/20 bg-background/50 text-muted transition-colors hover:border-white/40 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice ${
               isLanding
                 ? "inline-flex h-[38px] w-[38px] sm:h-[44px] sm:w-[44px]"

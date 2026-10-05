@@ -39,7 +39,7 @@ a:hover {
   font-variant-numeric: tabular-nums;
 }
 
-/* Animations from Cleave Visual Design */
+/* Animations from YELTRA Visual Design */
 .draw {
   stroke-dasharray: 1400;
   stroke-dashoffset: 1400;
@@ -788,4 +788,3 @@ input:focus-visible {
     animation: none;
   }
 }
-

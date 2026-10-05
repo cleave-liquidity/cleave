@@ -44,7 +44,7 @@ export const FALLBACK_STAGES: StageInfo[] = [
     ],
     subTabs: ["01 Overview", "02 Two Ways", "03 Live Market"],
     subDetails: [
-      "Cleave splits a yield-bearing asset into two parts you can trade: a fixed side and a future-yield side.",
+      "Yeltra splits a yield-bearing asset into two parts you can trade: a fixed side and a future-yield side.",
       "Fixed Yield targets a quoted yield toward maturity. Trading Yield follows future yield as rates move.",
       "Live on Robinhood Chain, with every rate, maturity and quote shown before you trade.",
     ],

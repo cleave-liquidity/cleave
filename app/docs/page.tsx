@@ -29,7 +29,7 @@ export default function DocsPage() {
                 Yield trading without the complexity.
               </h1>
               <p className="mt-6 max-w-[600px] text-[17px] leading-7 text-muted">
-                CLEAVE turns a yield market into two readable choices: lock a quoted yield with Fixed Yield, or trade exposure to future yield with Trading Yield.
+                YELTRA turns a yield market into two readable choices: lock a quoted yield with Fixed Yield, or trade exposure to future yield with Trading Yield.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link href="/markets" className="inline-flex min-h-[42px] items-center border border-ice/50 bg-ice/10 px-5 text-[14px] text-ice transition-colors hover:bg-ice/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice">
@@ -46,7 +46,7 @@ export default function DocsPage() {
                 <SectionLabel>00 / Start here</SectionLabel>
                 <h2>One market. Two ways to trade its yield.</h2>
                 <p>
-                  A yield market has a principal side and a yield side. CLEAVE separates them into two positions so you can choose a more predictable outcome or exposure to future yield.
+                  A yield market has a principal side and a yield side. YELTRA separates them into two positions so you can choose a more predictable outcome or exposure to future yield.
                 </p>
                 <div className="mt-6 grid gap-3 sm:grid-cols-2">
                   <GuideCard tone="ice" title="Fixed Yield" text="Lock a quoted yield toward maturity. Early exit is priced by the market." />
@@ -123,11 +123,11 @@ export default function DocsPage() {
                 <SectionLabel>08 / Transparency</SectionLabel>
                 <h2>Verified deployments belong in one place.</h2>
                 <p>
-                  CLEAVE uses an adapter-first architecture. The application can connect to yield-market sources without claiming that CLEAVE owns a live protocol deployment today.
+                  YELTRA uses an adapter-first architecture. The application can connect to yield-market sources without claiming that YELTRA owns a live protocol deployment today.
                 </p>
                 <div className="mt-6 border-l-2 border-ice bg-ice/5 px-5 py-4">
                   <p className="m-0 text-[14px] leading-6 text-muted-light">
-                    The Contract Registry lists verified CLEAVE deployments when live contract integrations are introduced. Preview market addresses are never treated as deployed contracts.
+                    The Contract Registry lists verified YELTRA deployments when live contract integrations are introduced. Preview market addresses are never treated as deployed contracts.
                   </p>
                   <Link href="/contracts" className="mt-4 inline-flex text-[14px] text-ice hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ice">
                     View Contract Registry →

@@ -78,7 +78,7 @@ export function DocsNavigator() {
           {/* Header Title */}
           <div className="mono mb-4 text-[11px] uppercase tracking-[0.2em] text-muted-dark flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-ice/60 shrink-0" />
-            CLEAVE / GUIDE
+            YELTRA / GUIDE
           </div>
 
           {/* Nav Items List */}

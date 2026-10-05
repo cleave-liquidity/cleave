@@ -5,7 +5,7 @@ export function Footer() {
     <footer className="border-t border-white/12 bg-background">
       <div className="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-10 py-8 sm:py-10 flex justify-between items-center gap-5 flex-wrap">
         <span className="text-[15px] font-medium tracking-[0.42em] text-foreground">
-          CLEAVE
+          YELTRA
         </span>
         <span className="text-[13px] text-muted-dark text-center sm:text-left">
           Independent app on Robinhood Chain. Not affiliated with Robinhood Markets.

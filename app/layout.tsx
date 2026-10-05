@@ -4,7 +4,8 @@ import { Providers } from "./providers";
 import { SplashScreen } from "@/components/SplashScreen";
 
 export const metadata: Metadata = {
-  title: "Cleave — Trade yield on Robinhood Chain",
+  metadataBase: new URL("https://yeltra.tech"),
+  title: "YELTRA — Trade yield on Robinhood Chain",
   description:
     "Yield isn't just something you earn — it's something you can trade. Choose Fixed Yield or Trading Yield on live markets on Robinhood Chain.",
   openGraph: {

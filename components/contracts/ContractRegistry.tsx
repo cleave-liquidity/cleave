@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { Check, Copy, ExternalLink } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import type { ContractCategory, ContractDeployment } from "@/lib/contracts/deployments";
-import { getContractDeployments } from "@/lib/contracts/deployments";
+import { getContractDeployments, getContractDisplayName } from "@/lib/contracts/deployments";
 import { getProjectContractDeployments } from "@/lib/contracts/project-deployments";
 import type { RobinhoodNetwork } from "@/types/market";
 import { getConfiguredNetwork } from "@/lib/web3/environment";
@@ -53,7 +53,7 @@ function LiveMarketContracts({ network }: { network: RobinhoodNetwork }) {
         <div className="mono text-[10px] uppercase tracking-[0.16em] text-muted-dark">Runtime market metadata</div>
         <h2 className="mt-2 text-[24px] font-normal tracking-[-0.03em] text-foreground">Pendle market and PT / YT / SY addresses</h2>
         <p className="mt-2 max-w-[760px] text-[13px] leading-6 text-muted">
-          These addresses are resolved from the live Pendle market response for the selected chain. They are not CLEAVE-owned deployments and are not copied into the static registry.
+          These addresses are resolved from the live Pendle market response for the selected chain. They are not YELTRA-owned deployments and are not copied into the static registry.
         </p>
       </div>
 
@@ -120,20 +120,20 @@ function ProjectOwnedContracts({
       {deployments.length === 0 ? (
         <div className="border border-white/15 bg-surface/70 px-5 py-5 text-[13px] leading-6 text-muted">
           <span className="block text-foreground">Not deployed</span>
-          No CLEAVE-owned {network === "mainnet" ? "Mainnet" : "Testnet"} contract is represented in the synchronized registry. No placeholder address is shown.
+          No YELTRA-owned {network === "mainnet" ? "Mainnet" : "Testnet"} contract is represented in the synchronized registry. No placeholder address is shown.
         </div>
       ) : (
         <div className="flex flex-col gap-3 border border-white/15 bg-surface/70 px-5 py-5 text-[13px] leading-6 text-muted">
           <div className="border-b border-white/10 pb-4">
             <span className="block text-foreground">{deployments.length} contracts deployed{allVerified ? " and verified" : ""}</span>
             <span>{allVerified
-              ? `CLEAVE's project-owned contracts are deployed and verified on Robinhood Chain ${network === "mainnet" ? "Mainnet 4663" : "Testnet 46630"}.`
-              : `CLEAVE's project-owned contracts are deployed on Robinhood Chain ${network === "mainnet" ? "Mainnet 4663" : "Testnet 46630"}. Source verification status is shown per contract.`}</span>
+              ? `YELTRA's project-owned contracts are deployed and verified on Robinhood Chain ${network === "mainnet" ? "Mainnet 4663" : "Testnet 46630"}.`
+              : `YELTRA's project-owned contracts are deployed on Robinhood Chain ${network === "mainnet" ? "Mainnet 4663" : "Testnet 46630"}. Source verification status is shown per contract.`}</span>
           </div>
           {deployments.map((deployment) => (
             <div key={deployment.id} className="grid gap-2 sm:grid-cols-[1.1fr_2fr_1fr] sm:items-start">
               <div>
-                <span className="block text-foreground">{deployment.name}</span>
+                <span className="block text-foreground">{getContractDisplayName(deployment)}</span>
                 {network === "mainnet" ? (
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="mono text-[10px] uppercase tracking-[0.12em] text-muted-dark">ON MAINNET</span>
@@ -145,7 +145,7 @@ function ProjectOwnedContracts({
                 )}
               </div>
               {network === "mainnet" && deployment.explorerUrl ? (
-                <a href={deployment.explorerUrl} target="_blank" rel="noopener noreferrer" aria-label={`Open ${deployment.name} on Robinhood Chain Mainnet Blockscout`} className="inline-flex items-start gap-1 text-[11px] text-muted underline decoration-white/25 underline-offset-2 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice">
+                <a href={deployment.explorerUrl} target="_blank" rel="noopener noreferrer" aria-label={`Open ${getContractDisplayName(deployment)} on Robinhood Chain Mainnet Blockscout`} className="inline-flex items-start gap-1 text-[11px] text-muted underline decoration-white/25 underline-offset-2 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice">
                   <code className="break-all">{deployment.address}</code>
                   <ExternalLink className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                 </a>
@@ -189,9 +189,9 @@ export function ContractRegistry() {
       <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="mono text-[11px] uppercase tracking-[0.18em] text-muted-dark">Deployment registry / Transparency</div>
-          <h1 className="mt-3 text-[36px] font-normal leading-none tracking-[-0.04em] text-foreground sm:text-[48px]">CLEAVE Contract Registry</h1>
+          <h1 className="mt-3 text-[36px] font-normal leading-none tracking-[-0.04em] text-foreground sm:text-[48px]">YELTRA Contract Registry</h1>
           <p className="mt-4 max-w-[620px] text-[15px] leading-6 text-muted">
-            External protocol addresses used by CLEAVE are shown alongside any real CLEAVE-owned deployments. Static rows come from the deployment registry; live market, PT, YT, and SY rows come from verified Pendle metadata.
+            External protocol addresses used by YELTRA are shown alongside any real YELTRA-owned deployments. Static rows come from the deployment registry; live market, PT, YT, and SY rows come from verified Pendle metadata.
           </p>
         </div>
         <div className="shrink-0 border-l-2 border-amber bg-amber/5 px-4 py-3 text-[12px] leading-5 text-muted">
@@ -241,7 +241,7 @@ export function ContractRegistry() {
           </h2>
           <p className="mx-auto mt-3 max-w-[520px] text-[14px] leading-6 text-muted">
             {network === "testnet"
-              ? "CLEAVE's project-owned contracts are deployed and verified on Testnet. External live yield markets are currently available on Mainnet only."
+              ? "YELTRA's project-owned contracts are deployed and verified on Testnet. External live yield markets are currently available on Mainnet only."
               : "No address is fabricated for this network. Preview or Mainnet market addresses are not copied into the Testnet registry."}
           </p>
         </div>
@@ -253,7 +253,7 @@ export function ContractRegistry() {
             </div>
             {filteredDeployments.map((deployment) => (
               <div key={deployment.id} className="grid grid-cols-[1.5fr_0.75fr_0.6fr_1.7fr_0.75fr_0.85fr_1.35fr_1fr] items-center gap-4 border-b border-white/10 px-5 py-4 text-[13px] last:border-b-0">
-                <div><span className="block text-foreground">{deployment.name}</span><span className="text-[11px] text-muted-dark">{deployment.runtimeRole}</span></div>
+                <div><span className="block text-foreground">{getContractDisplayName(deployment)}</span><span className="text-[11px] text-muted-dark">{deployment.runtimeRole}</span></div>
                 <span className="text-muted">{categoryLabels[deployment.category]}</span>
                 <span className="mono text-muted">{deployment.version || "—"}</span>
                 <code className="break-all text-[11px] text-muted" title={deployment.address}>{deployment.address}</code>
@@ -261,11 +261,11 @@ export function ContractRegistry() {
                 <span className={deployment.verified ? "text-positive" : "text-amber"}>{deployment.verified ? "Verified" : "Unverified"}</span>
                 <span className={deployment.usedByRuntime ? "text-positive" : "text-muted-dark"}>{deployment.usedByRuntime ? "YES" : "NO · registry"}</span>
                 <div className="flex justify-end gap-2">
-                  <button type="button" onClick={() => copyAddress(deployment)} aria-label={`Copy ${deployment.name} address`} className="inline-flex min-h-[30px] items-center gap-1 border border-white/15 px-2 text-[11px] text-muted hover:border-white/35 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice">
+                  <button type="button" onClick={() => copyAddress(deployment)} aria-label={`Copy ${getContractDisplayName(deployment)} address`} className="inline-flex min-h-[30px] items-center gap-1 border border-white/15 px-2 text-[11px] text-muted hover:border-white/35 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice">
                     {copiedId === deployment.id ? <Check className="h-3.5 w-3.5" aria-hidden="true" /> : <Copy className="h-3.5 w-3.5" aria-hidden="true" />} Copy
                   </button>
-                  {deployment.source && <a href={deployment.source} target="_blank" rel="noopener noreferrer" aria-label={`Open ${deployment.name} deployment source`} className="inline-flex min-h-[30px] items-center border border-white/15 px-2 text-[11px] text-muted hover:border-white/35 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice">Source</a>}
-                  {deployment.explorerUrl && <a href={deployment.explorerUrl} target="_blank" rel="noopener noreferrer" aria-label={`Open ${deployment.name} in explorer`} className="inline-flex min-h-[30px] items-center border border-white/15 px-2 text-muted hover:border-white/35 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice"><ExternalLink className="h-3.5 w-3.5" aria-hidden="true" /></a>}
+                  {deployment.source && <a href={deployment.source} target="_blank" rel="noopener noreferrer" aria-label={`Open ${getContractDisplayName(deployment)} deployment source`} className="inline-flex min-h-[30px] items-center border border-white/15 px-2 text-[11px] text-muted hover:border-white/35 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice">Source</a>}
+                  {deployment.explorerUrl && <a href={deployment.explorerUrl} target="_blank" rel="noopener noreferrer" aria-label={`Open ${getContractDisplayName(deployment)} in explorer`} className="inline-flex min-h-[30px] items-center border border-white/15 px-2 text-muted hover:border-white/35 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice"><ExternalLink className="h-3.5 w-3.5" aria-hidden="true" /></a>}
                 </div>
               </div>
             ))}

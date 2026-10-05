@@ -1,10 +1,10 @@
-# CLEAVE Testnet Readiness
+# YELTRA Testnet Readiness
 
 ## Current state
 
 - Network: Robinhood Chain Testnet, chain ID `46630`.
 - RPC: supplied only through `NEXT_PUBLIC_ROBINHOOD_CHAIN_TESTNET_RPC_URL`.
-- Data mode: mock only when `NEXT_PUBLIC_CLEAVE_DATA_MODE=mock` is explicitly selected.
+- Data mode: mock only when `NEXT_PUBLIC_YELTRA_DATA_MODE=mock` is explicitly selected.
 - Mock market data, quote math, positions, and transaction results are available for product-flow testing.
 - No verified Pendle testnet token metadata or contract deployments are currently registered.
 

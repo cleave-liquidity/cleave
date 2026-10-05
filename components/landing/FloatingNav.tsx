@@ -14,7 +14,7 @@ import { buildLensMapUrl, supportsBackdropLens } from "./liquidGlass";
 import Image from "next/image";
 
 const HERO_ID = "top";
-const LENS_FILTER_ID = "cleave-liquid-lens";
+const LENS_FILTER_ID = "yeltra-liquid-lens";
 
 const LINKS = [
   { href: "/markets", label: "Markets" },
@@ -223,12 +223,12 @@ export function FloatingNav() {
         <div className="relative z-[3] flex items-center justify-between gap-3 py-2 pl-4 pr-2 sm:pl-5">
           <Link
             href="/"
-            aria-label="Cleave home"
+            aria-label="Yeltra home"
             className={`group flex cursor-pointer items-center gap-2.5 rounded-full ${FOCUS_RING}`}
           >
-            <Image src="/logo.png" alt="Cleave logo" width={34} height={34} />
+            <Image src="/logo.png" alt="Yeltra logo" width={34} height={34} />
             <span className="text-[15px] font-medium tracking-[0.36em] text-foreground [text-shadow:0_1px_3px_rgba(0,0,0,0.4)]">
-              CLEAVE
+              YELTRA
             </span>
           </Link>
 
@@ -262,7 +262,7 @@ export function FloatingNav() {
               href={X_URL}
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="CLEAVE on X (opens in a new tab)"
+              aria-label="YELTRA on X (opens in a new tab)"
               className={`inline-flex h-[38px] w-[38px] shrink-0 cursor-pointer items-center justify-center rounded-full text-white/75 transition-colors hover:bg-white/10 hover:text-white ${FOCUS_RING}`}
             >
               <XIcon className="h-4 w-4" />

@@ -123,7 +123,7 @@ export function MarketDetailClient({
               </dl>
               <div className="flex flex-col gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between">
                 <span className="mono text-[10px] uppercase tracking-[0.12em] text-amber">
-                  {market.dataMode === "live" ? "External Pendle contracts · not CLEAVE-owned" : "No production contracts configured"}
+                  {market.dataMode === "live" ? "External Pendle contracts · not YELTRA-owned" : "No production contracts configured"}
                 </span>
                 <Link href="/contracts" className="text-[13px] text-ice hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ice">
                   View Contract Registry →

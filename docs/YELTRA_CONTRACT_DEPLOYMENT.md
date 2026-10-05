@@ -1,8 +1,8 @@
-# CLEAVE-owned contract deployment
+# YELTRA-owned contract deployment
 
 ## Contract purpose
 
-`CleaveRegistry` is a small CLEAVE-owned configuration anchor for approved external Pendle router and market references. It provides an auditable project-owned address without changing the existing Pendle quote or transaction path.
+`CleaveRegistry` is a small YELTRA-owned configuration anchor for approved external Pendle router and market references. It provides an auditable project-owned address without changing the existing Pendle quote or transaction path.
 
 It does not custody user funds, execute trades, mint PT/YT, act as an AMM, or use upgradeability or delegate calls. The current application continues to approve and transact with the external Pendle Router V2 from live Mainnet market metadata.
 
