@@ -1,0 +1,36 @@
+{
+  "language": "Solidity",
+  "sources": {
+    "src/CleaveRegistry.sol": {
+      "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.24;\n\n/// @title CleaveRegistry\n/// @notice A minimal CLEAVE-owned configuration anchor for external Pendle deployments.\n/// @dev This contract never holds funds and never executes trades.\ncontract CleaveRegistry {\n    error Unauthorized();\n    error ZeroAddress();\n\n    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);\n    event PendleRouterUpdated(address indexed previousRouter, address indexed newRouter);\n    event MarketApprovalUpdated(address indexed market, bool approved);\n\n    address public owner;\n    address public pendleRouter;\n    mapping(address => bool) public approvedMarkets;\n\n    modifier onlyOwner() {\n        if (msg.sender != owner) revert Unauthorized();\n        _;\n    }\n\n    constructor(address initialOwner) {\n        if (initialOwner == address(0)) revert ZeroAddress();\n        owner = initialOwner;\n        emit OwnershipTransferred(address(0), initialOwner);\n    }\n\n    function transferOwnership(address newOwner) external onlyOwner {\n        if (newOwner == address(0)) revert ZeroAddress();\n        address previousOwner = owner;\n        owner = newOwner;\n        emit OwnershipTransferred(previousOwner, newOwner);\n    }\n\n    function setPendleRouter(address newRouter) external onlyOwner {\n        if (newRouter == address(0)) revert ZeroAddress();\n        address previousRouter = pendleRouter;\n        pendleRouter = newRouter;\n        emit PendleRouterUpdated(previousRouter, newRouter);\n    }\n\n    function setMarketApproval(address market, bool approved) external onlyOwner {\n        if (market == address(0)) revert ZeroAddress();\n        approvedMarkets[market] = approved;\n        emit MarketApprovalUpdated(market, approved);\n    }\n}\n"
+    },
+    "src/YeltraRegistry.sol": {
+      "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.24;\n\nimport {CleaveRegistry} from \"./CleaveRegistry.sol\";\n\n/// @title YeltraRegistry\n/// @notice YELTRA-named compatibility deployment of the unchanged configuration anchor.\ncontract YeltraRegistry is CleaveRegistry {\n    constructor(address initialOwner) CleaveRegistry(initialOwner) {}\n}\n"
+    }
+  },
+  "settings": {
+    "remappings": [],
+    "optimizer": {
+      "enabled": true,
+      "runs": 200
+    },
+    "metadata": {
+      "bytecodeHash": "ipfs"
+    },
+    "compilationTarget": {
+      "src/YeltraRegistry.sol": "YeltraRegistry"
+    },
+    "evmVersion": "cancun",
+    "libraries": {},
+    "outputSelection": {
+      "*": {
+        "*": [
+          "abi",
+          "evm.bytecode",
+          "evm.deployedBytecode",
+          "metadata"
+        ]
+      }
+    }
+  }
+}

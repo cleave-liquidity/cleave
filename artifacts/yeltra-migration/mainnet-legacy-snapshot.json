@@ -1,0 +1,155 @@
+{
+  "chainId": 4663,
+  "blockNumber": "81668442",
+  "legacy": {
+    "registry": "0xaa58afad613b2048ef526325c6989ec74703152b",
+    "accessManager": "0x8ba198d9275c65ee208eadd22084f38d0f193395",
+    "adapterRegistry": "0xc6a3d3e37f917f971d73f3aa4ec4019a04cb7cac",
+    "marketRegistry": "0xf48ac38c6a4342135c3ff4e45c4cd750576fe8e7",
+    "riskGuard": "0x4f3e119ddcd8d12b57b7c5b856f40ff85544913b",
+    "router": "0xc392c88a59d129af9a0c8dc2fcaaf9de3f635b03",
+    "lifecycleManager": "0xc3c60d0680a5db41d68187c62af2dd499220a865",
+    "lens": "0x8a41d30eb2ea283d12505449a478f20c314c2cf9"
+  },
+  "owner": "0x67214Bdf8597D46aAef7110983E2276DD2235f6E",
+  "pendleRouter": "0x0000000000000000000000000000000000000000",
+  "adapter": {
+    "protocolId": "0x50454e444c450000000000000000000000000000000000000000000000000000",
+    "router": "0x888888888889758F76e7103c6CbF23ABbF58F946",
+    "chainId": "4663",
+    "enabled": true
+  },
+  "globalPaused": false,
+  "adapterPaused": false,
+  "markets": [
+    {
+      "marketId": "0x91ba08faf37eaba80f0c3cb971b7118130d386db2c4f975b6f1a8ccf18999203",
+      "config": {
+        "adapterId": "0x50454e444c450000000000000000000000000000000000000000000000000000",
+        "market": "0x206a5cD00E9FfaBb8CA564076B64799A78DF19b9",
+        "pt": "0x4bCb25FCE9618E62e9F9fBA8D65af50CF867b812",
+        "yt": "0x9Cc22e51C6F0cb4aA1BfD1F18E85df1451EBB9b3",
+        "sy": "0x82cC738064816eD7441E3c4D917503Ca5388dFE9",
+        "underlying": "0xd0601CE157Db5bdC3162BbaC2a2C8aF5320D9EEC",
+        "maturity": "1792022400",
+        "chainId": "4663",
+        "enabled": true
+      },
+      "paused": false
+    },
+    {
+      "marketId": "0xf5aa3c8c419e1c9b1b4af45e043b49f8b1e0abff9fff022544d0826f7c55f772",
+      "config": {
+        "adapterId": "0x50454e444c450000000000000000000000000000000000000000000000000000",
+        "market": "0x25f241538bC3de8F7130706827b3f6946dB51f5d",
+        "pt": "0x20636aB8F3DEA231F30396Eeba184eff2F3Ba72B",
+        "yt": "0x06B6c573f0F138A4d2731a8c96ea14F63c6c4A62",
+        "sy": "0xE24A28fe8ECD859DB4280D1291783a10017d6fc4",
+        "underlying": "0xab093dEF657F15dF31b33922A95e047aDd645B29",
+        "maturity": "1791417600",
+        "chainId": "4663",
+        "enabled": true
+      },
+      "paused": false
+    },
+    {
+      "marketId": "0x91a9c4cbe5a8af4082a463774b5cb42adbb9d9e77876790992d29a22737318b6",
+      "config": {
+        "adapterId": "0x50454e444c450000000000000000000000000000000000000000000000000000",
+        "market": "0x752057e7a63d0a7F15b740d41Ef484fDEC459EAd",
+        "pt": "0x11F52Ee4ce0c220B268B8b833e51c28699097ceD",
+        "yt": "0xc9fEF9F1A200ba8f663792b795EaF2AB8D8b627a",
+        "sy": "0x346ae4FC5134f13655C65abB6DFd8728A6eB1235",
+        "underlying": "0xAa07A0e9209e16aC99708C3EC70159c6eF3128A3",
+        "maturity": "1791417600",
+        "chainId": "4663",
+        "enabled": true
+      },
+      "paused": false
+    },
+    {
+      "marketId": "0xc2e6d292ca253aa54c828a63e46857b013c2ad204f204e57798c6762edf781f2",
+      "config": {
+        "adapterId": "0x50454e444c450000000000000000000000000000000000000000000000000000",
+        "market": "0x892DeFBf510D9baA96dBd2a51B13E879A857a79b",
+        "pt": "0xf9cD484F7E7799aE32b7F9A75E60c478Fd1f0B6e",
+        "yt": "0x7600d0A61F83D7e4C4154c4664b19BE6d9ACf180",
+        "sy": "0x8c7454D4d64aBd04fbf5F5ffe0Dbcd5E3ABcEcf6",
+        "underlying": "0x7066A64c24e4206CD62E83bf198c1E7EB361F51e",
+        "maturity": "1796860800",
+        "chainId": "4663",
+        "enabled": true
+      },
+      "paused": false
+    },
+    {
+      "marketId": "0x5518fb6afc5bd645e5eb2d693d60c657864048cc3a330a03c985fb6521bb4236",
+      "config": {
+        "adapterId": "0x50454e444c450000000000000000000000000000000000000000000000000000",
+        "market": "0xC2B89e6EcA583e2c232201ac557E9bE58AF55f4c",
+        "pt": "0x6982e39521A070a3C40782548bfBED6Dc8F566ef",
+        "yt": "0xF35Ee6bd9A93fE42BC7e628BFC4DDbdc6DE1f615",
+        "sy": "0x8d3127aAbf76F95fE2970A0480B8662B4ad4C286",
+        "underlying": "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168",
+        "maturity": "1805932800",
+        "chainId": "4663",
+        "enabled": true
+      },
+      "paused": false
+    },
+    {
+      "marketId": "0x56839857da53273888fc41b5773796020362a1d5adc80b9d10f2ce53120f7f32",
+      "config": {
+        "adapterId": "0x50454e444c450000000000000000000000000000000000000000000000000000",
+        "market": "0xd5D418f95715Bc0FadB35923D389FE3F627dF80A",
+        "pt": "0xc50F040F9A38F7cd94FE87Be56325eaAc48e770E",
+        "yt": "0x3D9e0F83834E015D25d07444de0296359EBFb6e3",
+        "sy": "0x5d446A2bE952F4F9bA241b382a73ad3B1819aAF5",
+        "underlying": "0x53176cADd446700fa6b89f840357AC586D7e33Db",
+        "maturity": "1792022400",
+        "chainId": "4663",
+        "enabled": true
+      },
+      "paused": false
+    },
+    {
+      "marketId": "0x50cc17437b74374e12db9582ec3ea74d07522970c9b731be6c48365eebabb2a5",
+      "config": {
+        "adapterId": "0x50454e444c450000000000000000000000000000000000000000000000000000",
+        "market": "0xd6E26E957B3207a5C618213d928647Ec84150cA0",
+        "pt": "0x9f1e57d8984D9Ae2b081eD6fceFf2fb60CB785F1",
+        "yt": "0x7eeE53B86290e58179ED96Bea7887A37e8A1B7b9",
+        "sy": "0x06fC2568fa3C8A9862D8f35bc6758355b3A32F51",
+        "underlying": "0x92FD66527192E3e61d4DDd13322Aa222DE86F9B5",
+        "maturity": "1795046400",
+        "chainId": "4663",
+        "enabled": true
+      },
+      "paused": false
+    }
+  ],
+  "approvals": [],
+  "roles": [
+    {
+      "name": "ADMIN_ROLE",
+      "role": "0xba068016d319c660d69fe3a22c878c21e6dfad7bb8f472fb6901a99ffb6b6cd1",
+      "members": [
+        "0x67214Bdf8597D46aAef7110983E2276DD2235f6E"
+      ]
+    },
+    {
+      "name": "OPERATOR_ROLE",
+      "role": "0xd88374407d883ebe3b0386a70947c24aa4c8be078533f76ece7d00000e531256",
+      "members": [
+        "0x67214Bdf8597D46aAef7110983E2276DD2235f6E"
+      ]
+    },
+    {
+      "name": "GUARDIAN_ROLE",
+      "role": "0x6a48b3c9fe66d1accf0499fbea775e91122135ce46d31faf463b8b9ff0de2f79",
+      "members": [
+        "0x67214Bdf8597D46aAef7110983E2276DD2235f6E"
+      ]
+    }
+  ]
+}
