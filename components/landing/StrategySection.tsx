@@ -96,7 +96,7 @@ export function StrategySection() {
         <div className="border-y border-white/10 py-8">
           <div className="mono flex items-center gap-2 text-[11px] tracking-[0.22em] text-muted uppercase">
             <span className="h-1.5 w-1.5 rounded-full bg-amber" />
-            02 — INTERACTIVE SIMULATOR
+            03 — INTERACTIVE SIMULATOR
           </div>
           <p className="mt-4 max-w-[620px] text-[15px] leading-7 text-muted">
             Live market data is unavailable right now. Browse Markets to choose a current yield market.
@@ -119,7 +119,7 @@ export function StrategySection() {
         <div data-reveal className="flex flex-col gap-4 max-w-[680px]">
           <div className="mono flex items-center gap-2 text-[11px] tracking-[0.22em] text-muted uppercase">
             <span className="w-1.5 h-1.5 rounded-full bg-amber shrink-0" />
-            02 — INTERACTIVE SIMULATOR
+            03 — INTERACTIVE SIMULATOR
           </div>
           <h2 className="m-0 text-[34px] sm:text-[46px] lg:text-[58px] leading-[1.05] font-normal tracking-[-0.035em] text-balance">
             Know your number.

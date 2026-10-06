@@ -287,7 +287,7 @@ export function TradePreview() {
             <div data-reveal className="flex flex-col gap-5">
               <div className="mono flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-muted">
                 <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-ice" />
-                04 — OPEN A POSITION
+                05 — OPEN A POSITION
               </div>
               <h2 className="m-0 text-[36px] font-normal leading-[1.04] tracking-[-0.035em] text-balance sm:text-[48px] lg:text-[54px]">
                 Same market.

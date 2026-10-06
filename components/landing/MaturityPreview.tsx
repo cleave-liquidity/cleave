@@ -15,7 +15,7 @@ export function MaturityPreview() {
         <div className="flex flex-col gap-4 max-w-[680px]">
           <div className="mono flex items-center gap-2 text-[11px] tracking-[0.22em] text-muted uppercase">
             <span className="w-1.5 h-1.5 rounded-full bg-ice shrink-0" />
-            05 — LIVE PORTFOLIO SIMULATION
+            06 — LIVE PORTFOLIO SIMULATION
           </div>
           <h2 className="m-0 text-[36px] sm:text-[48px] lg:text-[60px] leading-[1.04] font-normal tracking-[-0.035em] text-balance">
             Watch both paths

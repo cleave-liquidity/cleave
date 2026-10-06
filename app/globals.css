@@ -788,3 +788,80 @@ input:focus-visible {
     animation: none;
   }
 }
+
+/* ── Protocol economics: pinned 70 → 30 allocation ───────────────────────────
+   On roomy desktops the section is a scroll runway with a pinned frame; ProtocolEconomics turns the scroll
+   position into progress. Elsewhere it is a normal block and the sequence plays once on entry.
+   The media query is mirrored by PIN_QUERY in ProtocolEconomics.tsx — keep both in sync.
+   The `#economics` prefix is needed: Tailwind emits its `lg:` utilities after this file's rules. */
+@media (min-width: 1024px) and (min-height: 720px) {
+  .eco-runway {
+    height: 300vh;
+    margin-bottom: -4.5rem; /* the pinned frame leaves air below it; pull the next section up to the usual gap */
+  }
+  #economics .eco-pin {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    padding-top: 4.5rem;
+    padding-bottom: 1.5rem;
+  }
+  /* The whole frame has to fit one screen, so the big type follows the viewport height. */
+  #economics .eco-title {
+    font-size: clamp(38px, 6.2vh, 58px);
+  }
+  #economics .eco-header {
+    padding-bottom: clamp(1rem, 3vh, 2rem);
+  }
+  #economics .eco-body {
+    margin-top: clamp(1.5rem, 5vh, 3.5rem);
+  }
+  #economics .eco-figure {
+    font-size: clamp(72px, 13vh, 120px);
+  }
+}
+@media (prefers-reduced-motion: reduce) and (min-width: 1024px) {
+  .eco-runway {
+    height: auto;
+    margin-bottom: 0;
+  }
+  #economics .eco-pin {
+    position: static;
+    height: auto;
+    display: block;
+    padding-top: 10rem;
+    padding-bottom: 0;
+  }
+}
+
+.eco-edge {
+  transition: opacity 0.2s ease;
+}
+.eco-ember {
+  opacity: 0;
+  box-shadow: 0 0 6px 1px rgba(239, 95, 34, 0.75);
+  animation-name: eco-ember;
+  animation-timing-function: ease-out;
+  animation-iteration-count: infinite;
+}
+@keyframes eco-ember {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--eco-drift, 0), -52px, 0) scale(0.4);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .eco-ember {
+    animation: none;
+    opacity: 0;
+  }
+}

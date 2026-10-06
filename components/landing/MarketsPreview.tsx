@@ -31,7 +31,7 @@ export function MarketsPreview() {
         <div className="flex flex-col gap-5 sm:gap-6">
           <div className="mono flex items-center gap-2 text-[11px] tracking-[0.22em] text-muted-dark uppercase">
             <span className="w-1 h-1 rounded-full bg-foreground/30 shrink-0" />
-            03 — MARKETS
+            04 — MARKETS
           </div>
           <h2 className="m-0 text-[36px] sm:text-[46px] lg:text-[60px] leading-[1.04] font-normal tracking-[-0.03em]">
             Every market has

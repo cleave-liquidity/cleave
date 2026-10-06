@@ -1,6 +1,7 @@
 import React from "react";
 import { Hero } from "@/components/landing/Hero";
 import { YieldSplitSection } from "@/components/landing/YieldSplitSection";
+import { ProtocolEconomics } from "@/components/landing/ProtocolEconomics";
 import { StrategySection } from "@/components/landing/StrategySection";
 import { MarketsPreview } from "@/components/landing/MarketsPreview";
 import { TradePreview } from "@/components/landing/TradePreview";
@@ -20,6 +21,7 @@ export default function LandingPage() {
       <div className="relative z-10 bg-background shadow-[0_50px_120px_rgba(0,0,0,0.95)]">
         <Hero />
         <YieldSplitSection />
+        <ProtocolEconomics />
         <StrategySection />
         <MarketsPreview />
         <TradePreview />
