@@ -445,7 +445,7 @@ export const projectContractDeployments: Readonly<
       chainId: 4663,
       category: "risk",
       address: "0x0b40937337dd65bae64c260164e303c6c8184a48",
-      verified: false,
+      verified: true,
       ownership: "project",
       explorerUrl:
         "https://robinhoodchain.blockscout.com/address/0x0b40937337dd65bae64c260164e303c6c8184a48",

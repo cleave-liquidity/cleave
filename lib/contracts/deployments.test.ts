@@ -47,8 +47,8 @@ describe("verified contract deployment registry", () => {
       expect(deployment.deploymentBlock).toBeGreaterThan(0);
       expect(deployment.gasUsed).toMatch(/^[0-9]+$/);
     }
-    expect(mainnet.map((deployment) => deployment.verificationStatus)).toEqual(Array(8).fill("DEPLOYED / NOT VERIFIED"));
-    expect(mainnet.map((deployment) => deployment.verified)).toEqual(Array(8).fill(false));
+    expect(mainnet.map((deployment) => deployment.verificationStatus)).toEqual(Array(8).fill("VERIFIED"));
+    expect(mainnet.map((deployment) => deployment.verified)).toEqual(Array(8).fill(true));
     for (const deployment of mainnet) {
       expect(deployment.chainId).toBe(4663);
       expect(deployment.ownership).toBe("project");

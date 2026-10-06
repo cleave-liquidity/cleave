@@ -80,7 +80,7 @@ export default function MarketsPage() {
                 </span>
               </div>
               <span className="mono text-[10px] text-muted-dark">
-                {yieldAdapter.mode === "live" ? "Pendle API" : "Mock Adapter"}
+                {yieldAdapter.mode === "live" ? "Verified live data" : "Local preview data"}
               </span>
             </div>
           </div>

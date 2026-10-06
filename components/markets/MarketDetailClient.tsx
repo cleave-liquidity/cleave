@@ -7,7 +7,7 @@ import { Footer } from "@/components/layout/Footer";
 import { ApplicationBackdrop } from "@/components/layout/ApplicationBackdrop";
 import { DataModeBadge } from "@/components/layout/DataModeBadge";
 import { YieldChart } from "@/components/trade/YieldChart";
-import { AssetIcon, ProtocolIcon } from "@/components/markets/AssetIcon";
+import { AssetIcon } from "@/components/markets/AssetIcon";
 import { MarketMetricsStrip } from "@/components/markets/MarketMetricsStrip";
 import { formatApy } from "@/lib/utils/formatters";
 import { getMarketStatus, isMarketTradable } from "@/lib/markets/status";
@@ -22,8 +22,6 @@ export function MarketDetailClient({
 }) {
   const isTradeable = isMarketTradable(market);
   const marketStatus = getMarketStatus(market);
-  const sourceName = market.protocolMetadata?.name || market.sourceProtocol || "Source protocol";
-
   return (
     <div className="relative min-h-screen overflow-x-clip bg-background text-foreground">
       <ApplicationBackdrop />
@@ -58,21 +56,13 @@ export function MarketDetailClient({
                       {market.assetMetadata?.name || market.name}
                     </h1>
                     <span className="text-[14px] text-muted">
-                      {sourceName} · Built on Robinhood Chain
+                      Built on Robinhood Chain
                     </span>
                   </div>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
                   <DataModeBadge mode={market.dataMode} />
-                  <span className="mono text-[12px] text-muted-dark border border-white/15 rounded-full pl-1.5 pr-3 py-1 flex items-center gap-1.5">
-                    <ProtocolIcon
-                      name={market.yieldSourceMetadata?.name || sourceName}
-                      iconUrl={market.yieldSourceMetadata?.iconUrl || market.protocolMetadata?.iconUrl}
-                      size="xs"
-                    />
-                    {market.sourceProtocol || sourceName}
-                  </span>
                   <span className="mono text-[12px] text-muted-light border border-white/15 rounded-full px-3 py-1 flex items-center gap-1.5">
                     <span
                       className="w-2 h-2 rounded-full"
@@ -113,18 +103,21 @@ export function MarketDetailClient({
               </summary>
               <dl className="divide-y divide-white/10 border-y border-white/10 text-[13px]">
                 <InfoRow label="Underlying Asset" value={market.underlyingAsset} />
-                <InfoRow label="Yield Source" value={market.yieldSource} />
-                <InfoRow label="Source Protocol" value={market.protocolMetadata?.name || market.sourceProtocol || "Not specified"} tone="ice" />
                 <InfoRow label="Network" value={`${market.network === "mainnet" ? "Robinhood Chain Mainnet" : "Robinhood Chain Testnet"} · Chain ID ${market.chainId}`} />
                 <InfoRow label="Maturity" value={market.maturity} />
                 <InfoRow label="PT Contract" value={market.ptAddress || "Unavailable"} tone={market.ptAddress ? "ice" : "muted"} />
                 <InfoRow label="YT Contract" value={market.ytAddress || "Unavailable"} tone={market.ytAddress ? "amber" : "muted"} />
-                <InfoRow label="Adapter" value={market.dataMode === "live" ? "PendleLiveYieldMarketAdapter" : "MockYieldMarketAdapter"} tone={market.dataMode === "live" ? "ice" : "amber"} />
               </dl>
               <div className="flex flex-col gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                <span className="mono text-[10px] uppercase tracking-[0.12em] text-amber">
-                  {market.dataMode === "live" ? "External Pendle contracts · not YELTRA-owned" : "No production contracts configured"}
-                </span>
+                {market.dataMode === "live" ? (
+                  <span className="max-w-[520px] text-[12px] leading-5 text-muted-dark">
+                    Underlying yield market and liquidity infrastructure sourced from Pendle on Robinhood Chain.
+                  </span>
+                ) : (
+                  <span className="mono text-[10px] uppercase tracking-[0.12em] text-muted-dark">
+                    No production contracts configured
+                  </span>
+                )}
                 <Link href="/contracts" className="text-[13px] text-ice hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ice">
                   View Contract Registry →
                 </Link>

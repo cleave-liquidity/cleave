@@ -6,23 +6,16 @@ import { YieldMarket } from "@/types/market";
 import { formatApy, formatUsd } from "@/lib/utils/formatters";
 import { getMarketStatus } from "@/lib/markets/status";
 import { MarketCard } from "./MarketCard";
-import { AssetIcon, ProtocolIcon } from "./AssetIcon";
+import { AssetIcon } from "./AssetIcon";
 import { Search, ArrowUpDown, ArrowUpRight } from "lucide-react";
 
 type SortField = "impliedApy" | "underlyingApy" | "daysRemaining" | "liquidityUsd";
 
-function sourceDetail(market: YieldMarket): string {
-  const source = market.yieldSource;
-  const protocol = market.sourceProtocol || market.protocolMetadata?.name;
-  if (!protocol) return source;
-  return source.replace(new RegExp(`^${protocol}\\s*`, "i"), "") || source;
-}
-
 /** Where the two trade actions of a market lead (the Trade hub shows them in place of the status column). */
 export type TradeHrefs = { fixed: string; long: string };
 
-const MARKETS_COLS = "grid-cols-[2fr_1.5fr_1.1fr_1.1fr_1.3fr_1fr_1.1fr]";
-const TRADE_COLS = "grid-cols-[2fr_1.5fr_1.1fr_1.1fr_1.3fr_1fr_1.8fr]";
+const MARKETS_COLS = "grid-cols-[2fr_1.35fr_1.1fr_1.1fr_1.3fr_1.1fr]";
+const TRADE_COLS = "grid-cols-[2fr_1.35fr_1.1fr_1.1fr_1.3fr_1.8fr]";
 
 export function MarketTable({
   markets,
@@ -61,10 +54,6 @@ export function MarketTable({
           market.symbol,
           market.assetMetadata?.name,
           market.assetMetadata?.symbol,
-          market.sourceProtocol,
-          market.protocolMetadata?.name,
-          market.yieldSource,
-          market.yieldSourceMetadata?.name,
         ]
           .filter((value): value is string => Boolean(value))
           .some((value) => value.toLowerCase().includes(search));
@@ -93,13 +82,13 @@ export function MarketTable({
         {/* Search Input - Zupiter Sleek Glass Style */}
         <div className="relative flex-grow max-w-md">
           <label htmlFor="market-search" className="sr-only">
-            Search markets by asset or yield source
+            Search markets
           </label>
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-dark" />
           <input
             id="market-search"
             type="text"
-            placeholder="Search by asset or yield source..."
+            placeholder="Search markets..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full bg-[#090A0D] border border-white/12 rounded-xl pl-10 pr-4 py-2.5 text-[14px] text-foreground placeholder:text-muted-dark focus:border-ice/50 focus:bg-[#0E1015] outline-none transition-all shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)]"
@@ -165,7 +154,6 @@ export function MarketTable({
           {/* Header Row */}
           <div className={`mono grid ${cols} gap-4 border-b border-white/[0.08] bg-white/[0.02] px-6 py-4 text-[10px] tracking-[0.14em] text-muted-dark select-none`}>
             <span>ASSET</span>
-            <span>YIELD SOURCE</span>
             <button
               type="button"
               onClick={() => handleSort("impliedApy")}
@@ -202,7 +190,7 @@ export function MarketTable({
               <span>LIQUIDITY</span>
               <ArrowUpDown className="w-3 h-3 opacity-60" />
             </button>
-            <span className="text-right">{isTrade ? "TRADE" : "STATUS"}</span>
+            <span className="text-right">TRADE</span>
           </div>
 
           {/* Table Body */}
@@ -213,8 +201,6 @@ export function MarketTable({
               </div>
             ) : (
               filteredAndSortedMarkets.map((market) => {
-                const isMaturing = market.status === "maturing";
-
                 if (isTrade && tradeHrefs) {
                   const hrefs = tradeHrefs(market);
                   return (
@@ -243,22 +229,10 @@ export function MarketTable({
 
                     <MarketRowCells market={market} />
 
-                    {/* Status Pill */}
-                    <span className="text-right flex justify-end items-center gap-2">
-                      <span
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium mono border ${
-                          isMaturing
-                            ? "bg-amber/10 border-amber/30 text-amber"
-                            : "bg-ice/10 border-ice/30 text-ice"
-                        }`}
-                      >
-                        <span
-                          className={`w-1.5 h-1.5 rounded-full ${
-                            isMaturing ? "bg-amber shadow-[0_0_6px_#EF5F22]" : "bg-ice shadow-[0_0_6px_#3B86FF]"
-                          }`}
-                        />
-                        {isMaturing ? "Maturing" : "Active"}
-                      </span>
+                    {/* The row links to the market detail/trade surface. */}
+                    <span className="flex items-center justify-end gap-1.5 text-[13px] font-medium text-ice transition-colors group-hover:text-white">
+                      Trade
+                      <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
                     </span>
                   </Link>
                 );
@@ -272,7 +246,7 @@ export function MarketTable({
 }
 
 /**
- * The first six cells of a row — shared by the Markets table and the Trade table so the two read as one
+ * The first five cells of a row — shared by the Markets table and the Trade table so the two read as one
  * system. `showMaturingTag` adds a "maturing" note under the date (the Trade table has no status column).
  */
 function MarketRowCells({ market, showMaturingTag = false }: { market: YieldMarket; showMaturingTag?: boolean }) {
@@ -294,23 +268,6 @@ function MarketRowCells({ market, showMaturingTag = false }: { market: YieldMark
           </span>
           <span className="text-[12px] text-muted-dark truncate">
             {market.assetMetadata?.name || market.name}
-          </span>
-        </span>
-      </span>
-
-      {/* Protocol / Yield Source */}
-      <span className="flex items-center gap-2 min-w-0">
-        <ProtocolIcon
-          name={market.yieldSourceMetadata?.name || market.sourceProtocol || market.protocolMetadata?.name || market.yieldSource}
-          iconUrl={market.yieldSourceMetadata?.iconUrl || market.protocolMetadata?.iconUrl}
-          size="sm"
-        />
-        <span className="flex flex-col gap-0.5 min-w-0">
-          <span className="text-[14px] text-muted-light truncate">
-            {market.sourceProtocol || market.protocolMetadata?.name || market.yieldSource}
-          </span>
-          <span className="text-[11px] text-muted-dark truncate">
-            {sourceDetail(market)}
           </span>
         </span>
       </span>

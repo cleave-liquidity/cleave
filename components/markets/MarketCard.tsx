@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { YieldMarket } from "@/types/market";
 import { formatApy, formatUsd } from "@/lib/utils/formatters";
-import { AssetIcon, ProtocolIcon } from "./AssetIcon";
+import { AssetIcon } from "./AssetIcon";
 
 export function MarketCard({
   market,
@@ -44,20 +44,6 @@ export function MarketCard({
           />
           <span className="capitalize">{market.status.replace("_", " ")}</span>
         </div>
-      </div>
-
-      <div className="py-3 text-[13px] text-muted flex items-center justify-between">
-        <span className="text-muted-dark">Source</span>
-        <span className="flex min-w-0 items-center gap-2">
-          <ProtocolIcon
-            name={market.yieldSourceMetadata?.name || market.protocolMetadata?.name || market.sourceProtocol || market.yieldSource}
-            iconUrl={market.yieldSourceMetadata?.iconUrl || market.protocolMetadata?.iconUrl}
-          />
-          <span className="flex min-w-0 flex-col text-right">
-            <span className="text-foreground">{market.sourceProtocol || market.protocolMetadata?.name || market.yieldSource}</span>
-            <span className="text-[11px] capitalize text-muted-dark">{market.yieldSource.replace(new RegExp(`^${market.sourceProtocol || market.protocolMetadata?.name || ""}\\s*`, "i"), "")}</span>
-          </span>
-        </span>
       </div>
 
       <div className="grid grid-cols-2 gap-3 py-3 border-y border-white/10 text-center">
