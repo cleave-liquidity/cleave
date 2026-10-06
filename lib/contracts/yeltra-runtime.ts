@@ -109,10 +109,10 @@ export function yeltraMarketKey(marketId: string): Hex {
   return keccak256(stringToHex(marketId));
 }
 
-const LEGACY_DEPLOYMENT_NAMES = {
-  executionRouter: "CleaveExecutionRouter",
-  lifecycleManager: "CleaveLifecycleManager",
-  lens: "CleaveLens",
+const DEPLOYMENT_NAME_CANDIDATES = {
+  executionRouter: ["YeltraExecutionRouter", "CleaveExecutionRouter"],
+  lifecycleManager: ["YeltraLifecycleManager", "CleaveLifecycleManager"],
+  lens: ["YeltraLens", "CleaveLens"],
 } as const;
 const YELTRA_DEPLOYMENT_LABELS = {
   executionRouter: "Execution Router",
@@ -120,9 +120,10 @@ const YELTRA_DEPLOYMENT_LABELS = {
   lens: "Lens",
 } as const;
 
-function requireYeltraDeployment(name: keyof typeof LEGACY_DEPLOYMENT_NAMES): Address {
-  const legacyName = LEGACY_DEPLOYMENT_NAMES[name];
-  const deployment = getContractByName(ROBINHOOD_CHAIN_ID, legacyName);
+function requireYeltraDeployment(name: keyof typeof DEPLOYMENT_NAME_CANDIDATES): Address {
+  const deployment = DEPLOYMENT_NAME_CANDIDATES[name]
+    .map((candidate) => getContractByName(ROBINHOOD_CHAIN_ID, candidate))
+    .find((candidate) => candidate?.address);
   if (!deployment?.address || deployment.chainId !== ROBINHOOD_CHAIN_ID) {
     throw new YieldDomainError("live-source-unavailable", `YELTRA ${YELTRA_DEPLOYMENT_LABELS[name]} is not configured for Mainnet.`);
   }

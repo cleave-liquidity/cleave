@@ -39,6 +39,14 @@ export type ContractDeployment = {
 };
 
 const YELTRA_CONTRACT_DISPLAY_NAMES: Readonly<Record<string, string>> = {
+  YeltraAccessManager: "YELTRA Access Manager",
+  YeltraRegistry: "YELTRA Registry",
+  YeltraAdapterRegistry: "YELTRA Adapter Registry",
+  YeltraMarketRegistry: "YELTRA Market Registry",
+  YeltraRiskGuard: "YELTRA Risk Guard",
+  YeltraExecutionRouter: "YELTRA Execution Router",
+  YeltraLifecycleManager: "YELTRA Lifecycle Manager",
+  YeltraLens: "YELTRA Lens",
   CleaveAccessManager: "YELTRA Access Manager",
   CleaveRegistry: "YELTRA Registry",
   CleaveAdapterRegistry: "YELTRA Adapter Registry",

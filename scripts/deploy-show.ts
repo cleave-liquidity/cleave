@@ -38,6 +38,11 @@ const YELTRA_MARKET_REGISTERED_EVENT = parseAbiItem(
   "event MarketRegistered(bytes32 indexed marketId, bytes32 indexed adapterId, address indexed market, uint256 chainId, uint256 maturity)",
 );
 
+function getYeltraMarketRegistryDeployment() {
+  return getContractByName(ROBINHOOD_CHAIN_ID, "YeltraMarketRegistry")
+    || getContractByName(ROBINHOOD_CHAIN_ID, "CleaveMarketRegistry");
+}
+
 const cliArgs = new Set(process.argv.slice(2));
 const recordMode = cliArgs.has("--record");
 const mainnetMode = cliArgs.has("--mainnet");
@@ -413,10 +418,7 @@ async function probePendleMarkets(chainId: number): Promise<MarketProbe> {
 }
 
 async function probeRegisteredMainnetMarkets(): Promise<RegisteredMarketProbe> {
-  const deployment = getContractByName(
-    ROBINHOOD_CHAIN_ID,
-    "CleaveMarketRegistry",
-  );
+  const deployment = getYeltraMarketRegistryDeployment();
   if (!deployment?.address || deployment.deploymentBlock === undefined)
     return { status: "FAIL" };
 
