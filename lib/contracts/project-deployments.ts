@@ -456,7 +456,7 @@ export const projectContractDeployments: Readonly<
       deploymentBlock: 81667910,
       deployer: "0x67214bdf8597d46aaef7110983e2276dd2235f6e",
       gasUsed: "512106",
-      verificationStatus: "DEPLOYED / NOT VERIFIED",
+      verificationStatus: "VERIFIED",
     },
     {
       id: "yeltra-execution-router-mainnet",
