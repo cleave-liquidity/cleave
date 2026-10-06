@@ -57,6 +57,7 @@ function main(): void {
       "--verifier", "blockscout",
       "--verifier-url", verifierUrl,
       "--constructor-args", encodedArgs,
+      "--skip-is-verified-check",
       "--watch",
       address,
       source,

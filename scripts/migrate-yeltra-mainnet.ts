@@ -7,11 +7,11 @@ import {
   keccak256,
   parseAbi,
   parseAbiItem,
-  privateKeyToAccount,
   stringToHex,
   type Address,
   type Hex,
 } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
 import { robinhoodChain } from "../lib/web3/chains";
 
 const MAINNET_CHAIN_ID = 4663;
@@ -20,8 +20,7 @@ const OLD_MARKET_REGISTRY_BLOCK = BigInt(79841487);
 const broadcastPath = join(process.cwd(), "contracts", "broadcast", "DeployYeltraMainnet.s.sol", "4663", "run-latest.json");
 const snapshotDir = join(process.cwd(), "artifacts", "yeltra-migration");
 const snapshotPath = join(snapshotDir, "mainnet-legacy-snapshot.json");
-const rpcUrl = process.env.ROBINHOOD_MAINNET_RPC_URL || process.env.NEXT_PUBLIC_ROBINHOOD_CHAIN_RPC_URL;
-if (!rpcUrl) throw new Error("Missing Mainnet RPC URL.");
+const rpcUrl = "https://rpc.mainnet.chain.robinhood.com";
 
 const legacy = {
   registry: "0xaa58afad613b2048ef526325c6989ec74703152b" as Address,
@@ -221,21 +220,22 @@ async function send(
 
 async function main(): Promise<void> {
   if (process.argv.includes("--testnet")) throw new Error("This migration runner is Mainnet-only.");
-  const broadcast = readBroadcast();
-  const deployments = readDeployments(broadcast);
   const actualChainId = await publicClient.getChainId();
   if (actualChainId !== MAINNET_CHAIN_ID) throw new Error(`Refusing migration on chain ${actualChainId}; expected 4663.`);
-  const privateKey = process.env.MAINNET_DEPLOYER_PRIVATE_KEY;
-  if (!privateKey || !/^0x[0-9a-fA-F]{64}$/.test(privateKey)) throw new Error("MAINNET_DEPLOYER_PRIVATE_KEY is required and must be a 32-byte key.");
-  const account = privateKeyToAccount(privateKey as Hex);
-  const owner = await read(legacy.registry, "owner") as Address;
-  if (!sameAddress(owner, account.address)) throw new Error("Mainnet migration key is not the legacy registry owner.");
   const snapshot = await snapshotLegacy();
   mkdirSync(snapshotDir, { recursive: true });
   writeFileSync(snapshotPath, JSON.stringify(serialize(snapshot), null, 2) + "\n", "utf8");
   console.log(`Legacy Mainnet snapshot written to ${snapshotPath}`);
   console.log(`Legacy market records: ${snapshot.markets.length}`);
+  if (process.argv.includes("--snapshot-only")) return;
 
+  const broadcast = readBroadcast();
+  const deployments = readDeployments(broadcast);
+  const privateKey = process.env.MAINNET_DEPLOYER_PRIVATE_KEY;
+  if (!privateKey || !/^0x[0-9a-fA-F]{64}$/.test(privateKey)) throw new Error("MAINNET_DEPLOYER_PRIVATE_KEY is required and must be a 32-byte key.");
+  const account = privateKeyToAccount(privateKey as Hex);
+  const owner = await read(legacy.registry, "owner") as Address;
+  if (!sameAddress(owner, account.address)) throw new Error("Mainnet migration key is not the legacy registry owner.");
   const newAdapter = await readAdapter(deployments.YeltraAdapterRegistry, adapterId);
   const pending: Array<{ address: Address; functionName: string; args: readonly unknown[] }> = [];
   const oldPendleRouter = snapshot.pendleRouter as Address;
