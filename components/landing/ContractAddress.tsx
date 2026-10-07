@@ -8,7 +8,7 @@ import { truncateAddress } from "@/lib/utils/formatters";
  * The contract address shown in the navbar. Paste it here when it is live; until then (empty string) the pill reads
  * "Coming soon" and tells the visitor so instead of copying anything.
  */
-const CONTRACT_ADDRESS = "fadfadfadfaf";
+const CONTRACT_ADDRESS = "0x0702036e6b113fea742e7c3ba100288a2e1e082a";
 
 const FEEDBACK_MS = 1800;
 
@@ -91,7 +91,7 @@ export function ContractAddress() {
   const copied = feedback === "copied";
 
   return (
-    <div className="relative hidden shrink-0 xl:hidden">
+    <div className="relative hidden shrink-0 xl:block">
       <div className="lg-float relative">
         <span
           role="status"
