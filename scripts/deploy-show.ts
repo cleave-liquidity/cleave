@@ -18,6 +18,13 @@ import {
   robinhoodChain,
   robinhoodChainTestnet,
 } from "../lib/web3/chains";
+import {
+  centerYeltraText,
+  renderTerminalDivider,
+  renderYeltraLogo,
+  terminalPaint,
+  TERMINAL_ANSI as ANSI,
+} from "./terminal-branding";
 
 const PENDLE_API_BASE = "https://api-v2.pendle.finance/core";
 const LABEL_WIDTH = 38;
@@ -51,19 +58,9 @@ const scopedMode = mainnetMode || testnetMode;
 
 const useColor = Boolean(process.stdout.isTTY);
 const useTypewriter = useColor && recordMode;
-const YELTRA_BLUE = "\u001b[38;2;59;130;246m";
-const ANSI = {
-  reset: "\u001b[0m",
-  dim: "\u001b[2m",
-  yeltraBlue: YELTRA_BLUE,
-  ice: "\u001b[38;5;159m",
-  green: "\u001b[38;5;120m",
-  yellow: "\u001b[38;5;221m",
-  white: "\u001b[38;5;255m",
-};
 
 function paint(value: string, color: keyof typeof ANSI): string {
-  return useColor ? `${ANSI[color]}${value}${ANSI.reset}` : value;
+  return terminalPaint(value, color, useColor);
 }
 
 function styledValue(value: string): string {
@@ -320,48 +317,16 @@ async function recordDeploymentVerification(
   return readbacks;
 }
 
-// ANSI Shadow lettering. Every row is padded to the same width: the old template string was `.trim()`-ed,
-// which removed the indent from the first row only and shifted the top of the letters by 3 columns.
-const BANNER_ROWS = [
-  "   ██╗   ██╗███████╗██╗     ████████╗██████╗  █████╗ ",
-  "   ╚██╗ ██╔╝██╔════╝██║     ╚══██╔══╝██╔══██╗██╔══██╗",
-  "    ╚████╔╝ █████╗  ██║        ██║   ██████╔╝███████║",
-  "     ╚██╔╝  ██╔══╝  ██║        ██║   ██╔══██╗██╔══██║",
-  "      ██║   ███████╗███████╗   ██║   ██║  ██║██║  ██║",
-  "      ╚═╝   ╚══════╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝",
-];
-const BANNER_WIDTH = Math.max(...BANNER_ROWS.map((row) => [...row].length));
-
-type Rgb = [number, number, number];
-const mixRgb = (from: Rgb, to: Rgb, t: number): Rgb =>
-  from.map((value, index) => Math.round(value + (to[index] - value) * t)) as Rgb;
-const truecolor = ([r, g, b]: Rgb) => `\u001b[38;2;${r};${g};${b}m`;
-
-// Solid blocks take a bright YELTRA blue that deepens toward the bottom; the box-drawing shadow is a darker
-// blue, so each letter reads as a lit block with an outline (same idea as the KAVRA banner).
-function paintBannerRow(row: string, index: number): string {
-  const t = BANNER_ROWS.length > 1 ? index / (BANNER_ROWS.length - 1) : 0;
-  const fill = `${truecolor(mixRgb([147, 197, 253], [59, 130, 246], t))}\u001b[1m`;
-  const edge = `${truecolor(mixRgb([59, 100, 200], [30, 58, 138], t))}\u001b[22m`;
-  let out = "";
-  for (const character of row.padEnd(BANNER_WIDTH, " ")) {
-    out += character === " " ? character : `${character === "█" ? fill : edge}${character}`;
-  }
-  return `${out}${ANSI.reset}`;
-}
-
 async function printLogo(): Promise<void> {
-  for (const [index, row] of BANNER_ROWS.entries()) {
-    console.log(useColor ? paintBannerRow(row, index) : row);
+  for (const row of renderYeltraLogo(useColor)) {
+    console.log(row);
     if (useTypewriter) await sleep(70);
   }
   const subtitle = "DEPLOYMENT / NETWORK AUDIT";
-  console.log(
-    paint(`${" ".repeat(Math.floor((BANNER_WIDTH - subtitle.length) / 2))}${subtitle}`, "dim"),
-  );
-  console.log(paint("─".repeat(66), "dim"));
+  console.log(paint(centerYeltraText(subtitle), "dim"));
+  console.log(renderTerminalDivider(66, useColor));
   console.log(paint("YIELD MARKETS · ROBINHOOD CHAIN", "ice"));
-  console.log(paint("─".repeat(66), "dim"));
+  console.log(renderTerminalDivider(66, useColor));
 }
 
 async function showConnectionSequence(

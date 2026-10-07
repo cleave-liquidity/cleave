@@ -1,0 +1,22 @@
+{
+  "chainId": 4663,
+  "network": "Robinhood Chain Mainnet",
+  "rpcEnv": "NEXT_PUBLIC_ROBINHOOD_CHAIN_RPC_URL",
+  "existingAccessManager": "0xb12c7112446bfe88d6e82b516f5df90449fa3dc4",
+  "existingRiskGuard": "0x0b40937337dd65bae64c260164e303c6c8184a48",
+  "sourceVault": "0xBeEff033F34C046626B8D0A041844C5d1A5409dd",
+  "underlying": "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168",
+  "marketIdLabel": "USDG-STEAKHOUSE-YELTRA-CANARY",
+  "maturityEnv": "YELTRA_NATIVE_MATURITY",
+  "ptName": "Yeltra Principal USDG",
+  "ptSymbol": "yPT-USDG",
+  "ytName": "Yeltra Yield USDG",
+  "ytSymbol": "yYT-USDG",
+  "roles": {
+    "admin": "keccak256(CLEAVE_ADMIN)",
+    "operator": "keccak256(CLEAVE_OPERATOR)",
+    "guardian": "keccak256(CLEAVE_GUARDIAN)"
+  },
+  "riskGuardUsage": "Not wired into the native market path; retained as an existing compatibility module only.",
+  "broadcastGuard": "YELTRA_NATIVE_MAINNET_CONFIRMATION=YELTRA_NATIVE_MAINNET_CANARY_4663"
+}

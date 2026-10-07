@@ -91,7 +91,7 @@ export function ContractAddress() {
   const copied = feedback === "copied";
 
   return (
-    <div className="relative hidden shrink-0 xl:block">
+    <div className="relative hidden shrink-0 xl:hidden">
       <div className="lg-float relative">
         <span
           role="status"

@@ -114,9 +114,9 @@ export default function DocsPage() {
                 <SectionLabel>07 / Preview vs live</SectionLabel>
                 <h2>Know what the app is showing you.</h2>
                 <p>
-                  Normal browsing uses the Pendle live adapter. Market entries, APYs, liquidity, maturity, history, token metadata, and contract addresses come from verified live sources on Mainnet (4663). Explicit mock mode is reserved for development and uses preview values; it never activates merely because a wallet is disconnected or on another chain.
+                  Normal browsing uses the YELTRA multi-source adapter. Market entries, APYs, liquidity, maturity, history, token metadata, and contract addresses come from verified live provider sources on Mainnet (4663), including Pendle and any registered external source. Explicit mock mode is reserved for development and uses preview values; it never activates merely because a wallet is disconnected or on another chain.
                 </p>
-                <p>If Pendle or an RPC endpoint fails, the app shows a typed live-source error instead of replacing the response with mock markets or balances.</p>
+                <p>If a provider or RPC endpoint fails, the app shows a typed live-source error instead of replacing the response with mock markets or balances.</p>
               </section>
 
               <section id="transparency" className="scroll-mt-32">

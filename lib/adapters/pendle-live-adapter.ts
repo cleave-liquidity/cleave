@@ -317,6 +317,21 @@ export function normalizePendleMarket(
     quoteAsset: underlying.symbol,
     yieldSource,
     sourceProtocol,
+    providerId: "pendle",
+    marketType: "pt-yt",
+    metricAvailability: {
+      underlyingApy: "verified",
+      impliedApy: "verified",
+      liquidityUsd: "verified",
+      maturity: "verified",
+    },
+    execution: {
+      enabled: true,
+      providerId: "pendle",
+    },
+    registration: {
+      status: "unavailable",
+    },
     assetMetadata: {
       symbol: underlying.symbol,
       name: underlying.name,

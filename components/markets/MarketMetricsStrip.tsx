@@ -1,20 +1,20 @@
-import { formatApy, formatUsd } from "@/lib/utils/formatters";
+import { formatMarketApy, formatMarketUsd } from "@/lib/utils/formatters";
 import type { YieldMarket } from "@/types/market";
 
 /** The four headline numbers of a market. Shared by the market detail and trade workspace headers. */
 export function MarketMetricsStrip({ market }: { market: YieldMarket }) {
   return (
     <div className="grid grid-cols-2 border-y border-white/15 bg-surface/60 sm:grid-cols-4">
-      <Metric label="Implied APY" value={formatApy(market.impliedApy)} note="Market pricing" tone="ice" />
-      <Metric label="Rate Now" value={formatApy(market.underlyingApy)} note="Underlying APY" />
+      <Metric label="Implied APY" value={formatMarketApy(market, "impliedApy")} note="Market pricing" tone="ice" />
+      <Metric label="Rate Now" value={formatMarketApy(market, "underlyingApy")} note="Underlying APY" />
       <Metric
         label="Maturity"
         value={market.maturity}
-        note={`${market.daysRemaining} DAYS LEFT`}
+        note={market.maturityType === "open-ended" ? "NO FIXED MATURITY" : `${market.daysRemaining} DAYS LEFT`}
         noteMono
         compact
       />
-      <Metric label="Liquidity" value={formatUsd(market.liquidityUsd)} note="Robinhood Chain" compact />
+      <Metric label="Liquidity" value={formatMarketUsd(market)} note="Robinhood Chain" compact />
     </div>
   );
 }

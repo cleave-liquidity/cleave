@@ -2,6 +2,10 @@ export type MarketStatus = "active" | "maturing" | "matured" | "paused";
 export type MarketDataMode = "mock" | "live";
 export type RobinhoodNetwork = "mainnet" | "testnet";
 export type RobinhoodChainId = 4663 | 46630;
+export type MarketProviderId = "pendle" | "morpho" | (string & {});
+export type MarketType = "pt-yt" | "vault" | (string & {});
+export type MarketMetricAvailability = "verified" | "unavailable" | "not-applicable";
+export type MarketRegistrationStatus = "registered" | "pending" | "unavailable";
 
 export interface MarketAssetMetadata {
   symbol: string;
@@ -12,6 +16,28 @@ export interface MarketAssetMetadata {
 export interface MarketProtocolMetadata {
   name: string;
   iconUrl?: string;
+}
+
+export interface MarketExecutionMetadata {
+  enabled: boolean;
+  providerId: MarketProviderId;
+  reason?: string;
+}
+
+export interface MarketRegistrationMetadata {
+  status: MarketRegistrationStatus;
+  directoryAddress?: `0x${string}`;
+  registeredAt?: string;
+}
+
+export interface MarketProviderState {
+  totalAssetsBaseUnits?: string;
+  totalSupplyBaseUnits?: string;
+  assetsPerShareBaseUnits?: string;
+  shareConversionBaseUnits?: string;
+  underlyingDecimals?: number;
+  shareDecimals?: number;
+  bytecodePresent?: boolean;
 }
 
 export interface MarketTokenMetadata {
@@ -31,6 +57,17 @@ export interface YieldMarket {
   quoteAsset: string;
   yieldSource: string;
   sourceProtocol?: string;
+  providerId?: MarketProviderId;
+  marketType?: MarketType;
+  metricAvailability?: {
+    underlyingApy: MarketMetricAvailability;
+    impliedApy: MarketMetricAvailability;
+    liquidityUsd: MarketMetricAvailability;
+    maturity: MarketMetricAvailability;
+  };
+  execution?: MarketExecutionMetadata;
+  registration?: MarketRegistrationMetadata;
+  providerState?: MarketProviderState;
   assetMetadata?: MarketAssetMetadata;
   protocolMetadata?: MarketProtocolMetadata;
   /** The project the yield actually comes from (e.g. NetNet, Pons) and its own logo, as the source reports it. */
@@ -44,6 +81,7 @@ export interface YieldMarket {
 
   maturity: string;      // ISO string or formatted "26 Mar 2027"
   maturityDate: string;  // e.g. "2027-03-26"
+  maturityType?: "fixed" | "open-ended";
   daysRemaining: number;
   liquidityUsd: number;
 

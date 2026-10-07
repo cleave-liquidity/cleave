@@ -9,7 +9,7 @@ import { useMarkets } from "@/hooks/useMarkets";
 import { formatUsd } from "@/lib/utils/formatters";
 import { getYieldErrorMessage } from "@/types/errors";
 import { yieldAdapter } from "@/lib/adapters/mock-adapter";
-import { isMarketTradable } from "@/lib/markets/status";
+import { isMarketExecutable } from "@/lib/markets/status";
 import { buildTradeWorkspaceHref } from "@/lib/markets/trade-strategy";
 import { getConfiguredChainId, getNetworkShortLabel } from "@/lib/web3/environment";
 
@@ -22,8 +22,12 @@ export function TradeMarketHub() {
   const networkShortLabel = getNetworkShortLabel(getConfiguredChainId(), false);
   const live = yieldAdapter.mode === "live";
 
-  const tradeableMarkets = useMemo(() => markets.filter((market) => isMarketTradable(market)), [markets]);
-  const totalLiquidity = tradeableMarkets.reduce((sum, market) => sum + market.liquidityUsd, 0);
+  const tradeableMarkets = useMemo(() => markets.filter((market) => isMarketExecutable(market)), [markets]);
+  const totalLiquidity = tradeableMarkets.some(
+    (market) => market.metricAvailability?.liquidityUsd === "unavailable" || market.metricAvailability?.liquidityUsd === "not-applicable",
+  )
+    ? null
+    : tradeableMarkets.reduce((sum, market) => sum + market.liquidityUsd, 0);
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-background text-foreground">
@@ -71,7 +75,7 @@ export function TradeMarketHub() {
                   />
                   <span className="text-[13px] font-medium text-foreground">{live ? "Live Data" : "Preview Data"}</span>
                 </span>
-                <span className="mono text-[10px] text-muted-dark">{live ? "Pendle API" : "Mock Adapter"}</span>
+                <span className="mono text-[10px] text-muted-dark">{live ? "YELTRA Directory" : "Mock Adapter"}</span>
               </StatTile>
             </div>
           </div>

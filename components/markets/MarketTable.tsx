@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { YieldMarket } from "@/types/market";
-import { formatApy, formatUsd } from "@/lib/utils/formatters";
+import { formatMarketApy, formatMarketUsd } from "@/lib/utils/formatters";
 import { getMarketStatus } from "@/lib/markets/status";
 import { MarketCard } from "./MarketCard";
 import { AssetIcon } from "./AssetIcon";
@@ -274,32 +274,34 @@ function MarketRowCells({ market, showMaturingTag = false }: { market: YieldMark
 
       {/* Implied APY */}
       <span className="mono text-right text-[16px] font-medium text-ice">
-        {formatApy(market.impliedApy)}
+        {formatMarketApy(market, "impliedApy")}
       </span>
 
       {/* Rate Now */}
       <span className="mono text-right text-[14px] text-muted">
-        {formatApy(market.underlyingApy)}
+        {formatMarketApy(market, "underlyingApy")}
       </span>
 
       {/* Maturity */}
       <span className="text-right flex flex-col gap-0.5">
         <span className="text-[13px] text-foreground">
-          {new Date(market.maturityDate).toLocaleDateString("en-GB", {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-          })}
+          {market.maturityType === "open-ended"
+            ? "Open-ended"
+            : new Date(market.maturityDate).toLocaleDateString("en-GB", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              })}
         </span>
         <span className="mono text-[11px] text-muted-dark">
-          {market.daysRemaining} DAYS
+          {market.maturityType === "open-ended" ? "NO FIXED MATURITY" : `${market.daysRemaining} DAYS`}
           {maturing && <span className="text-amber"> · MATURING</span>}
         </span>
       </span>
 
       {/* Liquidity */}
       <span className="mono text-right text-[14px] text-muted-light">
-        {formatUsd(market.liquidityUsd)}
+        {formatMarketUsd(market)}
       </span>
     </>
   );

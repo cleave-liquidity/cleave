@@ -50,4 +50,10 @@ describe("market status helpers", () => {
     expect(getMarketStatus(market({ status: "paused", maturityDate: "2027-01-01" }), now)).toBe("paused");
     expect(isMarketTradable(market({ status: "paused" }), now)).toBe(false);
   });
+
+  it("keeps an open-ended external vault active without inventing maturity", () => {
+    const openEnded = market({ maturityType: "open-ended", maturityDate: "", daysRemaining: Number.POSITIVE_INFINITY });
+    expect(getMarketStatus(openEnded, now)).toBe("active");
+    expect(isMarketTradable(openEnded, now)).toBe(true);
+  });
 });

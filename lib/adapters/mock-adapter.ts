@@ -28,7 +28,7 @@ import {
   MOCK_NETWORK_FEE_ETH,
 } from "@/lib/adapters/balance-adapter";
 import { isSupportedRobinhoodChain } from "@/lib/web3/chains";
-import { pendleLiveYieldAdapter } from "./pendle-live-adapter";
+import { multiSourceYieldAdapter } from "./multi-source-yield-market-adapter";
 import { getConfiguredDataMode } from "./config";
 import { PositionTransactionResult, YieldMarketAdapter, YieldAdapterRuntime } from "./types";
 import { TokenApprovalRequest, TransactionHash, TransactionReceiptResult } from "@/types/transaction";
@@ -708,5 +708,5 @@ export { DEMO_OWNER };
 export const mockYieldAdapter = new MockYieldMarketAdapter();
 export const yieldAdapter: YieldMarketAdapter =
   getConfiguredDataMode() === "live"
-    ? pendleLiveYieldAdapter
+    ? multiSourceYieldAdapter
     : mockYieldAdapter;

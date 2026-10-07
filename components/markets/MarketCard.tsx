@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { YieldMarket } from "@/types/market";
-import { formatApy, formatUsd } from "@/lib/utils/formatters";
+import { formatMarketApy, formatMarketUsd } from "@/lib/utils/formatters";
 import { AssetIcon } from "./AssetIcon";
 
 export function MarketCard({
@@ -52,7 +52,7 @@ export function MarketCard({
             Implied APY
           </span>
           <span className="mono tabular-nums text-[18px] font-medium text-ice">
-            {formatApy(market.impliedApy)}
+            {formatMarketApy(market, "impliedApy")}
           </span>
         </div>
         <div className="flex flex-col gap-1 items-end">
@@ -60,7 +60,7 @@ export function MarketCard({
             Rate Now
           </span>
           <span className="mono tabular-nums text-[18px] text-foreground">
-            {formatApy(market.underlyingApy)}
+            {formatMarketApy(market, "underlyingApy")}
           </span>
         </div>
       </div>
@@ -70,13 +70,13 @@ export function MarketCard({
           <span className="text-[11px] mono text-muted-dark">MATURITY</span>
           <span className="text-foreground">{market.maturity}</span>
           <span className="mono text-[11px] text-muted-dark">
-            {market.daysRemaining} DAYS
+            {market.maturityType === "open-ended" ? "NO FIXED MATURITY" : `${market.daysRemaining} DAYS`}
           </span>
         </div>
         <div className="flex flex-col items-end">
           <span className="text-[11px] mono text-muted-dark">LIQUIDITY</span>
           <span className="mono tabular-nums font-medium text-foreground">
-            {formatUsd(market.liquidityUsd)}
+            {formatMarketUsd(market)}
           </span>
         </div>
       </div>

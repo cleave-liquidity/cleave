@@ -16,10 +16,12 @@ export default function MarketsPage() {
   const { markets, isLoading, error } = useMarkets();
   const networkShortLabel = getNetworkShortLabel(getConfiguredChainId(), false);
 
-  const totalLiquidity = markets.reduce(
-    (sum, m) => sum + m.liquidityUsd,
-    0
+  const hasUnavailableLiquidity = markets.some(
+    (market) => market.metricAvailability?.liquidityUsd === "unavailable" || market.metricAvailability?.liquidityUsd === "not-applicable",
   );
+  const totalLiquidity = hasUnavailableLiquidity
+    ? null
+    : markets.reduce((sum, m) => sum + m.liquidityUsd, 0);
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-background text-foreground">

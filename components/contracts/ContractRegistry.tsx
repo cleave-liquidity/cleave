@@ -42,7 +42,7 @@ function LiveMarketContracts({ network }: { network: RobinhoodNetwork }) {
     queryFn: async () => {
       const liveMarkets = await yieldAdapter.getMarkets();
       return liveMarkets
-        .filter((market) => isMarketTradable(market))
+        .filter((market) => isMarketTradable(market) && market.marketType !== "vault")
         .sort((a, b) => b.liquidityUsd - a.liquidityUsd || a.id.localeCompare(b.id));
     },
   });

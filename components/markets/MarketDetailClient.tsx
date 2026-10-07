@@ -10,7 +10,7 @@ import { YieldChart } from "@/components/trade/YieldChart";
 import { AssetIcon } from "@/components/markets/AssetIcon";
 import { MarketMetricsStrip } from "@/components/markets/MarketMetricsStrip";
 import { formatApy } from "@/lib/utils/formatters";
-import { getMarketStatus, isMarketTradable } from "@/lib/markets/status";
+import { getMarketStatus, isMarketExecutable } from "@/lib/markets/status";
 import { buildTradeWorkspaceHref } from "@/lib/markets/trade-strategy";
 import { YieldMarket } from "@/types/market";
 import { ArrowLeft, ArrowUpRight, ShieldCheck } from "lucide-react";
@@ -20,8 +20,11 @@ export function MarketDetailClient({
 }: {
   market: YieldMarket;
 }) {
-  const isTradeable = isMarketTradable(market);
+  const isTradeable = isMarketExecutable(market);
   const marketStatus = getMarketStatus(market);
+  const hasYieldMetrics =
+    (market.metricAvailability?.underlyingApy ?? "verified") === "verified" &&
+    (market.metricAvailability?.impliedApy ?? "verified") === "verified";
   return (
     <div className="relative min-h-screen overflow-x-clip bg-background text-foreground">
       <ApplicationBackdrop />
@@ -81,12 +84,18 @@ export function MarketDetailClient({
 
             <MarketMetricsStrip market={market} />
 
-            <YieldChart
-              underlyingApy={market.underlyingApy}
-              impliedApy={market.impliedApy}
-              dataMode={market.dataMode}
-              historicalData={market.historicalData}
-            />
+            {hasYieldMetrics ? (
+              <YieldChart
+                underlyingApy={market.underlyingApy}
+                impliedApy={market.impliedApy}
+                dataMode={market.dataMode}
+                historicalData={market.historicalData}
+              />
+            ) : (
+              <div className="border border-white/15 bg-surface/70 px-5 py-4 text-[13px] leading-6 text-muted-dark">
+                Current rate history and implied pricing are not deterministically available for this market infrastructure.
+              </div>
+            )}
 
             <details className="group/advanced border border-white/15 bg-surface/70 p-5 sm:p-6">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 pb-3 text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice">
@@ -104,6 +113,10 @@ export function MarketDetailClient({
               <dl className="divide-y divide-white/10 border-y border-white/10 text-[13px]">
                 <InfoRow label="Underlying Asset" value={market.underlyingAsset} />
                 <InfoRow label="Network" value={`${market.network === "mainnet" ? "Robinhood Chain Mainnet" : "Robinhood Chain Testnet"} · Chain ID ${market.chainId}`} />
+                <InfoRow label="Market infrastructure" value={market.sourceProtocol || "Unavailable"} />
+                <InfoRow label="Market address" value={market.marketAddress || "Unavailable"} />
+                <InfoRow label="Underlying address" value={market.underlyingTokenAddress || "Unavailable"} />
+                <InfoRow label="YELTRA registration" value={market.registration?.status === "registered" ? "Registered in YELTRA directory" : "Directory status unavailable"} />
                 <InfoRow label="Maturity" value={market.maturity} />
                 <InfoRow label="PT Contract" value={market.ptAddress || "Unavailable"} tone={market.ptAddress ? "ice" : "muted"} />
                 <InfoRow label="YT Contract" value={market.ytAddress || "Unavailable"} tone={market.ytAddress ? "amber" : "muted"} />
@@ -111,7 +124,9 @@ export function MarketDetailClient({
               <div className="flex flex-col gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between">
                 {market.dataMode === "live" ? (
                   <span className="max-w-[520px] text-[12px] leading-5 text-muted-dark">
-                    Underlying yield market and liquidity infrastructure sourced from Pendle on Robinhood Chain.
+                    {market.sourceProtocol
+                      ? `Underlying yield market and liquidity infrastructure sourced from ${market.sourceProtocol} on Robinhood Chain.`
+                      : "Underlying yield market infrastructure is provided by an approved external source on Robinhood Chain."}
                   </span>
                 ) : (
                   <span className="mono text-[10px] uppercase tracking-[0.12em] text-muted-dark">
@@ -151,7 +166,11 @@ export function MarketDetailClient({
               </div>
               {!isTradeable && (
                 <div className="mt-5 border border-white/15 bg-surface px-4 py-3 text-center text-[13px] text-muted-dark">
-                  {marketStatus === "paused" ? "Trading is currently paused." : "This market has passed maturity."}
+                  {market.execution?.enabled === false
+                    ? "Discovery only. YELTRA execution is not configured for this provider."
+                    : marketStatus === "paused"
+                      ? "Trading is currently paused."
+                      : "This market has passed maturity."}
                 </div>
               )}
             </div>

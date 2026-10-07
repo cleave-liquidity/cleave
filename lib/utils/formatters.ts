@@ -1,13 +1,41 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import type { YieldMarket } from "@/types/market";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatApy(apy: number, includePercent = true): string {
+export function formatApy(apy: number | null | undefined, includePercent = true): string {
+  if (apy === null || apy === undefined || !Number.isFinite(apy)) return "—";
   const formatted = apy.toFixed(2);
   return includePercent ? `${formatted}%` : formatted;
+}
+
+export function formatUsd(amount: number | null | undefined): string {
+  if (amount === null || amount === undefined || !Number.isFinite(amount)) return "—";
+  if (amount >= 1_000_000) {
+    return `$${(amount / 1_000_000).toFixed(1)}M`;
+  }
+  if (amount >= 1_000) {
+    return `$${(amount / 1_000).toFixed(1)}K`;
+  }
+  return `$${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+type MarketMetric = "underlyingApy" | "impliedApy" | "liquidityUsd";
+
+function hasVerifiedMetric(market: YieldMarket, metric: MarketMetric): boolean {
+  return market.metricAvailability?.[metric] !== "unavailable" &&
+    market.metricAvailability?.[metric] !== "not-applicable";
+}
+
+export function formatMarketApy(market: YieldMarket, metric: "underlyingApy" | "impliedApy"): string {
+  return hasVerifiedMetric(market, metric) ? formatApy(market[metric]) : "—";
+}
+
+export function formatMarketUsd(market: YieldMarket): string {
+  return hasVerifiedMetric(market, "liquidityUsd") ? formatUsd(market.liquidityUsd) : "—";
 }
 
 /** Price impact is a small raw float from the quote; show it at a readable precision. */
@@ -33,16 +61,6 @@ export function formatNativeBalance(balance: number): string {
   if (balance === 0) return "0";
   if (balance > 0 && balance < 0.000001) return "<0.000001";
   return balance.toFixed(6).replace(/\.?(0+)$/, "").replace(/\.$/, "");
-}
-
-export function formatUsd(amount: number): string {
-  if (amount >= 1_000_000) {
-    return `$${(amount / 1_000_000).toFixed(1)}M`;
-  }
-  if (amount >= 1_000) {
-    return `$${(amount / 1_000).toFixed(1)}K`;
-  }
-  return `$${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export function formatTokenAmount(amount: number, decimals = 2): string {
