@@ -34,13 +34,27 @@ export const FALLBACK_STAGES: StageInfo[] = [
   {
     index: 0,
     tag: "00 / YIELD TRADING",
-    title: "Yield you can trade.",
-    accent: "Lock it in, or trade it.",
+    title: "YELTRA brings yield and dividends",
+    accent: "onchain.",
     description:
-      "Yield isn't just something you earn. Pick a live market, then lock a quoted yield or trade where it's heading. Live on Robinhood Chain.",
+      "Access fixed yield, trade future yield, and explore dividend opportunities on Robinhood Chain",
     paths: [
-      { kind: "fixed", title: "Fixed Yield", tagline: "Lock a quoted yield toward maturity.", figure: "Quoted", caption: "yield until maturity", href: "/markets" },
-      { kind: "long", title: "Trading Yield", tagline: "Trade exposure to future yield as rates move.", figure: "Variable", caption: "rate now — can rise or fall", href: "/markets" },
+      {
+        kind: "fixed",
+        title: "Fixed Yield",
+        tagline: "Lock a quoted yield toward maturity.",
+        figure: "Quoted",
+        caption: "yield until maturity",
+        href: "/markets",
+      },
+      {
+        kind: "long",
+        title: "Trading Yield",
+        tagline: "Trade exposure to future yield as rates move.",
+        figure: "Variable",
+        caption: "rate now — can rise or fall",
+        href: "/markets",
+      },
     ],
     subTabs: ["01 Overview", "02 Two Ways", "03 Live Market"],
     subDetails: [
@@ -172,7 +186,8 @@ export function buildStages(
   const ptPrice = fixed ? `${fixed.ptPrice.toFixed(3)} ${S}` : "—";
   const ytPrice = long && long.ytPrice > 0 ? long.ytPrice : null;
   const leverage = ytPrice ? `~${(1 / ytPrice).toFixed(1)}x` : "—";
-  const network = m.network === "mainnet" ? "Robinhood Chain" : "Robinhood Testnet";
+  const network =
+    m.network === "mainnet" ? "Robinhood Chain" : "Robinhood Testnet";
   const [s0, s1, s2, s3, s4] = FALLBACK_STAGES;
 
   return [
@@ -212,7 +227,11 @@ export function buildStages(
     {
       ...s1,
       description: `Lock a quoted ${fixedApy} APY on ${S} until ${m.maturity}. A more predictable outcome, no margin calls, no liquidation. Selling early is priced by the market.`,
-      subDetails: [`Buy at a discount and target 1 ${S} per token at maturity. Powered by Principal Tokens (PT).`, s1.subDetails[1], s1.subDetails[2]],
+      subDetails: [
+        `Buy at a discount and target 1 ${S} per token at maturity. Powered by Principal Tokens (PT).`,
+        s1.subDetails[1],
+        s1.subDetails[2],
+      ],
       stats: [
         { label: "QUOTED APY", value: fixedApy, color: "#3B86FF" },
         { label: "PRICE (PT)", value: ptPrice },
@@ -232,8 +251,15 @@ export function buildStages(
         s2.subDetails[2],
       ],
       stats: [
-        { label: "RATE NOW", value: formatApy(m.underlyingApy), color: "#EF5F22" },
-        { label: "PRICE (YT)", value: ytPrice ? `${ytPrice.toFixed(3)} ${S}` : "—" },
+        {
+          label: "RATE NOW",
+          value: formatApy(m.underlyingApy),
+          color: "#EF5F22",
+        },
+        {
+          label: "PRICE (YT)",
+          value: ytPrice ? `${ytPrice.toFixed(3)} ${S}` : "—",
+        },
         { label: "EXPOSURE", value: leverage, color: "#EF5F22" },
       ],
       primaryCtaHref: marketHref(m.id, "long"),
@@ -242,7 +268,11 @@ export function buildStages(
     {
       ...s3,
       description: `Every 1 ${S} splits into two parts: a fixed-yield side (PT) and a future-yield side (YT). At maturity 1 PT redeems 1 ${S}, and YT expires.`,
-      subDetails: [`1 ${S} = 1 PT + 1 YT. Together they always add up to the asset.`, s3.subDetails[1], s3.subDetails[2]],
+      subDetails: [
+        `1 ${S} = 1 PT + 1 YT. Together they always add up to the asset.`,
+        s3.subDetails[1],
+        s3.subDetails[2],
+      ],
       stats: [
         { ...s3.stats[0], value: `1 ${S} = 1 PT + 1 YT` },
         { ...s3.stats[1], value: `1 PT = 1 ${S}` },

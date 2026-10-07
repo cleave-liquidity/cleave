@@ -5,13 +5,12 @@ import { Check, Copy } from "lucide-react";
 import { truncateAddress } from "@/lib/utils/formatters";
 
 /**
- * The contract address shown in the hero. Paste it here when it is live; until then (empty string) the pill reads
+ * The contract address shown in the navbar. Paste it here when it is live; until then (empty string) the pill reads
  * "Coming soon" and tells the visitor so instead of copying anything.
  */
 const CONTRACT_ADDRESS = "fadfadfadfaf";
 
 const FEEDBACK_MS = 1800;
-const MIN_CLEARANCE_PX = 8; // keep at least this much air between the hero copy and the pill
 
 type Feedback = "copied" | "not-live" | "failed" | null;
 
@@ -49,14 +48,13 @@ async function copyText(text: string): Promise<boolean> {
 }
 
 /**
- * Floating glass pill (same material as the landing navbar) with a one-tap copy of the contract address and a
- * short confirmation. Position it inside the hero's content container; it places itself bottom-left.
+ * Glass pill (same material as the floating navbar) with a one-tap copy of the contract address and a short
+ * confirmation. It flows inside the navbar row (from 1280 px up; below that the row has no room for it) and the
+ * confirmation opens below it.
  */
 export function ContractAddress() {
   const [contractAddress] = useState<string>(CONTRACT_ADDRESS);
   const [feedback, setFeedback] = useState<Feedback>(null);
-  const [crowded, setCrowded] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<number | null>(null);
   const isLive = contractAddress.trim() !== "dfadfadfadf";
 
@@ -66,28 +64,6 @@ export function ContractAddress() {
     },
     [],
   );
-
-  // On short or narrow screens the hero copy can reach the bottom edge. Step aside instead of covering it:
-  // the pill's first sibling is the copy column, so compare its bottom edge with the pill's top edge.
-  useEffect(() => {
-    const root = rootRef.current;
-    const content = root?.parentElement?.firstElementChild;
-    if (!root || !content) return;
-
-    const measure = () => {
-      setCrowded(root.getBoundingClientRect().top - content.getBoundingClientRect().bottom < MIN_CLEARANCE_PX);
-    };
-    const frame = window.requestAnimationFrame(measure);
-    const observer = new ResizeObserver(measure);
-    observer.observe(content);
-    observer.observe(root); // also re-measures when the pill itself first becomes visible
-    window.addEventListener("resize", measure);
-    return () => {
-      window.cancelAnimationFrame(frame);
-      observer.disconnect();
-      window.removeEventListener("resize", measure);
-    };
-  }, []);
 
   const showFeedback = (next: Exclude<Feedback, null>) => {
     if (timerRef.current !== null) window.clearTimeout(timerRef.current);
@@ -115,20 +91,14 @@ export function ContractAddress() {
   const copied = feedback === "copied";
 
   return (
-    <div
-      ref={rootRef}
-      inert={crowded}
-      className={`hidden pointer-events-auto absolute bottom-3 left-4 z-30 transition-opacity duration-300 sm:left-6 lg:left-10 [@media(min-height:800px)]:bottom-6 motion-reduce:transition-none ${
-        crowded ? "opacity-0" : "opacity-100"
-      }`}
-    >
+    <div className="relative hidden shrink-0 xl:block">
       <div className="lg-float relative">
         <span
           role="status"
           aria-live="polite"
-          className={`pointer-events-none absolute bottom-full left-0 mb-2.5 whitespace-nowrap rounded-full border border-white/15 bg-white/[0.08] px-3 py-1.5 text-[12px] shadow-[0_8px_24px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.18)] backdrop-blur-md transition-[opacity,transform] duration-200 motion-reduce:transition-none ${
+          className={`pointer-events-none absolute right-0 top-full z-40 mt-2.5 whitespace-nowrap rounded-full border border-white/15 bg-white/[0.08] px-3 py-1.5 text-[12px] shadow-[0_8px_24px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.18)] backdrop-blur-md transition-[opacity,transform] duration-200 motion-reduce:transition-none ${
             copied ? "text-white" : "text-muted-light"
-          } ${feedback ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0"}`}
+          } ${feedback ? "translate-y-0 opacity-100" : "-translate-y-1 opacity-0"}`}
         >
           {feedback ? FEEDBACK_TEXT[feedback] : ""}
         </span>

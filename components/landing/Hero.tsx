@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import Link from "next/link";
 import { HeroVisual } from "./HeroVisual";
 import { Navbar } from "@/components/layout/Navbar";
@@ -22,7 +28,13 @@ const NAV_TIMEOUT_MS = 1600; // safety net if `scrollend` never fires
 // A little longer than the 170ms fade in `.hero-copy` (globals.css), so the old copy is fully gone before the swap.
 const COPY_OUT_MS = 210;
 
-const STAGE_SHORT = ["Overview", "Fixed Yield", "Trading Yield", "How It Works", "Markets"];
+const STAGE_SHORT = [
+  "Overview",
+  "Fixed Yield",
+  "Trading Yield",
+  "How It Works",
+  "Markets",
+];
 const STAGE_ACCENT = ["#ECEDEA", "#3B86FF", "#EF5F22", "#DDE8F8", "#34D399"];
 
 const FOCUS_RING =
@@ -33,11 +45,13 @@ function tabKeyDown(
   e: React.KeyboardEvent,
   count: number,
   current: number,
-  select: (i: number) => void
+  select: (i: number) => void,
 ) {
   let next = current;
-  if (e.key === "ArrowRight" || e.key === "ArrowDown") next = (current + 1) % count;
-  else if (e.key === "ArrowLeft" || e.key === "ArrowUp") next = (current - 1 + count) % count;
+  if (e.key === "ArrowRight" || e.key === "ArrowDown")
+    next = (current + 1) % count;
+  else if (e.key === "ArrowLeft" || e.key === "ArrowUp")
+    next = (current - 1 + count) % count;
   else if (e.key === "Home") next = 0;
   else if (e.key === "End") next = count - 1;
   else return;
@@ -51,7 +65,8 @@ const rise = (i: number) => ({ "--i": i }) as React.CSSProperties;
 const isDesktop = () => window.matchMedia(DESKTOP_QUERY).matches;
 
 const prefersReducedMotion = () =>
-  typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  typeof window !== "undefined" &&
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 export function Hero() {
   const [activeStage, setActiveStage] = useState(0); // timeline + camera: always current
@@ -72,9 +87,18 @@ export function Hero() {
   // Stage content follows the featured market and its quotes (mock or live).
   const { markets } = useMarkets();
   const featured = useMemo(() => pickFeaturedMarket(markets), [markets]);
-  const { quote: fixedQuote } = useFixedYieldQuote(featured?.id ?? "", DEFAULT_TICKET);
-  const { quote: longQuote } = useLongYieldQuote(featured?.id ?? "", DEFAULT_TICKET);
-  const stages = useMemo(() => buildStages(featured, fixedQuote, longQuote), [featured, fixedQuote, longQuote]);
+  const { quote: fixedQuote } = useFixedYieldQuote(
+    featured?.id ?? "",
+    DEFAULT_TICKET,
+  );
+  const { quote: longQuote } = useLongYieldQuote(
+    featured?.id ?? "",
+    DEFAULT_TICKET,
+  );
+  const stages = useMemo(
+    () => buildStages(featured, fixedQuote, longQuote),
+    [featured, fixedQuote, longQuote],
+  );
 
   // The planet's own labels follow the same market and rate as the copy.
   const planetLabels = useMemo(
@@ -148,9 +172,15 @@ export function Hero() {
       const travel = runway.offsetHeight - window.innerHeight;
       if (travel <= 0) return;
 
-      const progress = Math.max(0, Math.min(1, (window.scrollY - top) / travel));
+      const progress = Math.max(
+        0,
+        Math.min(1, (window.scrollY - top) / travel),
+      );
       // Stage i is centred at (i + 0.5) / N — the camera rests there and glides in between.
-      stagePosRef.current = Math.max(0, Math.min(STAGE_COUNT - 1, progress * STAGE_COUNT - 0.5));
+      stagePosRef.current = Math.max(
+        0,
+        Math.min(STAGE_COUNT - 1, progress * STAGE_COUNT - 0.5),
+      );
 
       const nav = navTargetRef.current;
       if (nav) {
@@ -162,9 +192,15 @@ export function Hero() {
       const current = stageRef.current;
 
       let next = current;
-      if (progress > (current + 1) * STAGE_SEGMENT + HYSTERESIS && current < STAGE_COUNT - 1) {
+      if (
+        progress > (current + 1) * STAGE_SEGMENT + HYSTERESIS &&
+        current < STAGE_COUNT - 1
+      ) {
         next = Math.min(STAGE_COUNT - 1, Math.floor(progress * STAGE_COUNT));
-      } else if (progress < current * STAGE_SEGMENT - HYSTERESIS && current > 0) {
+      } else if (
+        progress < current * STAGE_SEGMENT - HYSTERESIS &&
+        current > 0
+      ) {
         next = Math.max(0, Math.floor(progress * STAGE_COUNT));
       }
       commitStage(next);
@@ -220,15 +256,19 @@ export function Hero() {
       // Update UI + camera immediately and fly there without re-triggering
       // every intermediate stage.
       navTargetRef.current = { y, stage: target };
-      if (navTimerRef.current !== null) window.clearTimeout(navTimerRef.current);
+      if (navTimerRef.current !== null)
+        window.clearTimeout(navTimerRef.current);
       navTimerRef.current = window.setTimeout(() => {
         navTargetRef.current = null;
         navTimerRef.current = null;
       }, NAV_TIMEOUT_MS);
       commitStage(target);
-      window.scrollTo({ top: y, behavior: prefersReducedMotion() ? "auto" : "smooth" });
+      window.scrollTo({
+        top: y,
+        behavior: prefersReducedMotion() ? "auto" : "smooth",
+      });
     },
-    [commitStage]
+    [commitStage],
   );
 
   const selectStageFromKeyboard = (i: number) => {
@@ -297,7 +337,8 @@ export function Hero() {
           <div className="relative z-20 flex-1 max-w-[1240px] w-full mx-auto px-4 sm:px-6 lg:px-10 flex items-center lg:items-start lg:pt-[clamp(6rem,14vh,10rem)] pointer-events-none pt-20 pb-8 sm:py-0">
             <div className="w-full lg:max-w-[480px] xl:max-w-[520px]">
               <p className="sr-only" aria-live="polite" aria-atomic="true">
-                Stage {activeStage + 1} of {STAGE_COUNT}: {stages[activeStage].title} {stages[activeStage].accent}
+                Stage {activeStage + 1} of {STAGE_COUNT}:{" "}
+                {stages[activeStage].title} {stages[activeStage].accent}
               </p>
 
               <div
@@ -307,147 +348,200 @@ export function Hero() {
                 data-phase={copyPhase}
                 className="hero-copy"
               >
-              <div key={shownStage}>
-                <div style={rise(0)} className="hero-rise mono flex items-center gap-2 text-[10px] sm:text-[11px] tracking-[0.22em] uppercase text-muted mb-2.5 sm:mb-3.5">
-                  <span
-                    className="w-1.5 h-1.5 rounded-full shrink-0"
-                    style={{ backgroundColor: accentColor }}
-                    aria-hidden="true"
-                  />
-                  <span className="truncate">{stage.tag}</span>
-                </div>
+                <div key={shownStage}>
+                  <div
+                    style={rise(0)}
+                    className="hero-rise mono flex items-center gap-2 text-[10px] sm:text-[11px] tracking-[0.22em] uppercase text-muted mb-2.5 sm:mb-3.5"
+                  >
+                    <span
+                      className="w-1.5 h-1.5 rounded-full shrink-0"
+                      style={{ backgroundColor: accentColor }}
+                      aria-hidden="true"
+                    />
+                    <span className="truncate">{stage.tag}</span>
+                  </div>
 
-                <h1 style={rise(1)} className="hero-rise m-0 text-[28px] xs:text-[32px] sm:text-[44px] lg:text-[58px] leading-[1.06] font-normal tracking-[-0.035em] text-foreground [text-shadow:0_2px_30px_rgba(3,3,4,0.95)]">
-                  <span className="block">{stage.title}</span>
-                  <span className="block text-balance" style={{ color: accentColor }}>
-                    {stage.accent}
-                  </span>
-                </h1>
+                  <h1
+                    style={rise(1)}
+                    className="hero-rise m-0 text-[28px] xs:text-[32px] sm:text-[44px] lg:text-[58px] leading-[1.06] font-normal tracking-[-0.035em] text-foreground [text-shadow:0_2px_30px_rgba(3,3,4,0.95)]"
+                  >
+                    <span className="block">{stage.title}</span>
+                    <span
+                      className="block text-balance"
+                      style={{ color: accentColor }}
+                    >
+                      {stage.accent}
+                    </span>
+                  </h1>
 
-                <p style={rise(2)} className="hero-rise mt-3 sm:mt-4 text-[13px] sm:text-[15px] leading-[1.6] text-muted-light font-light max-w-[460px] [text-shadow:0_1px_16px_rgba(3,3,4,0.95)] line-clamp-3 sm:line-clamp-none">
-                  {stage.description}
-                </p>
+                  <p
+                    style={rise(2)}
+                    className="hero-rise mt-3 sm:mt-4 text-[13px] sm:text-[15px] leading-[1.6] text-muted-light font-light max-w-[460px] [text-shadow:0_1px_16px_rgba(3,3,4,0.95)] line-clamp-3 sm:line-clamp-none"
+                  >
+                    {stage.description}
+                  </p>
 
-                {/* First stage: the two ways in, as cards you can act on right away */}
-                {stage.paths && (
-                  <div style={rise(3)} className="hero-rise mt-4 sm:mt-5 grid grid-cols-2 gap-2.5 sm:gap-3 max-w-[460px] pointer-events-auto">
-                    {stage.paths.map((path) => {
-                      const fixed = path.kind === "fixed";
-                      return (
-                        <Link
-                          key={path.kind}
-                          href={path.href}
-                          className={`group flex flex-col gap-1 border bg-background/60 px-3 py-2.5 sm:px-3.5 sm:py-3 transition-colors ${FOCUS_RING} ${
-                            fixed ? "border-ice/35 hover:border-ice/70" : "border-amber/35 hover:border-amber/70"
+                  {/* First stage: the two ways in, as cards you can act on right away */}
+                  {stage.paths && (
+                    <div
+                      style={rise(3)}
+                      className="hero-rise mt-4 sm:mt-5 grid grid-cols-2 gap-2.5 sm:gap-3 max-w-[460px] pointer-events-auto"
+                    >
+                      {stage.paths.map((path) => {
+                        const fixed = path.kind === "fixed";
+                        return (
+                          <Link
+                            key={path.kind}
+                            href={path.href}
+                            className={`group flex flex-col gap-1 border bg-background/60 px-3 py-2.5 sm:px-3.5 sm:py-3 transition-colors ${FOCUS_RING} ${
+                              fixed
+                                ? "border-ice/35 hover:border-ice/70"
+                                : "border-amber/35 hover:border-amber/70"
+                            }`}
+                          >
+                            <span
+                              className="flex items-center gap-2 text-[12px] sm:text-[13px] font-medium"
+                              style={{ color: fixed ? "#3B86FF" : "#EF5F22" }}
+                            >
+                              <span
+                                className="h-1.5 w-1.5 rounded-full"
+                                style={{
+                                  backgroundColor: fixed
+                                    ? "#3B86FF"
+                                    : "#EF5F22",
+                                }}
+                                aria-hidden="true"
+                              />
+                              {path.title}
+                              <span
+                                className="ml-auto opacity-0 transition-opacity group-hover:opacity-100"
+                                aria-hidden="true"
+                              >
+                                →
+                              </span>
+                            </span>
+                            <span className="text-[11px] sm:text-[12px] leading-snug text-muted-light">
+                              {path.tagline}
+                            </span>
+                            <span className="mono mt-0.5 text-[17px] sm:text-[19px] leading-none text-foreground">
+                              {path.figure}
+                            </span>
+                            <span className="mono text-[9px] sm:text-[10px] tracking-[0.04em] text-muted">
+                              {path.caption}
+                            </span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Sub-tabs */}
+                  {!stage.paths && (
+                    <div
+                      role="tablist"
+                      aria-label={`${stage.title} details`}
+                      style={rise(3)}
+                      className="hero-rise flex gap-1.5 sm:gap-2.5 mt-4 sm:mt-5 pointer-events-auto flex-wrap"
+                    >
+                      {stage.subTabs.map((tab, idx) => (
+                        <button
+                          key={tab}
+                          ref={(el) => {
+                            subTabRefs.current[idx] = el;
+                          }}
+                          role="tab"
+                          id={`hero-subtab-${idx}`}
+                          aria-selected={activeSubTab === idx}
+                          aria-controls="hero-subpanel"
+                          tabIndex={activeSubTab === idx ? 0 : -1}
+                          onClick={() => setActiveSubTab(idx)}
+                          onKeyDown={(e) =>
+                            tabKeyDown(
+                              e,
+                              stage.subTabs.length,
+                              activeSubTab,
+                              (i) => {
+                                setActiveSubTab(i);
+                                subTabRefs.current[i]?.focus();
+                              },
+                            )
+                          }
+                          className={`mono text-[10px] sm:text-[11px] tracking-[0.08em] px-2.5 sm:px-3 py-1 sm:py-1.5 border transition-colors duration-200 ${FOCUS_RING} ${
+                            activeSubTab === idx
+                              ? "border-foreground bg-foreground/15 text-foreground font-medium"
+                              : "border-white/10 text-muted hover:border-white/25 hover:text-foreground"
                           }`}
                         >
-                          <span className="flex items-center gap-2 text-[12px] sm:text-[13px] font-medium" style={{ color: fixed ? "#3B86FF" : "#EF5F22" }}>
-                            <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: fixed ? "#3B86FF" : "#EF5F22" }} aria-hidden="true" />
-                            {path.title}
-                            <span className="ml-auto opacity-0 transition-opacity group-hover:opacity-100" aria-hidden="true">→</span>
-                          </span>
-                          <span className="text-[11px] sm:text-[12px] leading-snug text-muted-light">{path.tagline}</span>
-                          <span className="mono mt-0.5 text-[17px] sm:text-[19px] leading-none text-foreground">{path.figure}</span>
-                          <span className="mono text-[9px] sm:text-[10px] tracking-[0.04em] text-muted">{path.caption}</span>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* Sub-tabs */}
-                {!stage.paths && (
-                <div
-                  role="tablist"
-                  aria-label={`${stage.title} details`}
-                  style={rise(3)}
-                  className="hero-rise flex gap-1.5 sm:gap-2.5 mt-4 sm:mt-5 pointer-events-auto flex-wrap"
-                >
-                  {stage.subTabs.map((tab, idx) => (
-                    <button
-                      key={tab}
-                      ref={(el) => {
-                        subTabRefs.current[idx] = el;
-                      }}
-                      role="tab"
-                      id={`hero-subtab-${idx}`}
-                      aria-selected={activeSubTab === idx}
-                      aria-controls="hero-subpanel"
-                      tabIndex={activeSubTab === idx ? 0 : -1}
-                      onClick={() => setActiveSubTab(idx)}
-                      onKeyDown={(e) =>
-                        tabKeyDown(e, stage.subTabs.length, activeSubTab, (i) => {
-                          setActiveSubTab(i);
-                          subTabRefs.current[i]?.focus();
-                        })
-                      }
-                      className={`mono text-[10px] sm:text-[11px] tracking-[0.08em] px-2.5 sm:px-3 py-1 sm:py-1.5 border transition-colors duration-200 ${FOCUS_RING} ${
-                        activeSubTab === idx
-                          ? "border-foreground bg-foreground/15 text-foreground font-medium"
-                          : "border-white/10 text-muted hover:border-white/25 hover:text-foreground"
-                      }`}
-                    >
-                      {tab}
-                    </button>
-                  ))}
-                </div>
-                )}
-
-                {!stage.paths && (
-                <div
-                  id="hero-subpanel"
-                  role="tabpanel"
-                  aria-labelledby={`hero-subtab-${activeSubTab}`}
-                  style={rise(3)}
-                  className="hero-rise mt-2.5 min-h-[36px] sm:min-h-[44px] text-[12px] sm:text-[13px] text-muted leading-relaxed max-w-[460px] [text-shadow:0_1px_8px_rgba(3,3,4,0.9)]"
-                >
-                  {stage.subDetails[activeSubTab]}
-                </div>
-                )}
-
-                {/* Stats */}
-                <dl style={rise(4)} className="hero-rise flex flex-wrap gap-x-6 sm:gap-x-8 gap-y-3 mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-white/10 max-w-[460px] m-0">
-                  {stage.stats.map((st) => (
-                    <div key={st.label} className="flex flex-col">
-                      <dt className="mono text-[8px] sm:text-[9px] tracking-[0.16em] text-muted uppercase whitespace-nowrap">
-                        {st.label}
-                      </dt>
-                      <dd
-                        className="mono text-[12px] sm:text-[15px] font-medium mt-0.5 whitespace-nowrap m-0"
-                        style={{ color: st.color || "#ECEDEA" }}
-                      >
-                        {st.value}
-                      </dd>
+                          {tab}
+                        </button>
+                      ))}
                     </div>
-                  ))}
-                </dl>
+                  )}
 
-                {/* CTAs */}
-                <div style={rise(5)} className="hero-rise flex items-center gap-2.5 sm:gap-3 flex-wrap mt-5 sm:mt-6 pointer-events-auto">
-                  <Link
-                    href={stage.primaryCtaHref}
-                    className={`inline-flex items-center gap-2 min-h-[42px] sm:min-h-[46px] px-5 sm:px-6 bg-foreground text-background font-medium text-[13px] sm:text-[14px] hover:bg-white hover:text-background transition-colors shadow-[0_0_30px_rgba(255,255,255,0.15)] ${FOCUS_RING}`}
+                  {!stage.paths && (
+                    <div
+                      id="hero-subpanel"
+                      role="tabpanel"
+                      aria-labelledby={`hero-subtab-${activeSubTab}`}
+                      style={rise(3)}
+                      className="hero-rise mt-2.5 min-h-[36px] sm:min-h-[44px] text-[12px] sm:text-[13px] text-muted leading-relaxed max-w-[460px] [text-shadow:0_1px_8px_rgba(3,3,4,0.9)]"
+                    >
+                      {stage.subDetails[activeSubTab]}
+                    </div>
+                  )}
+
+                  {/* Stats */}
+                  <dl
+                    style={rise(4)}
+                    className="hero-rise flex flex-wrap gap-x-6 sm:gap-x-8 gap-y-3 mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-white/10 max-w-[460px] m-0"
                   >
-                    {stage.primaryCtaText} <span aria-hidden="true">→</span>
-                  </Link>
-                  <a
-                    href={stage.secondaryCtaHref}
-                    className={`inline-flex items-center min-h-[42px] sm:min-h-[46px] px-4 sm:px-5 border border-white/20 text-[13px] sm:text-[14px] bg-background/60 hover:border-white/40 transition-colors ${FOCUS_RING}`}
+                    {stage.stats.map((st) => (
+                      <div key={st.label} className="flex flex-col">
+                        <dt className="mono text-[8px] sm:text-[9px] tracking-[0.16em] text-muted uppercase whitespace-nowrap">
+                          {st.label}
+                        </dt>
+                        <dd
+                          className="mono text-[12px] sm:text-[15px] font-medium mt-0.5 whitespace-nowrap m-0"
+                          style={{ color: st.color || "#ECEDEA" }}
+                        >
+                          {st.value}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+
+                  {/* CTAs */}
+                  <div
+                    style={rise(5)}
+                    className="hero-rise flex items-center gap-2.5 sm:gap-3 flex-wrap mt-5 sm:mt-6 pointer-events-auto"
                   >
-                    {stage.secondaryCtaText}
-                  </a>
+                    <Link
+                      href={stage.primaryCtaHref}
+                      className={`inline-flex items-center gap-2 min-h-[42px] sm:min-h-[46px] px-5 sm:px-6 bg-foreground text-background font-medium text-[13px] sm:text-[14px] hover:bg-white hover:text-background transition-colors shadow-[0_0_30px_rgba(255,255,255,0.15)] ${FOCUS_RING}`}
+                    >
+                      {stage.primaryCtaText} <span aria-hidden="true">→</span>
+                    </Link>
+                    <a
+                      href={stage.secondaryCtaHref}
+                      className={`inline-flex items-center min-h-[42px] sm:min-h-[46px] px-4 sm:px-5 border border-white/20 text-[13px] sm:text-[14px] bg-background/60 hover:border-white/40 transition-colors ${FOCUS_RING}`}
+                    >
+                      {stage.secondaryCtaText}
+                    </a>
+                  </div>
                 </div>
-              </div>
               </div>
             </div>
 
-            <ContractAddress />
+            {/* <ContractAddress /> */}
           </div>
 
           {/* Bottom Stage Timeline Bar */}
           <div className="relative z-30 border-t border-white/10 bg-background/90 py-3 pointer-events-auto">
             <div className="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-10 flex items-center justify-between gap-2 sm:gap-4">
-              <div className="hidden lg:flex items-center gap-2 text-muted mono text-[11px] tracking-[0.16em] uppercase shrink-0" aria-hidden="true">
+              <div
+                className="hidden lg:flex items-center gap-2 text-muted mono text-[11px] tracking-[0.16em] uppercase shrink-0"
+                aria-hidden="true"
+              >
                 <span className="text-foreground font-semibold">+</span>
                 <span>Scroll to travel</span>
               </div>
@@ -472,7 +566,14 @@ export function Hero() {
                       aria-label={`${idx + 1}. ${STAGE_SHORT[idx]}`}
                       tabIndex={isActive ? 0 : -1}
                       onClick={() => handleSelectStage(idx)}
-                      onKeyDown={(e) => tabKeyDown(e, STAGE_COUNT, activeStage, selectStageFromKeyboard)}
+                      onKeyDown={(e) =>
+                        tabKeyDown(
+                          e,
+                          STAGE_COUNT,
+                          activeStage,
+                          selectStageFromKeyboard,
+                        )
+                      }
                       className={`mono text-[10px] sm:text-[11px] tracking-[0.12em] px-2 sm:px-3 py-1 sm:py-1.5 rounded transition-colors duration-200 shrink-0 flex items-center gap-1 sm:gap-1.5 ${FOCUS_RING} ${
                         isActive
                           ? "text-foreground bg-white/10 font-medium"
@@ -485,7 +586,13 @@ export function Hero() {
                       />
                       <span aria-hidden="true">
                         0{s.index}{" "}
-                        <span className={isActive ? "hidden md:inline" : "hidden xl:inline"}>{STAGE_SHORT[idx]}</span>
+                        <span
+                          className={
+                            isActive ? "hidden md:inline" : "hidden xl:inline"
+                          }
+                        >
+                          {STAGE_SHORT[idx]}
+                        </span>
                       </span>
                     </button>
                   );
@@ -502,7 +609,10 @@ export function Hero() {
                   >
                     <span aria-hidden="true">←</span>
                   </button>
-                  <span className="mono text-[10px] text-muted tracking-widest px-1" aria-hidden="true">
+                  <span
+                    className="mono text-[10px] text-muted tracking-widest px-1"
+                    aria-hidden="true"
+                  >
                     0{activeStage + 1} / 0{STAGE_COUNT}
                   </span>
                   <button
@@ -520,7 +630,9 @@ export function Hero() {
                     e.preventDefault();
                     document
                       .getElementById("how")
-                      ?.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth" });
+                      ?.scrollIntoView({
+                        behavior: prefersReducedMotion() ? "auto" : "smooth",
+                      });
                   }}
                   className={`hidden sm:inline-flex mono text-[10px] tracking-[0.14em] text-muted hover:text-foreground transition-colors border-l border-white/15 pl-2.5 sm:pl-3 ${FOCUS_RING}`}
                 >

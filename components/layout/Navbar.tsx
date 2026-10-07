@@ -7,6 +7,7 @@ import { EnvironmentStrip } from "@/components/layout/EnvironmentStrip";
 import { XIcon } from "@/components/layout/XIcon";
 import { X_URL } from "@/lib/site-links";
 import Image from "next/image";
+import { ContractAddress } from "../landing/ContractAddress";
 
 export function Navbar({ isLanding = false }: { isLanding?: boolean }) {
   const pathname = usePathname();
@@ -81,6 +82,7 @@ export function Navbar({ isLanding = false }: { isLanding?: boolean }) {
             Contracts
           </Link>
         </nav>
+        <ContractAddress />
 
         <div className="flex items-center gap-3">
           <a
