@@ -4,6 +4,7 @@ import Link from "next/link";
 import {
   Fragment,
   useEffect,
+  useId,
   useRef,
   useState,
   useSyncExternalStore,
@@ -46,6 +47,9 @@ const DISPERSION = [
 const FOCUS_RING =
   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice";
 
+// Below `md` the inline links do not fit, so they collapse into this dropdown under the pill. Must match the `md:` breakpoint used on the nav.
+const DESKTOP_QUERY = "(min-width: 768px)";
+
 const subscribeNothing = () => () => {};
 const readLensSupport = () => supportsBackdropLens(navigator.userAgent);
 
@@ -64,7 +68,11 @@ export function FloatingNav() {
     width: number;
     height: number;
   } | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const panelRef = useRef<HTMLElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const menuId = useId();
   const canRefract = useSyncExternalStore(
     subscribeNothing,
     readLensSupport,
@@ -75,7 +83,11 @@ export function FloatingNav() {
     const hero = document.getElementById(HERO_ID);
 
     if (!hero || typeof IntersectionObserver === "undefined") {
-      const onScroll = () => setVisible(window.scrollY > window.innerHeight);
+      const onScroll = () => {
+        const past = window.scrollY > window.innerHeight;
+        setVisible(past);
+        if (!past) setMenuOpen(false);
+      };
       onScroll();
       window.addEventListener("scroll", onScroll, { passive: true });
       return () => window.removeEventListener("scroll", onScroll);
@@ -84,12 +96,42 @@ export function FloatingNav() {
     // The hero is the first block of the page, so "not intersecting" can only mean it is above the
     // viewport. The callback also fires once on mount, which keeps reloads and #anchors correct.
     const observer = new IntersectionObserver(
-      ([entry]) => setVisible(!entry.isIntersecting),
+      ([entry]) => {
+        setVisible(!entry.isIntersecting);
+        if (entry.isIntersecting) setMenuOpen(false);
+      },
       { threshold: 0 },
     );
     observer.observe(hero);
     return () => observer.disconnect();
   }, []);
+
+  // While the mobile menu is open: Escape, a tap outside, or growing past the mobile breakpoint all close it.
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setMenuOpen(false);
+      toggleRef.current?.focus();
+    };
+    const onPointerDown = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setMenuOpen(false);
+    };
+    const desktop = window.matchMedia(DESKTOP_QUERY);
+    const onBreakpoint = () => {
+      if (desktop.matches) setMenuOpen(false);
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("pointerdown", onPointerDown);
+    desktop.addEventListener("change", onBreakpoint);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", onPointerDown);
+      desktop.removeEventListener("change", onBreakpoint);
+    };
+  }, [menuOpen]);
 
   // The refraction map has to match the pill's pixel size, so it is rebuilt whenever the pill resizes.
   useEffect(() => {
@@ -130,6 +172,7 @@ export function FloatingNav() {
 
   return (
     <div
+      ref={rootRef}
       inert={!visible}
       className={`lg-enter fixed left-1/2 top-3 sm:top-4 z-40 w-[calc(100%-1.5rem)] max-w-[940px] -translate-x-1/2 ${
         visible
@@ -263,7 +306,7 @@ export function FloatingNav() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="YELTRA on X (opens in a new tab)"
-              className={`inline-flex h-[38px] w-[38px] shrink-0 cursor-pointer items-center justify-center rounded-full text-white/75 transition-colors hover:bg-white/10 hover:text-white ${FOCUS_RING}`}
+              className={`hidden h-[38px] w-[38px] shrink-0 cursor-pointer items-center justify-center rounded-full text-white/75 transition-colors hover:bg-white/10 hover:text-white sm:inline-flex ${FOCUS_RING}`}
             >
               <XIcon className="h-4 w-4" />
             </a>
@@ -274,9 +317,96 @@ export function FloatingNav() {
             >
               <span className="relative z-10">Launch app</span>
             </Link>
+
+            <button
+              ref={toggleRef}
+              type="button"
+              aria-label={menuOpen ? "Close menu" : "Open menu"}
+              aria-expanded={menuOpen}
+              aria-controls={menuId}
+              onClick={() => setMenuOpen((open) => !open)}
+              className={`inline-flex h-[38px] w-[38px] shrink-0 cursor-pointer items-center justify-center rounded-full text-white/80 transition-colors hover:bg-white/10 hover:text-white md:hidden ${FOCUS_RING}`}
+            >
+              <span aria-hidden="true" className="relative block h-3.5 w-[18px]">
+                <span
+                  className={`absolute left-0 top-0 h-0.5 w-full rounded-full bg-current transition-transform duration-300 motion-reduce:transition-none ${menuOpen ? "translate-y-[6px] rotate-45" : ""}`}
+                />
+                <span
+                  className={`absolute left-0 top-[6px] h-0.5 w-full rounded-full bg-current transition-opacity duration-200 motion-reduce:transition-none ${menuOpen ? "opacity-0" : ""}`}
+                />
+                <span
+                  className={`absolute left-0 top-3 h-0.5 w-full rounded-full bg-current transition-transform duration-300 motion-reduce:transition-none ${menuOpen ? "-translate-y-[6px] -rotate-45" : ""}`}
+                />
+              </span>
+            </button>
           </div>
         </div>
       </header>
+
+      {/* Mobile menu. The wrapper owns position and motion; .lg-panel (which forces position + a pill radius) sits inside it. */}
+      <div
+        id={menuId}
+        inert={!menuOpen}
+        className={`absolute inset-x-0 top-full mt-2 origin-top transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-none md:hidden ${
+          menuOpen
+            ? "translate-y-0 scale-100 opacity-100"
+            : "pointer-events-none -translate-y-2 scale-95 opacity-0"
+        }`}
+      >
+        <div
+          onPointerMove={handlePointerMove}
+          className="lg-panel"
+          style={{
+            borderRadius: 28,
+            background:
+              "linear-gradient(180deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.015) 48%, rgba(255,255,255,0.03) 100%), rgba(9,10,13,0.82)",
+            backdropFilter: "blur(18px) saturate(1.6)",
+            WebkitBackdropFilter: "blur(18px) saturate(1.6)",
+          }}
+        >
+          <span className="lg-glow" aria-hidden="true" />
+          <nav
+            aria-label="Menu"
+            className="relative z-[3] flex flex-col gap-0.5 p-2"
+          >
+            {LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setMenuOpen(false)}
+                className={`flex min-h-[48px] cursor-pointer items-center justify-between rounded-[20px] px-4 text-[15px] text-white/85 transition-colors hover:bg-white/10 hover:text-white active:bg-white/15 ${FOCUS_RING}`}
+              >
+                {link.label}
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 16 16"
+                  className="h-3.5 w-3.5 text-white/40"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M6 3.5 10.5 8 6 12.5" />
+                </svg>
+              </Link>
+            ))}
+
+            {/* The X icon leaves the pill on phones to make room for the menu button, so it lives here instead. */}
+            <a
+              href={X_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setMenuOpen(false)}
+              className={`mt-1 flex min-h-[48px] cursor-pointer items-center gap-3 rounded-[20px] border-t border-white/10 px-4 text-[15px] text-white/85 transition-colors hover:bg-white/10 hover:text-white active:bg-white/15 sm:hidden ${FOCUS_RING}`}
+            >
+              <XIcon className="h-4 w-4" />
+              Follow on X
+              <span className="sr-only">(opens in a new tab)</span>
+            </a>
+          </nav>
+        </div>
+      </div>
     </div>
   );
 }
