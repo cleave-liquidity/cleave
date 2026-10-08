@@ -1,11 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAccount, usePublicClient, useWalletClient } from "wagmi";
 import type { Address } from "viem";
 import type { LongYieldPosition } from "@/types/position";
 import {
   dividendAccountingAbi,
+  dividendAccountingMarketAbi,
+  dividendAccountingPositionAbi,
   dividendLensAbi,
   dividendMarketId,
   dividendPositionId,
@@ -14,25 +16,33 @@ import {
   type DividendLensState,
 } from "@/lib/dividend/dividend-contract";
 
-export function useDividendEarn(position?: LongYieldPosition) {
+type DividendPositionReference = Pick<LongYieldPosition, "id" | "owner" | "marketId">;
+
+export function useDividendEarn(position?: DividendPositionReference) {
   const { address, chainId } = useAccount();
-  const publicClient = usePublicClient();
-  const { data: walletClient } = useWalletClient();
   const parsedPositionChainId = position ? Number(position.id.split(":")[1]) : undefined;
-  const targetChainId = parsedPositionChainId === 4663 || parsedPositionChainId === 46630
+  const targetChainId = (parsedPositionChainId === 4663 || parsedPositionChainId === 46630
     ? parsedPositionChainId
-    : chainId || 0;
-  const deployment = getDividendDeployment(targetChainId);
+    : chainId) as 4663 | 46630 | undefined;
+  const publicClient = usePublicClient(
+    targetChainId ? { chainId: targetChainId } : undefined,
+  );
+  const { data: walletClient } = useWalletClient();
+  const deployment = useMemo(
+    () => getDividendDeployment(targetChainId || 0),
+    [targetChainId],
+  );
   const networkMatches = !position || chainId === targetChainId;
   const ownerMatches =
     !position ||
     (Boolean(address) && address?.toLowerCase() === position.owner.toLowerCase());
-  const marketId = position && networkMatches
+  const marketId = position && targetChainId
     ? dividendMarketId(position.marketId, targetChainId)
     : undefined;
   const positionId = position ? dividendPositionId(position.id) : undefined;
   const [state, setState] = useState<DividendLensState>();
   const [accountingAddress, setAccountingAddress] = useState<Address>();
+  const [rewardDecimals, setRewardDecimals] = useState<number>();
   const [isLoading, setIsLoading] = useState(false);
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string>();
@@ -43,13 +53,14 @@ export function useDividendEarn(position?: LongYieldPosition) {
       !deployment ||
       !marketId ||
       !positionId ||
-      !networkMatches ||
       !ownerMatches
     ) {
       setState(undefined);
       setAccountingAddress(undefined);
-      if (!networkMatches) setError("POSITION_NETWORK_MISMATCH");
+      setRewardDecimals(undefined);
+      if (!deployment) setError("DIVIDEND_REGISTRY_NOT_CONFIGURED");
       else if (!ownerMatches) setError("POSITION_OWNER_MISMATCH");
+      else setError(undefined);
       return;
     }
     setIsLoading(true);
@@ -63,6 +74,36 @@ export function useDividendEarn(position?: LongYieldPosition) {
           functionName: "accounting",
         }));
       setAccountingAddress(resolvedAccounting);
+      const accountingMarket = await publicClient.readContract({
+        address: resolvedAccounting,
+        abi: dividendAccountingMarketAbi,
+        functionName: "markets",
+        args: [marketId],
+      });
+      if (!accountingMarket[3]) {
+        setState(undefined);
+        setRewardDecimals(undefined);
+        setError("DIVIDEND_MARKET_NOT_ENABLED");
+        return;
+      }
+      setRewardDecimals(accountingMarket[2]);
+      const ledgerPosition = await publicClient.readContract({
+        address: resolvedAccounting,
+        abi: dividendAccountingPositionAbi,
+        functionName: "getPosition",
+        args: [positionId],
+      });
+      if (
+        !address ||
+        ledgerPosition.owner.toLowerCase() !== address.toLowerCase() ||
+        ledgerPosition.marketId.toLowerCase() !== marketId.toLowerCase() ||
+        ledgerPosition.exposureBaseUnits === BigInt(0) ||
+        ledgerPosition.closed
+      ) {
+        setState(undefined);
+        setError("POSITION_NOT_REGISTERED_OR_MISMATCHED");
+        return;
+      }
       const result = await publicClient.readContract({
         address: deployment.lens,
         abi: dividendLensAbi,
@@ -75,10 +116,11 @@ export function useDividendEarn(position?: LongYieldPosition) {
       // intentionally not treated as eligible on-chain.
       setState(undefined);
       setError("POSITION_REGISTRATION_PENDING");
+      setRewardDecimals(undefined);
     } finally {
       setIsLoading(false);
     }
-  }, [deployment, marketId, networkMatches, ownerMatches, positionId, publicClient]);
+  }, [address, deployment, marketId, ownerMatches, positionId, publicClient]);
 
   useEffect(() => {
     void refresh();
@@ -99,6 +141,9 @@ export function useDividendEarn(position?: LongYieldPosition) {
     }
     setIsPending(true);
     try {
+      if (walletClient.chain?.id !== targetChainId) {
+        throw new Error("Switch the connected wallet to the position network before enabling.");
+      }
       const hash = await walletClient.writeContract({
         account: address,
         address: accountingAddress,
@@ -107,7 +152,10 @@ export function useDividendEarn(position?: LongYieldPosition) {
         args: [positionId, true],
         chain: walletClient.chain,
       });
-      await publicClient.waitForTransactionReceipt({ hash });
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      if (receipt.status !== "success") {
+        throw new Error("The Dividend Earn transaction reverted.");
+      }
       await refresh();
       return hash;
     } finally {
@@ -122,12 +170,14 @@ export function useDividendEarn(position?: LongYieldPosition) {
     positionId,
     publicClient,
     refresh,
+    targetChainId,
     walletClient,
   ]);
 
   return {
     configured: Boolean(deployment),
     accounting: accountingAddress,
+    rewardDecimals,
     networkMatches,
     ownerMatches,
     registered: Boolean(state),

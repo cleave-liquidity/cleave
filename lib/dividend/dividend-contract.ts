@@ -118,6 +118,32 @@ export const dividendAccountingMarketAbi = [
   },
 ] as const;
 
+export const dividendAccountingPositionAbi = [
+  {
+    type: "function",
+    name: "getPosition",
+    stateMutability: "view",
+    inputs: [{ name: "positionId", type: "bytes32", internalType: "bytes32" }],
+    outputs: [
+      {
+        name: "position",
+        type: "tuple",
+        internalType: "struct YeltraDividendAccounting.PositionState",
+        components: [
+          { name: "marketId", type: "bytes32", internalType: "bytes32" },
+          { name: "owner", type: "address", internalType: "address" },
+          { name: "exposureBaseUnits", type: "uint256", internalType: "uint256" },
+          { name: "lastIndex", type: "uint256", internalType: "uint256" },
+          { name: "accruedBaseUnits", type: "uint256", internalType: "uint256" },
+          { name: "openedAt", type: "uint64", internalType: "uint64" },
+          { name: "enabled", type: "bool", internalType: "bool" },
+          { name: "closed", type: "bool", internalType: "bool" },
+        ],
+      },
+    ],
+  },
+] as const;
+
 export type DividendLensState = {
   eligible: boolean;
   enabled: boolean;
