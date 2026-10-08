@@ -11,17 +11,13 @@ import { ApplicationBackdrop } from "@/components/layout/ApplicationBackdrop";
 import { DataModeBadge } from "@/components/layout/DataModeBadge";
 import { yieldAdapter } from "@/lib/adapters/mock-adapter";
 import { getConfiguredChainId, getNetworkShortLabel } from "@/lib/web3/environment";
+import { summarizeKnownLiquidity } from "@/lib/markets/presentation";
 
 export default function MarketsPage() {
   const { markets, isLoading, error } = useMarkets();
   const networkShortLabel = getNetworkShortLabel(getConfiguredChainId(), false);
 
-  const hasUnavailableLiquidity = markets.some(
-    (market) => market.metricAvailability?.liquidityUsd === "unavailable" || market.metricAvailability?.liquidityUsd === "not-applicable",
-  );
-  const totalLiquidity = hasUnavailableLiquidity
-    ? null
-    : markets.reduce((sum, m) => sum + m.liquidityUsd, 0);
+  const liquiditySummary = summarizeKnownLiquidity(markets);
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-background text-foreground">
@@ -48,10 +44,15 @@ export default function MarketsPage() {
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <div className="p-3.5 sm:p-4 rounded-xl border border-white/10 bg-surface/50 backdrop-blur-sm flex flex-col gap-1">
               <span className="mono text-[10px] text-muted-dark uppercase tracking-wider">
-                Total Liquidity
+                Known Liquidity
               </span>
               <span className="mono text-[20px] sm:text-[22px] font-medium text-foreground">
-                {isLoading ? "..." : formatUsd(totalLiquidity)}
+                {isLoading ? "..." : formatUsd(liquiditySummary.total)}
+              </span>
+              <span className="mono text-[10px] text-muted-dark">
+                {isLoading
+                  ? ""
+                  : `${liquiditySummary.knownMarkets} / ${liquiditySummary.totalMarkets} markets reported`}
               </span>
             </div>
             <div className="p-3.5 sm:p-4 rounded-xl border border-white/10 bg-surface/50 backdrop-blur-sm flex flex-col gap-1">

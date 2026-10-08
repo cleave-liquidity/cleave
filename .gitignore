@@ -12,6 +12,8 @@ node_modules
 .next/
 .next
 /out/
+# Remotion launch film (own package; renders are not tracked)
+remotion/out/
 
 # production
 /build
