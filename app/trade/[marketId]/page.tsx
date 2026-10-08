@@ -5,6 +5,7 @@ import { yieldAdapter } from "@/lib/adapters/mock-adapter";
 import { normalizeTradeMarketId } from "@/lib/markets/trade-market";
 import { parseTradeStrategy } from "@/lib/markets/trade-strategy";
 import { MAX_SAFE_DISPLAY_AMOUNT } from "@/lib/utils/amounts";
+import { isDividendDemoStagingEnabled } from "@/lib/dividend/dividend-demo-staging";
 
 type SearchParams = { [key: string]: string | string[] | undefined };
 
@@ -49,11 +50,13 @@ export default async function TradeWorkspacePage({
     redirect(`/trade/${market.id}${queryString ? `?${queryString}` : ""}`);
   }
 
+  const interactiveDemoEnabled = await isDividendDemoStagingEnabled();
   return (
     <TradeWorkspaceClient
       market={market}
       strategy={strategy}
       initialAmount={amount}
+      interactiveDemoEnabled={interactiveDemoEnabled}
     />
   );
 }

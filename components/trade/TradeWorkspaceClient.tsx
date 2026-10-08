@@ -27,10 +27,12 @@ export function TradeWorkspaceClient({
   market,
   strategy,
   initialAmount,
+  interactiveDemoEnabled = false,
 }: {
   market: YieldMarket;
   strategy?: TradeStrategy;
   initialAmount?: string;
+  interactiveDemoEnabled?: boolean;
 }) {
   const router = useRouter();
   const [quoteContext, setQuoteContext] = useState<TradeQuoteContext>(() =>
@@ -160,7 +162,7 @@ export function TradeWorkspaceClient({
               </div>
               <StrategyContext strategy={strategy} market={market} quoteContext={quoteContext} />
               {strategy === "long" && isDividendEarnMarket(market) && (
-                <DividendEarnPanel market={market} />
+                <DividendEarnPanel market={market} interactiveDemoEnabled={interactiveDemoEnabled} />
               )}
               </div>
             )}

@@ -18,8 +18,10 @@ import { DividendEarnPanel } from "@/components/dividend/DividendEarnPanel";
 
 export function MarketDetailClient({
   market,
+  interactiveDemoEnabled = false,
 }: {
   market: YieldMarket;
+  interactiveDemoEnabled?: boolean;
 }) {
   const isTradeable = isMarketExecutable(market);
   const marketStatus = getMarketStatus(market);
@@ -99,7 +101,7 @@ export function MarketDetailClient({
               </div>
             )}
 
-            <DividendEarnPanel market={market} />
+            <DividendEarnPanel market={market} interactiveDemoEnabled={interactiveDemoEnabled} />
 
             <details className="group/advanced border border-white/15 bg-surface/70 p-5 sm:p-6">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 pb-3 text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice">

@@ -21,6 +21,7 @@ type DividendPanelProps = {
   market: Pick<YieldMarket, "id" | "marketAddress" | "underlyingTokenAddress">;
   position?: LongYieldPosition;
   compact?: boolean;
+  interactiveDemoEnabled?: boolean;
 };
 
 type DividendPanelStatus = "UNAVAILABLE" | "ELIGIBLE" | "ACTIVE" | "PENDING";
@@ -43,6 +44,7 @@ export function DividendEarnPanel({
   market,
   position,
   compact = false,
+  interactiveDemoEnabled = false,
 }: DividendPanelProps) {
   const marketConfig = getDividendMarketConfig(market);
   const isSupportedMarket = isDividendEarnMarket(market);
@@ -250,12 +252,22 @@ export function DividendEarnPanel({
             Trading Yield position.
           </p>
         </div>
-        <Link
-          href="/dividend/canary"
-          className="whitespace-nowrap text-[12px] text-ice transition-colors hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ice"
-        >
-          Open canary inspection →
-        </Link>
+        <div className="flex flex-wrap items-center gap-4">
+          {interactiveDemoEnabled && (
+            <Link
+              href="/dividend/demo"
+              className="whitespace-nowrap text-[12px] text-amber transition-colors hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber"
+            >
+              Interactive Testnet Demo →
+            </Link>
+          )}
+          <Link
+            href="/dividend/canary"
+            className="whitespace-nowrap text-[12px] text-ice transition-colors hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ice"
+          >
+            Open canary inspection →
+          </Link>
+        </div>
       </div>
     </section>
   );
