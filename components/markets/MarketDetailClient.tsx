@@ -101,7 +101,12 @@ export function MarketDetailClient({
               </div>
             )}
 
-            <DividendEarnPanel market={market} interactiveDemoEnabled={interactiveDemoEnabled} />
+            <DividendEarnPanel
+              market={market}
+              mode="availability"
+              surface="market-detail"
+              interactiveDemoEnabled={interactiveDemoEnabled}
+            />
 
             <details className="group/advanced border border-white/15 bg-surface/70 p-5 sm:p-6">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 pb-3 text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice">
@@ -156,7 +161,7 @@ export function MarketDetailClient({
               </h2>
               {market.execution?.enabled === false ? (
                 <div className="mt-5 border border-white/15 bg-surface px-4 py-4 text-[13px] leading-6 text-muted-dark">
-                  Execution unavailable for this provider. Market data and registration metadata remain read-only.
+                  {market.execution.reason || "Execution is unavailable for this provider. Market data and registration metadata remain read-only."}
                 </div>
               ) : (
                 <div className="mt-5 flex flex-col divide-y divide-white/10 border-y border-white/10">
@@ -179,7 +184,7 @@ export function MarketDetailClient({
               {!isTradeable && (
                 <div className="mt-5 border border-white/15 bg-surface px-4 py-3 text-center text-[13px] text-muted-dark">
                   {market.execution?.enabled === false
-                    ? "Discovery only. YELTRA execution is not configured for this provider."
+                    ? market.execution.reason || "Discovery only. YELTRA execution is not configured for this provider."
                     : marketStatus === "paused"
                       ? "Trading is currently paused."
                       : "This market has passed maturity. Current rates and new trades are unavailable."}

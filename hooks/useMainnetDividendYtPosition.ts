@@ -29,6 +29,12 @@ type MainnetDividendMarket = Pick<YieldMarket, "id"> &
       | "marketAddress"
       | "ytAddress"
       | "underlyingTokenAddress"
+      | "providerId"
+      | "marketType"
+      | "execution"
+      | "status"
+      | "maturityDate"
+      | "maturityType"
     >
   >;
 
@@ -41,9 +47,9 @@ export type VerifiedMainnetYtPosition = {
   balanceBaseUnits?: bigint;
   decimals: number;
   maturityTimestamp: bigint;
-  stockTokenMultiplier: bigint;
+  stockTokenMultiplier?: bigint;
   syExchangeRate: bigint;
-  multiplierAligned: boolean;
+  multiplierAligned?: boolean;
   blockNumber: bigint;
   positionId?: string;
 };
@@ -52,7 +58,10 @@ function sameAddress(left: string, right: string): boolean {
   return left.toLowerCase() === right.toLowerCase();
 }
 
-export function useMainnetDividendYtPosition(market: MainnetDividendMarket) {
+export function useMainnetDividendYtPosition(
+  market: MainnetDividendMarket,
+  enabled = true,
+) {
   const account = useAccount();
   const publicClient = usePublicClient({ chainId: ROBINHOOD_CHAIN_ID });
   const marketConfig = getDividendMarketConfig(market);
@@ -61,7 +70,8 @@ export function useMainnetDividendYtPosition(market: MainnetDividendMarket) {
   const ytAddress = market.ytAddress;
   const underlyingAddress = market.underlyingTokenAddress;
   const canRead = Boolean(
-    marketConfig?.chainId === ROBINHOOD_CHAIN_ID &&
+    enabled &&
+      marketConfig?.chainId === ROBINHOOD_CHAIN_ID &&
       (market.chainId === undefined || market.chainId === ROBINHOOD_CHAIN_ID) &&
       marketAddress &&
       ytAddress &&
@@ -146,8 +156,7 @@ export function useMainnetDividendYtPosition(market: MainnetDividendMarket) {
         throw new Error("Market SY contract bytecode is unavailable.");
       }
 
-      const [syInputs, syExchangeRate, stockTokenMultiplier, balanceBaseUnits] =
-        await Promise.all([
+      const [syInputs, syExchangeRate, balanceBaseUnits] = await Promise.all([
         publicClient.readContract({
           address: syAddress,
           abi: pendleSyReadAbi,
@@ -158,12 +167,6 @@ export function useMainnetDividendYtPosition(market: MainnetDividendMarket) {
           address: syAddress,
           abi: pendleSyReadAbi,
           functionName: "exchangeRate",
-          blockNumber,
-        }),
-        publicClient.readContract({
-          address: underlyingAddress,
-          abi: robinhoodStockTokenReadAbi,
-          functionName: "uiMultiplier",
           blockNumber,
         }),
         owner
@@ -180,6 +183,18 @@ export function useMainnetDividendYtPosition(market: MainnetDividendMarket) {
         throw new Error("Market SY inputs do not include the configured underlying token.");
       }
 
+      let stockTokenMultiplier: bigint | undefined;
+      try {
+        stockTokenMultiplier = await publicClient.readContract({
+          address: underlyingAddress,
+          abi: robinhoodStockTokenReadAbi,
+          functionName: "uiMultiplier",
+          blockNumber,
+        });
+      } catch {
+        // Non-Robinhood stock-token underlyings may not expose ERC-8056.
+      }
+
       return {
         owner,
         marketId: market.id,
@@ -191,13 +206,16 @@ export function useMainnetDividendYtPosition(market: MainnetDividendMarket) {
         maturityTimestamp,
         stockTokenMultiplier,
         syExchangeRate,
-        multiplierAligned: stockTokenMultiplier === syExchangeRate,
+        multiplierAligned:
+          stockTokenMultiplier === undefined
+            ? undefined
+            : stockTokenMultiplier === syExchangeRate,
         blockNumber,
         positionId: owner
           ? `live:${ROBINHOOD_CHAIN_ID}:${owner.toLowerCase()}:${market.id}:long`
           : undefined,
       };
-    },
+  },
   });
 
   const data = query.data;

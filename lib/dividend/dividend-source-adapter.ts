@@ -20,6 +20,40 @@ export interface RobinhoodStockTokenAsset {
   chainId: number;
 }
 
+export function normalizeRobinhoodStockTokenAssets(
+  raw: unknown,
+  chainId = 4663,
+): RobinhoodStockTokenAsset[] {
+  const payload = record(raw);
+  const assets = Array.isArray(payload?.assets) ? payload.assets : [];
+  return assets.flatMap((rawAsset): RobinhoodStockTokenAsset[] => {
+    const asset = record(rawAsset);
+    const deployments = Array.isArray(asset?.deployments) ? asset.deployments : [];
+    const deployment = deployments
+      .map(record)
+      .find((candidate) => numberValue(candidate?.chainId) === chainId);
+    const tokenAddress = addressValue(deployment?.contractAddress);
+    const tokenSymbol = stringValue(asset?.tokenSymbol);
+    const tokenName = stringValue(asset?.tokenName);
+    const status = stringValue(asset?.status);
+    const currentMultiplier = stringValue(asset?.currentMultiplier);
+    const tokenDecimals = numberValue(asset?.tokenDecimals);
+    if (
+      !deployment || !tokenAddress || !tokenSymbol || !tokenName || !status ||
+      !currentMultiplier || tokenDecimals === undefined
+    ) return [];
+    return [{
+      tokenSymbol,
+      tokenName,
+      status,
+      currentMultiplier,
+      tokenDecimals,
+      tokenAddress,
+      chainId,
+    }];
+  });
+}
+
 interface RawRecord {
   [key: string]: unknown;
 }
@@ -147,35 +181,13 @@ export async function fetchRobinhoodStockTokenAsset(
     headers: { accept: "application/json" },
   });
   if (!response.ok) return undefined;
-  const payload = record(await response.json());
-  const assets = Array.isArray(payload?.assets) ? payload.assets : [];
+  const assets = normalizeRobinhoodStockTokenAssets(await response.json(), input.chainId || 4663);
   const expectedSymbol = input.tokenSymbol?.toUpperCase();
   const expectedAddress = input.tokenAddress?.toLowerCase();
-  const asset = assets.map(record).find((item) => {
-    const deployments = Array.isArray(item?.deployments) ? item.deployments : [];
-    return deployments.some((deploymentValue) => {
-      const deployment = record(deploymentValue);
-      const chainMatches = input.chainId === undefined || deployment?.chainId === input.chainId;
-      const addressMatches = !expectedAddress || String(deployment?.contractAddress || "").toLowerCase() === expectedAddress;
-      return chainMatches && addressMatches;
-    }) && (!expectedSymbol || stringValue(item?.tokenSymbol)?.toUpperCase() === expectedSymbol);
-  });
-  const deployment = firstDeployment(asset?.deployments, input.chainId || 4663);
-  const tokenSymbol = stringValue(asset?.tokenSymbol);
-  const tokenName = stringValue(asset?.tokenName);
-  const decimals = numberValue(asset?.tokenDecimals);
-  const status = stringValue(asset?.status);
-  const multiplier = stringValue(asset?.currentMultiplier);
-  if (!tokenSymbol || !tokenName || decimals === undefined || !status || !multiplier || !deployment.address) return undefined;
-  return {
-    tokenSymbol,
-    tokenName,
-    status,
-    currentMultiplier: multiplier,
-    tokenDecimals: decimals,
-    tokenAddress: deployment.address,
-    chainId: deployment.chainId,
-  };
+  return assets.find((asset) =>
+    (!expectedAddress || asset.tokenAddress.toLowerCase() === expectedAddress) &&
+    (!expectedSymbol || asset.tokenSymbol.toUpperCase() === expectedSymbol),
+  );
 }
 
 export async function fetchRobinhoodDividendEvents(

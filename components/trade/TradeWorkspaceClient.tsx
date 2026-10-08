@@ -14,10 +14,10 @@ import { formatApy, formatMarketApy, formatNetworkFee, formatPriceImpact, format
 import type { FixedYieldQuote, LongYieldQuote } from "@/types/quote";
 import type { QuoteUiState } from "@/lib/markets/quote-state";
 import { YieldMarket } from "@/types/market";
-import { getMarketStatus, isMarketTradable } from "@/lib/markets/status";
+import { getMarketStatus, isMarketExecutable, isMarketTradable } from "@/lib/markets/status";
 import { ArrowLeft } from "lucide-react";
 import { DividendEarnPanel } from "@/components/dividend/DividendEarnPanel";
-import { isDividendEarnMarket } from "@/lib/dividend/dividend-config";
+import { hasTradingYieldProduct } from "@/lib/dividend/dividend-config";
 import {
   buildTradeWorkspaceHref,
   type TradeStrategy,
@@ -41,7 +41,7 @@ export function TradeWorkspaceClient({
   const assetSymbol = market.assetMetadata?.symbol || market.symbol;
   const assetName = market.assetMetadata?.name || market.name;
   const sourceName = market.sourceProtocol || market.protocolMetadata?.name || market.yieldSource;
-  const isTradeable = isMarketTradable(market);
+  const isTradeable = isMarketExecutable(market);
   const marketStatus = getMarketStatus(market);
   const isMaturing = marketStatus === "maturing";
 
@@ -125,7 +125,7 @@ export function TradeWorkspaceClient({
           </div>
 
           <div className="mt-8 grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-8 lg:gap-12 items-start">
-            {strategy && (
+            {strategy && isTradeable && (
               <div className="flex flex-col gap-4 max-w-[620px]">
               <div className="mono text-[11px] tracking-[0.14em] text-muted-dark uppercase">
                 Choose how to trade this yield
@@ -161,12 +161,17 @@ export function TradeWorkspaceClient({
                 </button>
               </div>
               <StrategyContext strategy={strategy} market={market} quoteContext={quoteContext} />
-              {strategy === "long" && isDividendEarnMarket(market) && (
-                <DividendEarnPanel market={market} interactiveDemoEnabled={interactiveDemoEnabled} />
+              {strategy === "long" && hasTradingYieldProduct(market) && (
+                <DividendEarnPanel
+                  market={market}
+                  mode="position"
+                  surface="trading-yield"
+                  interactiveDemoEnabled={interactiveDemoEnabled}
+                />
               )}
               </div>
             )}
-            <div className={`w-full lg:sticky lg:top-28 ${strategy ? "" : "lg:col-span-2 lg:mx-auto lg:max-w-[420px]"}`}>
+            <div className={`w-full lg:sticky lg:top-28 ${strategy && isTradeable ? "" : "lg:col-span-2 lg:mx-auto lg:max-w-[420px]"}`}>
               {strategy && isTradeable ? (
                 <TradePanel
                   key={strategy}
@@ -175,18 +180,16 @@ export function TradeWorkspaceClient({
                   initialAmount={initialAmount}
                   onQuoteContextChange={setQuoteContext}
                 />
-              ) : strategy ? (
+              ) : strategy && !isTradeable ? (
                 <div className="border border-white/15 rounded-[10px] bg-surface p-5 sm:p-7 text-center">
                   <div className="mono text-[11px] uppercase tracking-[0.14em] text-muted-dark">
                     Execution unavailable
                   </div>
                   <p className="mt-3 text-[14px] leading-6 text-muted">
-                    {marketStatus === "paused"
-                      ? "This market is currently paused and cannot be traded."
-                      : "This market has passed maturity and cannot be traded."}
+                    {getExecutionUnavailableReason(market, marketStatus)}
                   </p>
                 </div>
-              ) : (
+              ) : isTradeable ? (
                 <div className="border border-white/15 rounded-[10px] bg-surface p-5 sm:p-6 flex flex-col gap-3">
                   <div className="mono text-[11px] uppercase tracking-[0.14em] text-muted-dark">Choose how to trade this yield</div>
                   <StrategyChoice
@@ -204,6 +207,15 @@ export function TradeWorkspaceClient({
                     onSelect={() => handleStrategyChange("long")}
                   />
                 </div>
+              ) : (
+                <div className="border border-white/15 rounded-[10px] bg-surface p-5 sm:p-7 text-center">
+                  <div className="mono text-[11px] uppercase tracking-[0.14em] text-muted-dark">
+                    Execution unavailable
+                  </div>
+                  <p className="mt-3 text-[14px] leading-6 text-muted">
+                    {getExecutionUnavailableReason(market, marketStatus)}
+                  </p>
+                </div>
               )}
             </div>
           </div>
@@ -213,6 +225,18 @@ export function TradeWorkspaceClient({
       </div>
     </div>
   );
+}
+
+function getExecutionUnavailableReason(
+  market: YieldMarket,
+  marketStatus: ReturnType<typeof getMarketStatus>,
+): string {
+  if (market.execution?.enabled === false) {
+    return market.execution.reason || "This market is read-only; YELTRA execution is not configured for its provider.";
+  }
+  if (marketStatus === "paused") return "This market is currently paused and cannot be traded.";
+  if (marketStatus === "matured") return "This market has passed maturity; new positions cannot be opened.";
+  return "No executable Trading Yield route is currently available for this market.";
 }
 
 function createEmptyQuoteContext(marketId: string, initialAmount?: string): TradeQuoteContext {

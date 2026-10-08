@@ -36,6 +36,7 @@ import {
 } from "@/lib/positions/sell-flow";
 import type { ExitQuote } from "@/types/quote";
 import { DividendEarnPanel } from "@/components/dividend/DividendEarnPanel";
+import { useMarkets } from "@/hooks/useMarkets";
 
 export function PositionCard({
   position,
@@ -46,6 +47,7 @@ export function PositionCard({
 }) {
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const { address, chainId, isConnected } = useNetworkGuard();
+  const { markets } = useMarkets();
   const claimYield = useClaimYield();
   const redeemFixed = useRedeemFixed();
   const sellPosition = useSellPosition();
@@ -82,6 +84,11 @@ export function PositionCard({
   const isFixed = position.strategy === "fixed";
   const fixedPos = isFixed ? (position as FixedYieldPosition) : null;
   const longPos = !isFixed ? (position as LongYieldPosition) : null;
+  const normalizedPositionMarketId = position.marketId.toLowerCase();
+  const positionMarket = markets.find((market) =>
+    market.id.toLowerCase() === normalizedPositionMarketId ||
+    market.marketAddress?.toLowerCase() === normalizedPositionMarketId,
+  ) || { id: position.marketId };
 
   const isMatured = position.status === "matured" || isPositionMatured(position.maturityDate);
   const isRedeemed = position.status === "redeemed";
@@ -428,8 +435,9 @@ export function PositionCard({
 
         {!isFixed && (
           <DividendEarnPanel
-            market={{ id: position.marketId }}
-            position={longPos || undefined}
+            market={positionMarket}
+            mode="position"
+            surface="portfolio"
             compact
           />
         )}
