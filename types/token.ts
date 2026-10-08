@@ -7,6 +7,7 @@ export interface TokenMetadata {
   name: string;
   decimals: number;
   chainId: RobinhoodChainId;
+  iconUrl?: string;
 }
 
 export interface RawBalanceSnapshot {

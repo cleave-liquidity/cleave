@@ -2,6 +2,8 @@ import { createPublicClient, http, parseAbiItem } from "viem";
 import { yieldAdapter } from "../lib/adapters/mock-adapter";
 import { pickFeaturedMarket } from "../components/landing/featuredMarket";
 import { isMarketTradable } from "../lib/markets/status";
+import { getConfiguredMarketDirectoryAddress } from "../lib/adapters/multi-source-yield-market-adapter";
+import { readYeltraMarketDirectory } from "../lib/markets/market-directory";
 import {
   getContractByName,
   getContractDisplayName,
@@ -32,6 +34,7 @@ const LABEL_WIDTH = 38;
 type RpcProbe = { status: "PASS" | "FAIL"; blockNumber?: bigint };
 type MarketProbe = { status: "PASS" | "FAIL"; total?: number };
 type RegisteredMarketProbe = { status: "PASS" | "FAIL"; total?: number };
+type DirectoryMarketProbe = { status: "PASS" | "FAIL"; total?: number };
 type DeploymentReadback = {
   bytecodePresent?: boolean;
   receipt?: {
@@ -413,6 +416,26 @@ async function probeRegisteredMainnetMarkets(): Promise<RegisteredMarketProbe> {
   return { status: "FAIL" };
 }
 
+async function probeDirectoryMainnetMarkets(): Promise<DirectoryMarketProbe> {
+  const directoryAddress = getConfiguredMarketDirectoryAddress(ROBINHOOD_CHAIN_ID);
+  if (!directoryAddress) return { status: "FAIL" };
+
+  const rpcUrl = rpcUrlForChain(ROBINHOOD_CHAIN_ID) || "https://rpc.mainnet.chain.robinhood.com";
+  try {
+    const client = createPublicClient({
+      chain: robinhoodChain,
+      transport: http(rpcUrl),
+    });
+    const entries = await readYeltraMarketDirectory(client, directoryAddress);
+    return {
+      status: "PASS",
+      total: entries.filter((entry) => entry.enabled && entry.chainId === ROBINHOOD_CHAIN_ID).length,
+    };
+  } catch {
+    return { status: "FAIL" };
+  }
+}
+
 async function probeQuotes(
   marketId: string,
 ): Promise<{ fixed: boolean; long: boolean; source?: string }> {
@@ -440,6 +463,7 @@ async function main(): Promise<void> {
   const testnetRpc = await probeRpc(ROBINHOOD_TESTNET_CHAIN_ID);
   const testnetMarkets = await probePendleMarkets(ROBINHOOD_TESTNET_CHAIN_ID);
   const registeredMainnetMarkets = await probeRegisteredMainnetMarkets();
+  const directoryMainnetMarkets = await probeDirectoryMainnetMarkets();
 
   let markets = [] as Awaited<ReturnType<typeof yieldAdapter.getMarkets>>;
   try {
@@ -567,9 +591,21 @@ async function main(): Promise<void> {
     `Mainnet ${projectMainnet.length} · Testnet ${projectTestnet.length}`,
   );
   line(
-    "Registered YELTRA Markets",
+    "Legacy YELTRA Registry",
     registeredMainnetMarkets.status === "PASS"
       ? `Mainnet ${registeredMainnetMarkets.total}`
+      : "Mainnet UNAVAILABLE",
+  );
+  line(
+    "YELTRA Directory Markets",
+    directoryMainnetMarkets.status === "PASS"
+      ? `Mainnet ${directoryMainnetMarkets.total}`
+      : "Mainnet UNAVAILABLE",
+  );
+  line(
+    "Registered YELTRA Markets",
+    registeredMainnetMarkets.status === "PASS" && directoryMainnetMarkets.status === "PASS"
+      ? `Mainnet ${(registeredMainnetMarkets.total || 0) + (directoryMainnetMarkets.total || 0)}`
       : "Mainnet UNAVAILABLE",
   );
   line(
@@ -704,10 +740,28 @@ async function runMainnetScoped(): Promise<void> {
     "reading YELTRA Market Registry...",
     probeRegisteredMainnetMarkets,
   );
+  const directoryMainnetMarkets = await spinner(
+    "reading YELTRA Market Directory...",
+    probeDirectoryMainnetMarkets,
+  );
   await recordLine(
-    "Registered YELTRA Markets",
+    "Legacy YELTRA Registry",
     registeredMainnetMarkets.status === "PASS"
       ? `Mainnet ${registeredMainnetMarkets.total}`
+      : "Mainnet UNAVAILABLE",
+    true,
+  );
+  await recordLine(
+    "YELTRA Directory Markets",
+    directoryMainnetMarkets.status === "PASS"
+      ? `Mainnet ${directoryMainnetMarkets.total}`
+      : "Mainnet UNAVAILABLE",
+    true,
+  );
+  await recordLine(
+    "Registered YELTRA Markets",
+    registeredMainnetMarkets.status === "PASS" && directoryMainnetMarkets.status === "PASS"
+      ? `Mainnet ${(registeredMainnetMarkets.total || 0) + (directoryMainnetMarkets.total || 0)}`
       : "Mainnet UNAVAILABLE",
     true,
   );

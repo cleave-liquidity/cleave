@@ -1,0 +1,33 @@
+{
+  "language": "Solidity",
+  "sources": {
+    "src/YeltraMarketDirectory.sol": {
+      "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.24;\n\ninterface IYeltraMarketDirectoryAccess {\n    function hasRole(bytes32 role, address account) external view returns (bool);\n}\n\n/// @title YeltraMarketDirectory\n/// @notice Generic YELTRA directory for verified external yield markets.\n/// @dev Provider-specific semantics stay in off-chain/provider adapters. This contract only stores\n///      the canonical identity and minimum routing metadata required to discover a market safely.\ncontract YeltraMarketDirectory {\n    bytes32 public constant ADMIN_ROLE = keccak256(\"CLEAVE_ADMIN\");\n    bytes32 public constant OPERATOR_ROLE = keccak256(\"CLEAVE_OPERATOR\");\n\n    struct MarketRecord {\n        bytes32 marketId;\n        bytes32 providerId;\n        bytes32 marketType;\n        address marketAddress;\n        address underlyingAsset;\n        uint256 chainId;\n        bool enabled;\n        uint256 registeredAt;\n    }\n\n    error DuplicateMarket(bytes32 marketId);\n    error InvalidMarket();\n    error MarketNotFound(bytes32 marketId);\n    error Unauthorized(address caller);\n    error ZeroAddress();\n\n    IYeltraMarketDirectoryAccess public immutable accessManager;\n    mapping(bytes32 => MarketRecord) private markets;\n    mapping(address => bytes32) public marketIdForAddress;\n    bytes32[] private marketIds;\n\n    event MarketRegistered(\n        bytes32 indexed marketId,\n        bytes32 indexed providerId,\n        bytes32 indexed marketType,\n        address marketAddress,\n        address underlyingAsset,\n        uint256 chainId\n    );\n    event MarketEnabled(bytes32 indexed marketId, bool enabled);\n\n    constructor(address accessManagerAddress) {\n        if (accessManagerAddress == address(0)) revert ZeroAddress();\n        accessManager = IYeltraMarketDirectoryAccess(accessManagerAddress);\n    }\n\n    function registerMarket(\n        bytes32 marketId,\n        bytes32 providerId,\n        bytes32 marketType,\n        address marketAddress,\n        address underlyingAsset,\n        uint256 chainId\n    ) external onlyAdminOrOperator {\n        if (\n            marketId == bytes32(0) || providerId == bytes32(0) || marketType == bytes32(0)\n                || marketAddress == address(0) || underlyingAsset == address(0) || chainId == 0\n        ) revert InvalidMarket();\n        if (markets[marketId].marketAddress != address(0) || marketIdForAddress[marketAddress] != bytes32(0)) {\n            revert DuplicateMarket(marketId);\n        }\n\n        markets[marketId] = MarketRecord({\n            marketId: marketId,\n            providerId: providerId,\n            marketType: marketType,\n            marketAddress: marketAddress,\n            underlyingAsset: underlyingAsset,\n            chainId: chainId,\n            enabled: true,\n            registeredAt: block.timestamp\n        });\n        marketIdForAddress[marketAddress] = marketId;\n        marketIds.push(marketId);\n        emit MarketRegistered(marketId, providerId, marketType, marketAddress, underlyingAsset, chainId);\n    }\n\n    function setMarketEnabled(bytes32 marketId, bool enabled) external onlyAdminOrOperator {\n        MarketRecord storage record = _requireMarket(marketId);\n        record.enabled = enabled;\n        emit MarketEnabled(marketId, enabled);\n    }\n\n    function getMarket(bytes32 marketId) external view returns (MarketRecord memory) {\n        return _requireMarketView(marketId);\n    }\n\n    function allMarketIds() external view returns (bytes32[] memory) {\n        return marketIds;\n    }\n\n    function isRegisteredMarket(address marketAddress) external view returns (bool) {\n        return marketIdForAddress[marketAddress] != bytes32(0);\n    }\n\n    function isMarketActive(bytes32 marketId) external view returns (bool) {\n        MarketRecord memory record = _requireMarketView(marketId);\n        return record.enabled && record.chainId == block.chainid;\n    }\n\n    function _requireMarket(bytes32 marketId) internal view returns (MarketRecord storage record) {\n        record = markets[marketId];\n        if (record.marketAddress == address(0)) revert MarketNotFound(marketId);\n    }\n\n    function _requireMarketView(bytes32 marketId) internal view returns (MarketRecord memory record) {\n        record = markets[marketId];\n        if (record.marketAddress == address(0)) revert MarketNotFound(marketId);\n    }\n\n    modifier onlyAdminOrOperator() {\n        if (\n            !accessManager.hasRole(ADMIN_ROLE, msg.sender) && !accessManager.hasRole(OPERATOR_ROLE, msg.sender)\n        ) revert Unauthorized(msg.sender);\n        _;\n    }\n}\n"
+    }
+  },
+  "settings": {
+    "remappings": [],
+    "optimizer": {
+      "enabled": true,
+      "runs": 200
+    },
+    "metadata": {
+      "bytecodeHash": "ipfs"
+    },
+    "compilationTarget": {
+      "src/YeltraMarketDirectory.sol": "YeltraMarketDirectory"
+    },
+    "evmVersion": "cancun",
+    "libraries": {},
+    "outputSelection": {
+      "*": {
+        "*": [
+          "abi",
+          "evm.bytecode",
+          "evm.deployedBytecode",
+          "metadata"
+        ]
+      }
+    }
+  }
+}
