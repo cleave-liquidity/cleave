@@ -523,6 +523,27 @@ export const projectContractDeployments: Readonly<
       gasUsed: "879786",
       verificationStatus: "VERIFIED",
     },
+    {
+      id: "yeltra-market-directory-mainnet",
+      name: "YeltraMarketDirectory",
+      description: "Provider-neutral directory for registered external yield markets.",
+      chainId: 4663,
+      category: "integration",
+      address: "0x9ca476fa631273eb5db83186115bdf3abaccc951",
+      verified: false,
+      ownership: "project",
+      explorerUrl:
+        "https://robinhoodchain.blockscout.com/address/0x9ca476fa631273eb5db83186115bdf3abaccc951",
+      usedByRuntime: true,
+      runtimeRole:
+        "Canonical registration and discovery directory for external provider markets such as Morpho.",
+      deploymentTx:
+        "0xae15647aa3503d73a6f14161ca3555acec629c4579f7a0a508ade06a7320d6f6",
+      deploymentBlock: 82663388,
+      deployer: "0x67214bdf8597d46aaef7110983e2276dd2235f6e",
+      gasUsed: "971030",
+      verificationStatus: "DEPLOYED / NOT VERIFIED",
+    },
   ],
   "46630": [
     {

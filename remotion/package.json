@@ -1,0 +1,23 @@
+{
+  "name": "yeltra-launch-film",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Remotion project for the YELTRA 30-second launch film. Isolated from the Next.js app on purpose.",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "still": "remotion still src/index.ts YeltraLaunchFilm out/still.png",
+    "render": "remotion render src/index.ts YeltraLaunchFilm out/yeltra-launch-film.mp4",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.534",
+    "@remotion/google-fonts": "4.0.534",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "remotion": "4.0.534"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "typescript": "^5.7.3"
+  }
+}

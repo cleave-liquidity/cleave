@@ -9,6 +9,7 @@ export const verifiedTokenMetadata: Readonly<Record<RobinhoodChainId, readonly T
       name: "Global Dollar",
       decimals: 6,
       chainId: 4663,
+      iconUrl: "https://storage.googleapis.com/prod-pendle-bucket-a/images/uploads/0cdcce5a-050c-48cd-8059-30e36effae20.svg",
     },
     {
       address: "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73",
@@ -27,5 +28,14 @@ export function getVerifiedTokenMetadata(
 ): TokenMetadata | undefined {
   return verifiedTokenMetadata[chainId].find(
     (token) => token.symbol.toLowerCase() === symbol.trim().toLowerCase(),
+  );
+}
+
+export function getVerifiedTokenMetadataByAddress(
+  chainId: RobinhoodChainId,
+  address: string,
+): TokenMetadata | undefined {
+  return verifiedTokenMetadata[chainId].find(
+    (token) => token.address.toLowerCase() === address.trim().toLowerCase(),
   );
 }
