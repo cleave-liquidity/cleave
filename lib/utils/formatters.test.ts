@@ -1,5 +1,44 @@
 import { describe, expect, it } from "bun:test";
-import { formatNativeBalance, formatNetworkFee, formatPriceImpact } from "./formatters";
+import {
+  formatMarketApy,
+  formatNativeBalance,
+  formatNetworkFee,
+  formatPriceImpact,
+} from "./formatters";
+import type { YieldMarket } from "@/types/market";
+
+const market: YieldMarket = {
+  id: "matured-market",
+  symbol: "sNET",
+  name: "sNET",
+  description: "Matured market",
+  underlyingAsset: "sNET",
+  quoteAsset: "USDG",
+  yieldSource: "Pendle",
+  underlyingApy: 20977.17,
+  impliedApy: 1200,
+  maturity: "17 Sep 2026",
+  maturityDate: "2026-09-17",
+  daysRemaining: 0,
+  liquidityUsd: 100,
+  status: "active",
+  network: "mainnet",
+  chainId: 4663,
+  dataMode: "live",
+  metricAvailability: {
+    underlyingApy: "verified",
+    impliedApy: "verified",
+    liquidityUsd: "verified",
+    maturity: "verified",
+  },
+};
+
+describe("market rate presentation", () => {
+  it("does not present post-maturity rates as current opportunities", () => {
+    expect(formatMarketApy(market, "underlyingApy")).toBe("—");
+    expect(formatMarketApy(market, "impliedApy")).toBe("—");
+  });
+});
 
 describe("formatPriceImpact", () => {
   it("rounds readable impacts to two decimals", () => {

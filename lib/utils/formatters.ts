@@ -1,6 +1,7 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import type { YieldMarket } from "@/types/market";
+import { isMarketMatured } from "@/lib/markets/status";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -31,6 +32,7 @@ function hasVerifiedMetric(market: YieldMarket, metric: MarketMetric): boolean {
 }
 
 export function formatMarketApy(market: YieldMarket, metric: "underlyingApy" | "impliedApy"): string {
+  if (isMarketMatured(market)) return "—";
   return hasVerifiedMetric(market, metric) ? formatApy(market[metric]) : "—";
 }
 
