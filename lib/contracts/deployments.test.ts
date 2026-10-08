@@ -16,7 +16,7 @@ describe("verified contract deployment registry", () => {
     const mainnet = getProjectContractDeployments(4663);
     const registry = getProjectContractDeployments(46630);
 
-    expect(mainnet).toHaveLength(8);
+    expect(mainnet).toHaveLength(9);
     expect(registry).toHaveLength(8);
     expect(mainnet.map((deployment) => deployment.name)).toEqual([
       "YeltraAccessManager",
@@ -27,6 +27,7 @@ describe("verified contract deployment registry", () => {
       "YeltraExecutionRouter",
       "YeltraLifecycleManager",
       "YeltraLens",
+      "YeltraMarketDirectory",
     ]);
     expect(registry.map((deployment) => deployment.name)).toEqual([
       "YeltraAccessManager",
@@ -47,8 +48,14 @@ describe("verified contract deployment registry", () => {
       expect(deployment.deploymentBlock).toBeGreaterThan(0);
       expect(deployment.gasUsed).toMatch(/^[0-9]+$/);
     }
-    expect(mainnet.map((deployment) => deployment.verificationStatus)).toEqual(Array(8).fill("VERIFIED"));
-    expect(mainnet.map((deployment) => deployment.verified)).toEqual(Array(8).fill(true));
+    expect(mainnet.map((deployment) => deployment.verificationStatus)).toEqual([
+      ...Array(8).fill("VERIFIED"),
+      "DEPLOYED / NOT VERIFIED",
+    ]);
+    expect(mainnet.map((deployment) => deployment.verified)).toEqual([
+      ...Array(8).fill(true),
+      false,
+    ]);
     for (const deployment of mainnet) {
       expect(deployment.chainId).toBe(4663);
       expect(deployment.ownership).toBe("project");
@@ -59,7 +66,7 @@ describe("verified contract deployment registry", () => {
     }
     expect(mainnet[0]?.address).toBe("0xb12c7112446bfe88d6e82b516f5df90449fa3dc4");
     expect(registry[0]?.address).toBe("0x3aab079e0017af37c15c7ab11e319995cf426097");
-    expect(getContractDeployments("mainnet").filter((deployment) => deployment.ownership === "project")).toHaveLength(8);
+    expect(getContractDeployments("mainnet").filter((deployment) => deployment.ownership === "project")).toHaveLength(9);
   });
 
   it("keeps the legacy graph available for rollback while exposing YELTRA display names", () => {
