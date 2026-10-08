@@ -1,20 +1,24 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { formatUnits } from "viem";
 import { toast } from "sonner";
 import type { LongYieldPosition } from "@/types/position";
 import type { YieldMarket } from "@/types/market";
 import {
+  getDividendMarketConfig,
   isDividendEarnMarket,
-  NVDA_DIVIDEND_EVENT_DATE,
-  NVDA_DIVIDEND_EVENT_RATE,
 } from "@/lib/dividend/dividend-config";
+import {
+  fetchRobinhoodDividendEvents,
+  sourceLabel,
+} from "@/lib/dividend/dividend-source-adapter";
+import type { DividendEvent } from "@/lib/dividend/dividend-types";
 import { useDividendEarn } from "@/hooks/useDividendEarn";
 
 type DividendPanelProps = {
-  market: Pick<YieldMarket, "id" | "underlyingTokenAddress">;
+  market: Pick<YieldMarket, "id" | "marketAddress" | "underlyingTokenAddress">;
   position?: LongYieldPosition;
   compact?: boolean;
 };
@@ -40,13 +44,47 @@ export function DividendEarnPanel({
   position,
   compact = false,
 }: DividendPanelProps) {
+  const marketConfig = getDividendMarketConfig(market);
   const isSupportedMarket = isDividendEarnMarket(market);
+  const [latestEvent, setLatestEvent] = useState<DividendEvent>();
+  const [eventLoading, setEventLoading] = useState(false);
   const hasPosition = Boolean(
     position && position.status !== "closed" && position.ytAmount > 0,
   );
   const dividend = useDividendEarn(hasPosition ? position : undefined);
 
-  if (!isSupportedMarket) return null;
+  useEffect(() => {
+    let cancelled = false;
+    if (!marketConfig) {
+      setLatestEvent(undefined);
+      return;
+    }
+    setEventLoading(true);
+    void fetchRobinhoodDividendEvents({
+      tokenSymbol: marketConfig.tokenSymbol,
+      tokenAddress: marketConfig.tokenAddress,
+      chainId: marketConfig.chainId,
+    })
+      .then((events) => {
+        if (cancelled) return;
+        const latest = events.reduce<DividendEvent | undefined>((current, event) => {
+          if (!current) return event;
+          return (event.processDate || "") > (current.processDate || "") ? event : current;
+        }, undefined);
+        setLatestEvent(latest);
+      })
+      .catch(() => {
+        if (!cancelled) setLatestEvent(undefined);
+      })
+      .finally(() => {
+        if (!cancelled) setEventLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [marketConfig]);
+
+  if (!isSupportedMarket || !marketConfig) return null;
 
   const onChainStatus = statusFromChain(dividend.state?.status);
   const status: DividendPanelStatus = !hasPosition
@@ -61,9 +99,7 @@ export function DividendEarnPanel({
     : "0.000000";
   const settlement = dividend.state?.settlementEnabled
     ? "Enabled"
-    : dividend.state?.enabled
-      ? "Pending"
-      : "Not enabled";
+    : "SETTLEMENT PENDING";
   const canEnable = Boolean(
     hasPosition &&
       dividend.configured &&
@@ -150,7 +186,7 @@ export function DividendEarnPanel({
       <dl className="mt-5 grid gap-3 border-y border-white/10 py-4 text-[13px] sm:grid-cols-2">
         <div>
           <dt className="text-muted-dark">Underlying asset</dt>
-          <dd className="mt-1 font-mono text-foreground">NVDA</dd>
+          <dd className="mt-1 font-mono text-foreground">{marketConfig.tokenSymbol}</dd>
         </div>
         <div>
           <dt className="text-muted-dark">Dividend type</dt>
@@ -159,13 +195,17 @@ export function DividendEarnPanel({
         <div>
           <dt className="text-muted-dark">Source</dt>
           <dd className="mt-1 font-mono text-foreground">
-            Robinhood Corporate Actions
+            {sourceLabel(marketConfig.source)}
           </dd>
         </div>
         <div>
           <dt className="text-muted-dark">Latest distribution</dt>
           <dd className="mt-1 font-mono text-amber">
-            {NVDA_DIVIDEND_EVENT_RATE} USD / share · {NVDA_DIVIDEND_EVENT_DATE}
+            {eventLoading
+              ? "Reading verified event…"
+              : latestEvent
+                ? `${latestEvent.rate} USD / share · ${latestEvent.processDate || "Date unavailable"}`
+                : "No verified event available"}
           </dd>
         </div>
         <div>

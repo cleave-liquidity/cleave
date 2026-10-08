@@ -14,6 +14,7 @@ import { ArrowRight, Wallet } from "lucide-react";
 import { ApplicationBackdrop } from "@/components/layout/ApplicationBackdrop";
 import { DataModeBadge } from "@/components/layout/DataModeBadge";
 import { yieldAdapter } from "@/lib/adapters/mock-adapter";
+import { OptionsPortfolioPanel } from "@/components/options/OptionsPortfolioPanel";
 
 export default function PortfolioPage() {
   const { address, isConnected } = useAccount();
@@ -253,6 +254,8 @@ export default function PortfolioPage() {
               </div>
             )}
           </div>
+
+          <OptionsPortfolioPanel />
         </main>
 
         <Footer />

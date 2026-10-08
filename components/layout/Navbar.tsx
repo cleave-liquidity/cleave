@@ -9,6 +9,29 @@ import { X_URL } from "@/lib/site-links";
 import Image from "next/image";
 import { ContractAddress } from "../landing/ContractAddress";
 
+/**
+ * Row layout. The landing header keeps its original classes untouched. Internal pages stay on ONE row at every width:
+ * the logo and the right-hand cluster never shrink or wrap, the nav is the flexible middle (its link spacing adapts),
+ * and the secondary controls collapse in a fixed order as width shrinks instead of dropping to a second row.
+ */
+const ROW = {
+  landing: "max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-10 py-5 sm:py-6 flex items-center justify-between gap-4 flex-wrap",
+  app: "max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-10 py-5 sm:py-6 flex flex-nowrap items-center gap-3 lg:gap-6",
+} as const;
+
+const LOGO_LINK =
+  "flex items-center gap-3.5 group focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ice";
+const LOGO_TEXT = "text-[20px] font-medium tracking-[0.42em] text-foreground";
+// Phones: a tighter wordmark so logo + wallet button fit down to 320 px.
+const LOGO_TEXT_APP =
+  "text-[20px] max-[339px]:text-[16px] font-medium tracking-[0.42em] max-[399px]:tracking-[0.25em] text-foreground";
+
+const NAV_LANDING = "hidden md:flex items-center gap-4 lg:gap-9 text-[14px] lg:text-[15px]";
+// Same look as the landing nav when there is room (max width = the old natural width), and the links
+// pull closer together (never below the minimum gap) when the right-hand cluster needs the space.
+const NAV_APP =
+  "hidden md:flex min-w-0 flex-1 items-center justify-between gap-x-3 lg:gap-x-4 mx-auto md:max-w-[338px] lg:max-w-[437px] whitespace-nowrap text-[14px] lg:text-[15px]";
+
 export function Navbar({ isLanding = false }: { isLanding?: boolean }) {
   const pathname = usePathname();
 
@@ -30,21 +53,21 @@ export function Navbar({ isLanding = false }: { isLanding?: boolean }) {
           Skip to content
         </a>
       )}
-      <div className="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-10 py-5 sm:py-6 flex items-center justify-between gap-4 flex-wrap">
+      <div className={isLanding ? ROW.landing : ROW.app}>
         <Link
           href="/"
           aria-label="Yeltra home"
-          className="flex items-center gap-3.5 group focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ice"
+          className={isLanding ? LOGO_LINK : `shrink-0 ${LOGO_LINK}`}
         >
-          <Image src="/logo.png" alt="Yeltra logo" width={34} height={34} />
-          <span className="text-[20px] font-medium tracking-[0.42em] text-foreground">
+          <Image src="/logo.png" alt="Yeltra logo" width={34} height={34} className={isLanding ? undefined : "shrink-0"} />
+          <span className={isLanding ? LOGO_TEXT : LOGO_TEXT_APP}>
             YELTRA
           </span>
         </Link>
 
         <nav
           aria-label="Primary"
-          className="hidden md:flex items-center gap-4 lg:gap-9 text-[14px] lg:text-[15px]"
+          className={isLanding ? NAV_LANDING : NAV_APP}
         >
           <Link
             href="/markets"
@@ -82,9 +105,10 @@ export function Navbar({ isLanding = false }: { isLanding?: boolean }) {
             Contracts
           </Link>
         </nav>
-        <ContractAddress />
+        {isLanding && <ContractAddress />}
 
-        <div className="flex items-center gap-3">
+        <div className={isLanding ? "flex items-center gap-3" : "flex shrink-0 items-center gap-2 lg:gap-3"}>
+          {!isLanding && <ContractAddress />}
           <a
             href={X_URL}
             target="_blank"
@@ -93,7 +117,7 @@ export function Navbar({ isLanding = false }: { isLanding?: boolean }) {
             className={`items-center justify-center border border-white/20 bg-background/50 text-muted transition-colors hover:border-white/40 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice ${
               isLanding
                 ? "inline-flex h-[38px] w-[38px] sm:h-[44px] sm:w-[44px]"
-                : "hidden h-[46px] w-[46px] sm:inline-flex"
+                : "hidden h-[46px] w-[46px] sm:inline-flex md:hidden lg:inline-flex"
             }`}
           >
             <XIcon className="h-[15px] w-[15px]" />
@@ -106,7 +130,7 @@ export function Navbar({ isLanding = false }: { isLanding?: boolean }) {
               Launch app
             </Link>
           ) : (
-            <ConnectButton />
+            <ConnectButton variant="navbar" />
           )}
         </div>
       </div>

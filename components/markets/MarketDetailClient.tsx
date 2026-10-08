@@ -9,7 +9,7 @@ import { DataModeBadge } from "@/components/layout/DataModeBadge";
 import { YieldChart } from "@/components/trade/YieldChart";
 import { AssetIcon } from "@/components/markets/AssetIcon";
 import { MarketMetricsStrip } from "@/components/markets/MarketMetricsStrip";
-import { formatApy } from "@/lib/utils/formatters";
+import { formatMarketApy } from "@/lib/utils/formatters";
 import { getMarketStatus, isMarketExecutable } from "@/lib/markets/status";
 import { buildTradeWorkspaceHref } from "@/lib/markets/trade-strategy";
 import { YieldMarket } from "@/types/market";
@@ -24,6 +24,7 @@ export function MarketDetailClient({
   const isTradeable = isMarketExecutable(market);
   const marketStatus = getMarketStatus(market);
   const hasYieldMetrics =
+    marketStatus !== "matured" &&
     (market.metricAvailability?.underlyingApy ?? "verified") === "verified" &&
     (market.metricAvailability?.impliedApy ?? "verified") === "verified";
   return (
@@ -160,14 +161,14 @@ export function MarketDetailClient({
                   <StrategyRow
                     title="Fixed Yield"
                     caption="Lock a quoted yield · implied APY shown"
-                    figure={formatApy(market.impliedApy)}
+                    figure={formatMarketApy(market, "impliedApy")}
                     tone="ice"
                     href={isTradeable ? buildTradeWorkspaceHref(market.id, "fixed") : undefined}
                   />
                   <StrategyRow
                     title="Trading Yield"
                     caption="Trade future yield · rate now shown"
-                    figure={formatApy(market.underlyingApy)}
+                    figure={formatMarketApy(market, "underlyingApy")}
                     tone="amber"
                     href={isTradeable ? buildTradeWorkspaceHref(market.id, "long") : undefined}
                   />
@@ -179,7 +180,7 @@ export function MarketDetailClient({
                     ? "Discovery only. YELTRA execution is not configured for this provider."
                     : marketStatus === "paused"
                       ? "Trading is currently paused."
-                      : "This market has passed maturity."}
+                      : "This market has passed maturity. Current rates and new trades are unavailable."}
                 </div>
               )}
             </div>

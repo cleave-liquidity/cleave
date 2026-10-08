@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { YieldMarket } from "@/types/market";
 import { formatMarketApy, formatMarketUsd } from "@/lib/utils/formatters";
+import { getMarketStatus } from "@/lib/markets/status";
 import { AssetIcon } from "./AssetIcon";
 import { getMarketSecondaryLabel } from "@/lib/markets/presentation";
 
@@ -19,7 +20,8 @@ export function MarketCard({
   tradeHrefs?: { fixed: string; long: string };
   marketUniverse?: YieldMarket[];
 }) {
-  const isMaturing = market.status === "maturing";
+  const marketStatus = getMarketStatus(market);
+  const isMaturing = marketStatus === "maturing";
   const isDiscoveryOnly = market.execution?.enabled === false;
   const symbol = market.assetMetadata?.symbol || market.symbol;
 
@@ -46,7 +48,7 @@ export function MarketCard({
             className="w-2 h-2 rounded-full"
             style={{ background: isMaturing ? "#EF5F22" : "#3B86FF" }}
           />
-          <span className="capitalize">{market.status.replace("_", " ")}</span>
+          <span className="capitalize">{marketStatus.replace("_", " ")}</span>
         </div>
       </div>
 
@@ -74,7 +76,11 @@ export function MarketCard({
           <span className="text-[11px] mono text-muted-dark">MATURITY</span>
           <span className="text-foreground">{market.maturity}</span>
           <span className="mono text-[11px] text-muted-dark">
-            {market.maturityType === "open-ended" ? "NO FIXED MATURITY" : `${market.daysRemaining} DAYS`}
+            {market.maturityType === "open-ended"
+              ? "NO FIXED MATURITY"
+              : marketStatus === "matured"
+                ? "MATURED · NO NEW TRADE"
+                : `${market.daysRemaining} DAYS`}
           </span>
         </div>
         <div className="flex flex-col items-end">
@@ -87,7 +93,9 @@ export function MarketCard({
     </>
   );
 
-  if (tradeHrefs && !isDiscoveryOnly) {
+  const canTrade = marketStatus === "active" || marketStatus === "maturing";
+
+  if (tradeHrefs && !isDiscoveryOnly && canTrade) {
     return (
       <article className="border border-white/15 bg-surface p-4 sm:p-5">
         {body}
@@ -111,7 +119,7 @@ export function MarketCard({
     );
   }
 
-  if (tradeHrefs && isDiscoveryOnly) {
+  if (tradeHrefs && (isDiscoveryOnly || !canTrade)) {
     return (
       <article className="border border-white/15 bg-surface p-4 sm:p-5">
         {body}
@@ -120,7 +128,7 @@ export function MarketCard({
           aria-label={`View ${symbol} market`}
           className="mt-4 flex min-h-[44px] items-center justify-center rounded-lg border border-white/15 bg-white/[0.03] text-[13px] font-medium text-muted-light transition-colors hover:border-ice/50 hover:text-ice focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice"
         >
-          View Market →
+          {marketStatus === "matured" ? "View Matured Market" : "View Market"} →
         </Link>
       </article>
     );

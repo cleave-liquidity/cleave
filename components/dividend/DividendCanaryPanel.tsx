@@ -103,7 +103,7 @@ export function DividendCanaryPanel() {
         <div>
           <span className="block text-muted-dark">Settlement</span>
           <span className="mt-1 block font-mono text-amber">
-            {canary.publicState?.settlementEnabled ? "Enabled" : "Not Enabled"}
+            {canary.publicState?.settlementEnabled ? "Enabled" : "SETTLEMENT PENDING"}
           </span>
         </div>
       </div>
@@ -194,7 +194,7 @@ export function DividendCanaryPanel() {
                 <dd className="mt-1 font-mono text-amber">
                   {canary.state?.settlementEnabled
                     ? "Enabled"
-                    : "Not Enabled · no funded claim"}
+                    : "SETTLEMENT PENDING · no funded claim"}
                 </dd>
               </div>
               <div className="sm:col-span-2">

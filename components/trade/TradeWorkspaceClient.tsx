@@ -10,7 +10,7 @@ import { DataModeBadge } from "@/components/layout/DataModeBadge";
 import { AssetIcon, ProtocolIcon } from "@/components/markets/AssetIcon";
 import { MarketMetricsStrip } from "@/components/markets/MarketMetricsStrip";
 import { TradePanel, type TradeQuoteContext } from "@/components/trade/TradePanel";
-import { formatApy, formatNetworkFee, formatPriceImpact, formatTokenAmount } from "@/lib/utils/formatters";
+import { formatApy, formatMarketApy, formatNetworkFee, formatPriceImpact, formatTokenAmount } from "@/lib/utils/formatters";
 import type { FixedYieldQuote, LongYieldQuote } from "@/types/quote";
 import type { QuoteUiState } from "@/lib/markets/quote-state";
 import { YieldMarket } from "@/types/market";
@@ -190,14 +190,14 @@ export function TradeWorkspaceClient({
                   <StrategyChoice
                     tone="ice"
                     title="Fixed Yield"
-                    figure={formatApy(market.impliedApy)}
+                    figure={formatMarketApy(market, "impliedApy")}
                     caption="Lock a quoted yield toward maturity"
                     onSelect={() => handleStrategyChange("fixed")}
                   />
                   <StrategyChoice
                     tone="amber"
                     title="Trading Yield"
-                    figure={formatApy(market.underlyingApy)}
+                    figure={formatMarketApy(market, "underlyingApy")}
                     caption="Trade exposure to future yield"
                     onSelect={() => handleStrategyChange("long")}
                   />
@@ -300,8 +300,8 @@ function StrategyContext({
       <div className="border-y border-white/10 py-3">
         <div className="mono text-[10px] uppercase tracking-[0.14em] text-muted-dark">This market</div>
         <p className="mt-2 text-[14px] leading-6 text-muted">
-          {assetName} ({assetSymbol}) · {sourceLabel}. The market is pricing {formatApy(market.impliedApy)} implied APY
-          against {formatApy(market.underlyingApy)} current underlying APY, with {timeRemaining} until {market.maturity}.
+          {assetName} ({assetSymbol}) · {sourceLabel}. The market is pricing {formatMarketApy(market, "impliedApy")} implied APY
+          against {formatMarketApy(market, "underlyingApy")} current underlying APY, with {timeRemaining} until {market.maturity}.
         </p>
         <p className="mt-2 text-[13px] leading-6 text-muted-dark">
           {fixed

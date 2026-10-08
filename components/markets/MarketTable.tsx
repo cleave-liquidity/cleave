@@ -60,7 +60,7 @@ export function MarketTable({
           .some((value) => value.toLowerCase().includes(search));
 
         const matchesStatus =
-          statusFilter === "all" || market.status === statusFilter;
+          statusFilter === "all" || getMarketStatus(market) === statusFilter;
 
         return matchesSearch && matchesStatus;
       })
@@ -205,6 +205,8 @@ export function MarketTable({
               filteredAndSortedMarkets.map((market) => {
                 if (isTrade && tradeHrefs) {
                   const hrefs = tradeHrefs(market);
+                  const marketStatus = getMarketStatus(market);
+                  const canTrade = marketStatus === "active" || marketStatus === "maturing";
                   return (
                     <div
                       key={market.id}
@@ -212,14 +214,21 @@ export function MarketTable({
                     >
                       <span className="absolute left-0 top-0 bottom-0 w-0.5 bg-ice opacity-0 group-hover:opacity-100 transition-opacity" />
                       <MarketRowCells market={market} markets={markets} showMaturingTag />
-                      <span className="flex items-center justify-end gap-2">
-                        <TradeAction href={hrefs.fixed} tone="ice" label="Fixed" market={market} />
-                        <TradeAction href={hrefs.long} tone="amber" label="Trading" market={market} />
-                      </span>
+                      {canTrade ? (
+                        <span className="flex items-center justify-end gap-2">
+                          <TradeAction href={hrefs.fixed} tone="ice" label="Fixed" market={market} />
+                          <TradeAction href={hrefs.long} tone="amber" label="Trading" market={market} />
+                        </span>
+                      ) : (
+                        <Link href={marketHref(market)} className="justify-self-end text-[12px] text-muted hover:text-ice">
+                          {marketStatus === "matured" ? "Matured · View" : "Unavailable"}
+                        </Link>
+                      )}
                     </div>
                   );
                 }
 
+                const marketStatus = getMarketStatus(market);
                 return (
                   <Link
                     key={market.id}
@@ -233,7 +242,11 @@ export function MarketTable({
 
                     {/* The row links to the market detail/trade surface. */}
                     <span className="flex items-center justify-end gap-1.5 text-[13px] font-medium text-ice transition-colors group-hover:text-white">
-                      {market.execution?.enabled === false ? "View Market" : "Trade"}
+                      {market.execution?.enabled === false
+                        ? "View Market"
+                        : marketStatus === "matured"
+                          ? "View Matured"
+                          : "Trade"}
                       <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
                     </span>
                   </Link>
@@ -252,7 +265,8 @@ export function MarketTable({
  * system. `showMaturingTag` adds a "maturing" note under the date (the Trade table has no status column).
  */
 function MarketRowCells({ market, markets, showMaturingTag = false }: { market: YieldMarket; markets: YieldMarket[]; showMaturingTag?: boolean }) {
-  const maturing = showMaturingTag && getMarketStatus(market) === "maturing";
+  const marketStatus = getMarketStatus(market);
+  const maturing = showMaturingTag && marketStatus === "maturing";
 
   return (
     <>
@@ -296,7 +310,11 @@ function MarketRowCells({ market, markets, showMaturingTag = false }: { market: 
               })}
         </span>
         <span className="mono text-[11px] text-muted-dark">
-          {market.maturityType === "open-ended" ? "NO FIXED MATURITY" : `${market.daysRemaining} DAYS`}
+          {market.maturityType === "open-ended"
+            ? "NO FIXED MATURITY"
+            : marketStatus === "matured"
+              ? "MATURED · NO NEW TRADE"
+              : `${market.daysRemaining} DAYS`}
           {maturing && <span className="text-amber"> · MATURING</span>}
         </span>
       </span>

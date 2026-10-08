@@ -12,12 +12,15 @@ import { DataModeBadge } from "@/components/layout/DataModeBadge";
 import { yieldAdapter } from "@/lib/adapters/mock-adapter";
 import { getConfiguredChainId, getNetworkShortLabel } from "@/lib/web3/environment";
 import { summarizeKnownLiquidity } from "@/lib/markets/presentation";
+import { getMarketStatus, isMarketTradable } from "@/lib/markets/status";
 
 export default function MarketsPage() {
   const { markets, isLoading, error } = useMarkets();
   const networkShortLabel = getNetworkShortLabel(getConfiguredChainId(), false);
 
   const liquiditySummary = summarizeKnownLiquidity(markets);
+  const activeMarkets = markets.filter((market) => isMarketTradable(market)).length;
+  const maturedMarkets = markets.filter((market) => getMarketStatus(market) === "matured").length;
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-background text-foreground">
@@ -57,10 +60,13 @@ export default function MarketsPage() {
             </div>
             <div className="p-3.5 sm:p-4 rounded-xl border border-white/10 bg-surface/50 backdrop-blur-sm flex flex-col gap-1">
               <span className="mono text-[10px] text-muted-dark uppercase tracking-wider">
-                Available Markets
+                Registered Markets
               </span>
               <span className="mono text-[20px] sm:text-[22px] font-medium text-ice">
                 {isLoading ? "..." : markets.length}
+              </span>
+              <span className="mono text-[10px] text-muted-dark">
+                {isLoading ? "" : `${activeMarkets} active · ${maturedMarkets} matured`}
               </span>
             </div>
             <div className="p-3.5 sm:p-4 rounded-xl border border-white/10 bg-surface/50 backdrop-blur-sm flex flex-col gap-1">
