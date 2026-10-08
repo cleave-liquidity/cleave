@@ -15,7 +15,7 @@
 
 Morpho vault accounting, APY availability, liquidity semantics, and execution support remain in `MorphoYieldMarketAdapter`. No PT/YT/SY values are invented for a vault market.
 
-The current repository does not contain a deployed directory address. Configure `YELTRA_MARKET_DIRECTORY` only after the directory is deployed and verified. Until then:
+The Mainnet directory is deployed at `0x9CA476Fa631273EB5Db83186115bDF3ABaccc951` and is configured through `YELTRA_MARKET_DIRECTORY` and `NEXT_PUBLIC_YELTRA_MARKET_DIRECTORY`. Its deployment transaction is `0xae15647aa3503d73a6f14161ca3555acec629c4579f7a0a508ade06a7320d6f6`. Source verification remains a separate Blockscout status and is not marked verified locally.
 
 ```text
 bun market:show --mainnet
@@ -23,7 +23,7 @@ bun market:validate --mainnet
 bun market:register --mainnet
 ```
 
-are read-only and report `DIRECTORY ADDRESS REQUIRED`; they do not fabricate a registration hash or explorer link.
+are read-only for `show` and `validate`, while `register` requires the guarded broadcast command below. They read the live Directory entry and do not fabricate a registration hash or explorer link.
 
 Registration broadcast requires both `--broadcast` and the exact confirmation:
 

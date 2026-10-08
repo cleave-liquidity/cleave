@@ -14,6 +14,7 @@ import { getMarketStatus, isMarketExecutable } from "@/lib/markets/status";
 import { buildTradeWorkspaceHref } from "@/lib/markets/trade-strategy";
 import { YieldMarket } from "@/types/market";
 import { ArrowLeft, ArrowUpRight, ShieldCheck } from "lucide-react";
+import { DividendEarnPanel } from "@/components/dividend/DividendEarnPanel";
 
 export function MarketDetailClient({
   market,
@@ -97,6 +98,8 @@ export function MarketDetailClient({
               </div>
             )}
 
+            <DividendEarnPanel market={market} />
+
             <details className="group/advanced border border-white/15 bg-surface/70 p-5 sm:p-6">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 pb-3 text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice">
                 <span className="flex items-center gap-2">
@@ -143,27 +146,33 @@ export function MarketDetailClient({
           <div className="w-full lg:sticky lg:top-32">
             <div className="border border-white/15 bg-surface/70 p-5 sm:p-6">
               <div className="mono text-[11px] uppercase tracking-[0.14em] text-muted-dark">
-                Trade this market
+                {market.execution?.enabled === false ? "Market access" : "Trade this market"}
               </div>
               <h2 className="mt-2 text-[21px] font-normal text-foreground">
-                Choose how to trade this yield
+                {market.execution?.enabled === false ? "Read-only market" : "Choose how to trade this yield"}
               </h2>
-              <div className="mt-5 flex flex-col divide-y divide-white/10 border-y border-white/10">
-                <StrategyRow
-                  title="Fixed Yield"
-                  caption="Lock a quoted yield · implied APY shown"
-                  figure={formatApy(market.impliedApy)}
-                  tone="ice"
-                  href={isTradeable ? buildTradeWorkspaceHref(market.id, "fixed") : undefined}
-                />
-                <StrategyRow
-                  title="Trading Yield"
-                  caption="Trade future yield · rate now shown"
-                  figure={formatApy(market.underlyingApy)}
-                  tone="amber"
-                  href={isTradeable ? buildTradeWorkspaceHref(market.id, "long") : undefined}
-                />
-              </div>
+              {market.execution?.enabled === false ? (
+                <div className="mt-5 border border-white/15 bg-surface px-4 py-4 text-[13px] leading-6 text-muted-dark">
+                  Execution unavailable for this provider. Market data and registration metadata remain read-only.
+                </div>
+              ) : (
+                <div className="mt-5 flex flex-col divide-y divide-white/10 border-y border-white/10">
+                  <StrategyRow
+                    title="Fixed Yield"
+                    caption="Lock a quoted yield · implied APY shown"
+                    figure={formatApy(market.impliedApy)}
+                    tone="ice"
+                    href={isTradeable ? buildTradeWorkspaceHref(market.id, "fixed") : undefined}
+                  />
+                  <StrategyRow
+                    title="Trading Yield"
+                    caption="Trade future yield · rate now shown"
+                    figure={formatApy(market.underlyingApy)}
+                    tone="amber"
+                    href={isTradeable ? buildTradeWorkspaceHref(market.id, "long") : undefined}
+                  />
+                </div>
+              )}
               {!isTradeable && (
                 <div className="mt-5 border border-white/15 bg-surface px-4 py-3 text-center text-[13px] text-muted-dark">
                   {market.execution?.enabled === false

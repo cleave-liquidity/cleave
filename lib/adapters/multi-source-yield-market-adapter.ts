@@ -9,7 +9,6 @@ import { YieldDomainError } from "@/types/errors";
 import { getConfiguredChainId } from "@/lib/web3/environment";
 import { robinhoodChain, ROBINHOOD_CHAIN_ID } from "@/lib/web3/chains";
 import {
-  getStableExternalMarketId,
   MARKET_DIRECTORY_MARKET_TYPES,
   MARKET_DIRECTORY_PROVIDER_IDS,
   readYeltraMarketDirectory,
@@ -52,14 +51,96 @@ function createDirectoryClient(chainId: number): PublicClient {
   return createPublicClient({ chain: robinhoodChain, transport: http(rpcUrl) });
 }
 
+export type CanonicalMarketQuery = {
+  provider: string;
+  chainId: number;
+  marketAddress: Address;
+};
+
+function decodeMarketId(value: string): string | undefined {
+  try {
+    return decodeURIComponent(value).trim();
+  } catch {
+    return undefined;
+  }
+}
+
+export function parseCanonicalMarketId(value: string): CanonicalMarketQuery | undefined {
+  const decoded = decodeMarketId(value);
+  if (!decoded) return undefined;
+  const [provider, chainIdValue, marketAddress, ...extra] = decoded.split(":");
+  const chainId = Number(chainIdValue);
+  if (
+    extra.length ||
+    !provider ||
+    !Number.isInteger(chainId) ||
+    !isAddress(marketAddress)
+  ) {
+    return undefined;
+  }
+  return {
+    provider: provider.toLowerCase(),
+    chainId,
+    marketAddress: marketAddress as Address,
+  };
+}
+
 function isMorphoMarketId(id: string): boolean {
   return id.toLowerCase().startsWith("morpho:");
 }
 
-function uniqueMarkets(markets: YieldMarket[]): YieldMarket[] {
-  const byId = new Map<string, YieldMarket>();
-  for (const market of markets) byId.set(market.id.toLowerCase(), market);
-  return [...byId.values()];
+export function canonicalMarketIdentity(market: Pick<YieldMarket, "id" | "chainId" | "marketAddress" | "providerId" | "sourceProtocol">): string {
+  const provider = (market.providerId || market.sourceProtocol || "unknown").toLowerCase();
+  if (market.marketAddress) {
+    return `${provider}:${market.chainId}:${market.marketAddress.toLowerCase()}`;
+  }
+  return `id:${market.id.toLowerCase()}`;
+}
+
+export type MultiSourceMarketSnapshot = {
+  pendleCount: number;
+  directoryCount: number;
+  normalizedCount: number;
+  markets: YieldMarket[];
+  addedMarkets: YieldMarket[];
+};
+
+export function normalizeMultiSourceMarkets(
+  pendleMarkets: YieldMarket[],
+  directoryMarkets: YieldMarket[],
+): MultiSourceMarketSnapshot {
+  const byIdentity = new Map<string, YieldMarket>();
+  for (const market of pendleMarkets) {
+    byIdentity.set(canonicalMarketIdentity(market), market);
+  }
+
+  const addedMarkets: YieldMarket[] = [];
+  for (const market of directoryMarkets) {
+    const identity = canonicalMarketIdentity(market);
+    if (byIdentity.has(identity)) continue;
+    byIdentity.set(identity, market);
+    addedMarkets.push(market);
+  }
+
+  const markets = [...byIdentity.values()];
+  return {
+    pendleCount: pendleMarkets.length,
+    directoryCount: directoryMarkets.length,
+    normalizedCount: markets.length,
+    markets,
+    addedMarkets,
+  };
+}
+
+export function resolveCanonicalMarket(
+  markets: YieldMarket[],
+  id: string,
+): YieldMarket | undefined {
+  const query = parseCanonicalMarketId(id);
+  if (!query) return undefined;
+  return markets.find(
+    (market) => canonicalMarketIdentity(market) === `${query.provider}:${query.chainId}:${query.marketAddress.toLowerCase()}`,
+  );
 }
 
 export class MultiSourceYieldMarketAdapter implements YieldMarketAdapter {
@@ -97,7 +178,9 @@ export class MultiSourceYieldMarketAdapter implements YieldMarketAdapter {
     ]);
     const pendleMarkets = pendleResult.status === "fulfilled" ? pendleResult.value : [];
     const externalMarkets = externalResult.status === "fulfilled" ? externalResult.value : [];
-    if (pendleMarkets.length || externalMarkets.length) return uniqueMarkets([...pendleMarkets, ...externalMarkets]);
+    if (pendleMarkets.length || externalMarkets.length) {
+      return normalizeMultiSourceMarkets(pendleMarkets, externalMarkets).markets;
+    }
     const reason = pendleResult.status === "rejected" ? pendleResult.reason : externalResult.status === "rejected" ? externalResult.reason : undefined;
     throw reason instanceof Error
       ? reason
@@ -105,16 +188,31 @@ export class MultiSourceYieldMarketAdapter implements YieldMarketAdapter {
   }
 
   async getMarket(id: string): Promise<YieldMarket | null> {
-    if (!isMorphoMarketId(id)) return this.pendle.getMarket(id);
-    const directoryAddress = this.resolveDirectoryAddress();
-    if (!directoryAddress) return null;
-    const client = createDirectoryClient(ROBINHOOD_CHAIN_ID);
-    const entries = await readYeltraMarketDirectory(client, directoryAddress);
-    const entry = entries.find(
-      (candidate) => getStableExternalMarketId(candidate.providerId, candidate.chainId, candidate.marketAddress).toLowerCase() === id.toLowerCase(),
-    );
-    if (!entry || !entry.enabled) return null;
-    return new MorphoYieldMarketAdapter(client).getMarket(entry, directoryAddress);
+    const decodedId = decodeMarketId(id);
+    if (!decodedId) return null;
+
+    const canonicalQuery = parseCanonicalMarketId(decodedId);
+    if (canonicalQuery) {
+      if (canonicalQuery.chainId !== ROBINHOOD_CHAIN_ID) return null;
+      const markets = await this.getMarkets();
+      const market = resolveCanonicalMarket(markets, decodedId);
+      if (!market) return null;
+
+      // Preserve the Pendle detail page's historical data while still requiring
+      // the market to exist in the normalized multi-source directory first.
+      if (canonicalQuery.provider === "pendle") {
+        const detailed = await this.pendle.getMarket(canonicalQuery.marketAddress);
+        return detailed && canonicalMarketIdentity(detailed) === canonicalMarketIdentity(market)
+          ? detailed
+          : market;
+      }
+      return market;
+    }
+
+    // A colon denotes an attempted canonical ID. Do not reinterpret malformed
+    // or unknown-provider IDs as legacy Pendle addresses.
+    if (decodedId.includes(":")) return null;
+    return this.pendle.getMarket(decodedId);
   }
 
   private assertPendleExecution(marketId: string): void {

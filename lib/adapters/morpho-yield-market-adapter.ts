@@ -7,7 +7,7 @@ import {
 } from "viem";
 import { YieldDomainError } from "@/types/errors";
 import type { YieldMarket } from "@/types/market";
-import { verifiedTokenMetadata } from "@/lib/metadata/tokens";
+import { getVerifiedTokenMetadataByAddress } from "@/lib/metadata/tokens";
 import { robinhoodChain, ROBINHOOD_CHAIN_ID } from "@/lib/web3/chains";
 import {
   getStableExternalMarketId,
@@ -57,6 +57,9 @@ export function normalizeMorphoVaultMarket(
   directoryAddress?: Address,
 ): YieldMarket {
   const id = getStableExternalMarketId(entry.providerId, entry.chainId, entry.marketAddress);
+  const canonicalAssetMetadata = entry.chainId === ROBINHOOD_CHAIN_ID
+    ? getVerifiedTokenMetadataByAddress(ROBINHOOD_CHAIN_ID, entry.underlyingAsset)
+    : undefined;
   return {
     id,
     symbol: snapshot.underlyingSymbol,
@@ -94,8 +97,9 @@ export function normalizeMorphoVaultMarket(
       bytecodePresent: snapshot.bytecodePresent,
     },
     assetMetadata: {
-      symbol: snapshot.underlyingSymbol,
-      name: snapshot.underlyingName,
+      symbol: canonicalAssetMetadata?.symbol ?? snapshot.underlyingSymbol,
+      name: canonicalAssetMetadata?.name ?? snapshot.underlyingName,
+      iconUrl: canonicalAssetMetadata?.iconUrl,
     },
     protocolMetadata: { name: "Morpho" },
     yieldSourceMetadata: { name: snapshot.name },
@@ -137,8 +141,9 @@ export class MorphoYieldMarketAdapter {
       throw new YieldDomainError("live-source-unavailable", "Morpho vault asset does not match the registered underlying.");
     }
 
-    const underlyingMetadata = verifiedTokenMetadata[ROBINHOOD_CHAIN_ID].find(
-      (token) => token.address.toLowerCase() === entry.underlyingAsset.toLowerCase(),
+    const underlyingMetadata = getVerifiedTokenMetadataByAddress(
+      ROBINHOOD_CHAIN_ID,
+      entry.underlyingAsset,
     );
     const underlyingDecimals = underlyingMetadata?.decimals ?? Number(
       await this.publicClient.readContract({

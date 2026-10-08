@@ -16,6 +16,8 @@ import type { QuoteUiState } from "@/lib/markets/quote-state";
 import { YieldMarket } from "@/types/market";
 import { getMarketStatus, isMarketTradable } from "@/lib/markets/status";
 import { ArrowLeft } from "lucide-react";
+import { DividendEarnPanel } from "@/components/dividend/DividendEarnPanel";
+import { isDividendEarnMarket } from "@/lib/dividend/dividend-config";
 import {
   buildTradeWorkspaceHref,
   type TradeStrategy,
@@ -157,6 +159,9 @@ export function TradeWorkspaceClient({
                 </button>
               </div>
               <StrategyContext strategy={strategy} market={market} quoteContext={quoteContext} />
+              {strategy === "long" && isDividendEarnMarket(market) && (
+                <DividendEarnPanel market={market} />
+              )}
               </div>
             )}
             <div className={`w-full lg:sticky lg:top-28 ${strategy ? "" : "lg:col-span-2 lg:mx-auto lg:max-w-[420px]"}`}>

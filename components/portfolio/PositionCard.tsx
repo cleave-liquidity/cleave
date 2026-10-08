@@ -35,6 +35,7 @@ import {
   type SellFlowStep,
 } from "@/lib/positions/sell-flow";
 import type { ExitQuote } from "@/types/quote";
+import { DividendEarnPanel } from "@/components/dividend/DividendEarnPanel";
 
 export function PositionCard({
   position,
@@ -424,6 +425,14 @@ export function PositionCard({
         >
           View Market →
         </Link>
+
+        {!isFixed && (
+          <DividendEarnPanel
+            market={{ id: position.marketId }}
+            position={longPos || undefined}
+            compact
+          />
+        )}
 
         <div className="flex w-full flex-wrap items-center justify-end gap-2 md:w-full md:flex-nowrap">
           {/* Trading Yield (long) actions */}

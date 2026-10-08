@@ -32,6 +32,11 @@ describe("Morpho yield market adapter", () => {
     );
 
     expect(market.providerId).toBe("morpho");
+    expect(market.assetMetadata).toEqual({
+      symbol: "USDG",
+      name: "Global Dollar",
+      iconUrl: "https://storage.googleapis.com/prod-pendle-bucket-a/images/uploads/0cdcce5a-050c-48cd-8059-30e36effae20.svg",
+    });
     expect(market.marketType).toBe("vault");
     expect(market.maturity).toBe("Open-ended");
     expect(market.maturityType).toBe("open-ended");

@@ -8,6 +8,7 @@ import { getMarketStatus } from "@/lib/markets/status";
 import { MarketCard } from "./MarketCard";
 import { AssetIcon } from "./AssetIcon";
 import { Search, ArrowUpDown, ArrowUpRight } from "lucide-react";
+import { getMarketSecondaryLabel } from "@/lib/markets/presentation";
 
 type SortField = "impliedApy" | "underlyingApy" | "daysRemaining" | "liquidityUsd";
 
@@ -142,6 +143,7 @@ export function MarketTable({
           <MarketCard
             key={market.id}
             market={market}
+            marketUniverse={markets}
             href={marketHref(market)}
             tradeHrefs={tradeHrefs?.(market)}
           />
@@ -209,7 +211,7 @@ export function MarketTable({
                       className={`group relative grid ${cols} items-center gap-4 px-6 py-5 text-foreground transition-all duration-150 hover:bg-white/[0.035]`}
                     >
                       <span className="absolute left-0 top-0 bottom-0 w-0.5 bg-ice opacity-0 group-hover:opacity-100 transition-opacity" />
-                      <MarketRowCells market={market} showMaturingTag />
+                      <MarketRowCells market={market} markets={markets} showMaturingTag />
                       <span className="flex items-center justify-end gap-2">
                         <TradeAction href={hrefs.fixed} tone="ice" label="Fixed" market={market} />
                         <TradeAction href={hrefs.long} tone="amber" label="Trading" market={market} />
@@ -227,11 +229,11 @@ export function MarketTable({
                     {/* Hover indicator left line */}
                     <span className="absolute left-0 top-0 bottom-0 w-0.5 bg-ice opacity-0 group-hover:opacity-100 transition-opacity" />
 
-                    <MarketRowCells market={market} />
+                    <MarketRowCells market={market} markets={markets} />
 
                     {/* The row links to the market detail/trade surface. */}
                     <span className="flex items-center justify-end gap-1.5 text-[13px] font-medium text-ice transition-colors group-hover:text-white">
-                      Trade
+                      {market.execution?.enabled === false ? "View Market" : "Trade"}
                       <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
                     </span>
                   </Link>
@@ -249,7 +251,7 @@ export function MarketTable({
  * The first five cells of a row — shared by the Markets table and the Trade table so the two read as one
  * system. `showMaturingTag` adds a "maturing" note under the date (the Trade table has no status column).
  */
-function MarketRowCells({ market, showMaturingTag = false }: { market: YieldMarket; showMaturingTag?: boolean }) {
+function MarketRowCells({ market, markets, showMaturingTag = false }: { market: YieldMarket; markets: YieldMarket[]; showMaturingTag?: boolean }) {
   const maturing = showMaturingTag && getMarketStatus(market) === "maturing";
 
   return (
@@ -267,7 +269,7 @@ function MarketRowCells({ market, showMaturingTag = false }: { market: YieldMark
             {market.assetMetadata?.symbol || market.symbol}
           </span>
           <span className="text-[12px] text-muted-dark truncate">
-            {market.assetMetadata?.name || market.name}
+            {getMarketSecondaryLabel(market, markets)}
           </span>
         </span>
       </span>

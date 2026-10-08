@@ -269,8 +269,8 @@ export function FloatingNav() {
             aria-label="Yeltra home"
             className={`group flex cursor-pointer items-center gap-2.5 rounded-full ${FOCUS_RING}`}
           >
-            <Image src="/logo.png" alt="Yeltra logo" width={34} height={34} />
-            <span className="text-[15px] font-medium tracking-[0.36em] text-foreground [text-shadow:0_1px_3px_rgba(0,0,0,0.4)]">
+            <Image src="/logo.png" alt="Yeltra logo" width={34} height={34} className="shrink-0" />
+            <span className="text-[15px] font-medium tracking-[0.36em] text-foreground max-[359px]:tracking-[0.22em] [text-shadow:0_1px_3px_rgba(0,0,0,0.4)]">
               YELTRA
             </span>
           </Link>
@@ -313,7 +313,7 @@ export function FloatingNav() {
 
             <Link
               href="/markets"
-              className={`lg-cta inline-flex min-h-[38px] cursor-pointer items-center justify-center rounded-full px-4 text-[13px] font-semibold sm:px-5 ${FOCUS_RING}`}
+              className={`lg-cta inline-flex min-h-[38px] cursor-pointer items-center justify-center whitespace-nowrap rounded-full px-4 text-[13px] font-semibold max-[359px]:px-3 sm:px-5 ${FOCUS_RING}`}
             >
               <span className="relative z-10">Launch app</span>
             </Link>
@@ -393,12 +393,13 @@ export function FloatingNav() {
             ))}
 
             {/* The X icon leaves the pill on phones to make room for the menu button, so it lives here instead. */}
+            <div className="mx-4 my-1 h-px bg-white/10 sm:hidden" aria-hidden="true" />
             <a
               href={X_URL}
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => setMenuOpen(false)}
-              className={`mt-1 flex min-h-[48px] cursor-pointer items-center gap-3 rounded-[20px] border-t border-white/10 px-4 text-[15px] text-white/85 transition-colors hover:bg-white/10 hover:text-white active:bg-white/15 sm:hidden ${FOCUS_RING}`}
+              className={`flex min-h-[48px] cursor-pointer items-center gap-3 rounded-[20px] px-4 text-[15px] text-white/85 transition-colors hover:bg-white/10 hover:text-white active:bg-white/15 sm:hidden ${FOCUS_RING}`}
             >
               <XIcon className="h-4 w-4" />
               Follow on X

@@ -335,7 +335,7 @@ export function normalizePendleMarket(
     assetMetadata: {
       symbol: underlying.symbol,
       name: underlying.name,
-      iconUrl: asString(raw.icon),
+      iconUrl: underlying.iconUrl || asString(raw.icon),
     },
     protocolMetadata: { name: "Pendle" },
     yieldSourceMetadata: { name: yieldSource, iconUrl: asString(utilizedProtocol?.imageUrl) },

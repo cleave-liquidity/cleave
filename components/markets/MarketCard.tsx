@@ -5,18 +5,22 @@ import Link from "next/link";
 import { YieldMarket } from "@/types/market";
 import { formatMarketApy, formatMarketUsd } from "@/lib/utils/formatters";
 import { AssetIcon } from "./AssetIcon";
+import { getMarketSecondaryLabel } from "@/lib/markets/presentation";
 
 export function MarketCard({
   market,
   href,
   tradeHrefs,
+  marketUniverse,
 }: {
   market: YieldMarket;
   href?: string;
   /** When given the card is a static summary with Fixed Yield / Trading Yield trade actions (the Trade hub). */
   tradeHrefs?: { fixed: string; long: string };
+  marketUniverse?: YieldMarket[];
 }) {
   const isMaturing = market.status === "maturing";
+  const isDiscoveryOnly = market.execution?.enabled === false;
   const symbol = market.assetMetadata?.symbol || market.symbol;
 
   const body = (
@@ -33,7 +37,7 @@ export function MarketCard({
             <div className="text-[17px] font-medium text-foreground group-hover:text-white transition-colors">
               {market.assetMetadata?.symbol || market.symbol}
             </div>
-            <div className="text-[12px] text-muted-dark">{market.assetMetadata?.name || market.name}</div>
+            <div className="text-[12px] text-muted-dark">{getMarketSecondaryLabel(market, marketUniverse)}</div>
           </div>
         </div>
 
@@ -83,7 +87,7 @@ export function MarketCard({
     </>
   );
 
-  if (tradeHrefs) {
+  if (tradeHrefs && !isDiscoveryOnly) {
     return (
       <article className="border border-white/15 bg-surface p-4 sm:p-5">
         {body}
@@ -107,12 +111,32 @@ export function MarketCard({
     );
   }
 
+  if (tradeHrefs && isDiscoveryOnly) {
+    return (
+      <article className="border border-white/15 bg-surface p-4 sm:p-5">
+        {body}
+        <Link
+          href={href ?? `/markets/${market.id}`}
+          aria-label={`View ${symbol} market`}
+          className="mt-4 flex min-h-[44px] items-center justify-center rounded-lg border border-white/15 bg-white/[0.03] text-[13px] font-medium text-muted-light transition-colors hover:border-ice/50 hover:text-ice focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice"
+        >
+          View Market →
+        </Link>
+      </article>
+    );
+  }
+
   return (
     <Link
       href={href ?? `/markets/${market.id}`}
       className="group block border border-white/14 bg-surface p-4 transition-colors hover:border-ice/40 hover:bg-surface-raised sm:p-5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice"
     >
       {body}
+      {isDiscoveryOnly && (
+        <span className="mt-4 flex items-center justify-end border-t border-white/10 pt-3 text-[13px] font-medium text-ice">
+          View Market <span aria-hidden="true">→</span>
+        </span>
+      )}
     </Link>
   );
 }
