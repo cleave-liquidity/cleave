@@ -8,8 +8,15 @@ function rateLabel(value: bigint): string {
   return `${Number(formatUnits(value, 16)).toFixed(2)}%`;
 }
 
+function expiryLabel(value: bigint): string {
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeZone: "UTC",
+  }).format(new Date(Number(value) * 1000)) + " UTC";
+}
+
 export function OptionsPortfolioPanel() {
-  const { positions, configured, connectedAddress, isLoading, error } = useOptionsPositions();
+  const { positions, configured, historyConfigured, connectedAddress, isLoading, error } = useOptionsPositions();
 
   if (!configured) return null;
 
@@ -20,19 +27,39 @@ export function OptionsPortfolioPanel() {
           <div className="mono text-[10px] uppercase tracking-[0.16em] text-muted-dark">Testnet development positions</div>
           <h2 className="mt-2 text-[20px] font-normal text-foreground">Yield Rate Options</h2>
         </div>
-        <span className="mono text-[10px] uppercase tracking-[0.12em] text-muted-dark">Owner-linked reads only</span>
+        <span className="mono text-[10px] uppercase tracking-[0.12em] text-muted-dark">Owner-linked on-chain reads</span>
       </div>
-      {!connectedAddress ? <p className="mt-5 text-[12px] leading-5 text-muted-dark">Connect a wallet to read owner-linked Testnet Options positions.</p> : isLoading ? <p className="mt-5 text-[12px] text-muted">Reading option events…</p> : error ? <p className="mt-5 text-[12px] text-negative">Unable to read Testnet option positions.</p> : positions.length === 0 ? <p className="mt-5 text-[12px] leading-5 text-muted-dark">No on-chain Testnet Options positions found for this wallet.</p> : (
+
+      {!connectedAddress ? (
+        <p className="mt-5 text-[12px] leading-5 text-muted-dark">Connect a wallet to read its Robinhood Testnet Options positions.</p>
+      ) : !historyConfigured ? (
+        <p className="mt-5 text-[12px] leading-5 text-amber">Position history is unavailable because the deployment start block is not configured. No empty-position result is inferred.</p>
+      ) : isLoading ? (
+        <p className="mt-5 text-[12px] text-muted">Reading option events and current contract state…</p>
+      ) : error ? (
+        <p className="mt-5 text-[12px] text-negative">Unable to read Testnet Options positions from RPC. No mock positions are shown.</p>
+      ) : positions.length === 0 ? (
+        <p className="mt-5 text-[12px] leading-5 text-muted-dark">No on-chain Testnet Options positions found for this wallet.</p>
+      ) : (
         <div className="mt-5 overflow-x-auto">
-          <table className="w-full min-w-[720px] text-left text-[12px]">
-            <thead className="mono text-[10px] uppercase tracking-[0.12em] text-muted-dark"><tr className="border-b border-white/10"><th className="pb-3 pr-4 font-normal">Option</th><th className="pb-3 pr-4 font-normal">Strike</th><th className="pb-3 pr-4 font-normal">Expiry</th><th className="pb-3 pr-4 font-normal">Premium</th><th className="pb-3 pr-4 font-normal">Status</th><th className="pb-3 font-normal">Action</th></tr></thead>
+          <table className="w-full min-w-[760px] text-left text-[12px]">
+            <thead className="mono text-[10px] uppercase tracking-[0.12em] text-muted-dark">
+              <tr className="border-b border-white/10">
+                <th className="pb-3 pr-4 font-normal">Option</th>
+                <th className="pb-3 pr-4 font-normal">Strike</th>
+                <th className="pb-3 pr-4 font-normal">Expiry</th>
+                <th className="pb-3 pr-4 font-normal">Premium</th>
+                <th className="pb-3 pr-4 font-normal">Status</th>
+                <th className="pb-3 font-normal">Action</th>
+              </tr>
+            </thead>
             <tbody>
               {positions.map((position) => (
                 <tr key={position.optionId.toString()} className="border-b border-white/[0.06] last:border-0">
                   <td className="py-4 pr-4 font-mono text-foreground">#{position.optionId.toString()} · {position.kind}</td>
                   <td className="py-4 pr-4 font-mono text-amber">{rateLabel(position.strike)}</td>
-                  <td className="py-4 pr-4 text-muted">{new Date(Number(position.expiry) * 1000).toLocaleString("en-US")}</td>
-                  <td className="py-4 pr-4 font-mono text-muted">{position.premium.toString()}</td>
+                  <td className="py-4 pr-4 text-muted">{expiryLabel(position.expiry)}</td>
+                  <td className="py-4 pr-4 font-mono text-muted">{formatUnits(position.premium, position.collateralDecimals)} yDEVUSD</td>
                   <td className="py-4 pr-4 font-mono text-muted">{position.state}</td>
                   <td className="py-4"><Link href={`/options/testnet-usdg-rate?optionId=${position.optionId.toString()}`} className="text-ice hover:text-white">Inspect →</Link></td>
                 </tr>

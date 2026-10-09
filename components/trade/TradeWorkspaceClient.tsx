@@ -369,6 +369,7 @@ function getFixedPositionContext({
 }): string {
   if (!marketIsTradeable) return "This market is not currently tradeable, so no position quote is shown.";
   if (quoteState === "quoting") return `Fetching a live Fixed Yield quote for ${inputAmount ?? "your"} ${market.quoteAsset}.`;
+  if (quoteState === "minimum-amount") return "This amount is below the provider's route minimum. Increase it and refresh the quote.";
   if (quoteState === "unavailable") return "No route is available for this amount right now. Try a different amount.";
   if (quoteState === "error") return "We couldn't fetch a live Fixed Yield quote. Retry before acting on these numbers.";
   if (quoteState !== "ready" || !quote || inputAmount === null) {
@@ -396,6 +397,7 @@ function getLongPositionContext({
 }): string {
   if (!marketIsTradeable) return "This market is not currently tradeable, so no position quote is shown.";
   if (quoteState === "quoting") return `Fetching a live Trading Yield quote for ${inputAmount ?? "your"} ${market.quoteAsset}.`;
+  if (quoteState === "minimum-amount") return "This amount is below the provider's route minimum. Increase it and refresh the quote.";
   if (quoteState === "unavailable") return "No route is available for this amount right now. Try a different amount.";
   if (quoteState === "error") return "We couldn't fetch a live Trading Yield quote. Retry before acting on these numbers.";
   if (quoteState !== "ready" || !quote || inputAmount === null) {

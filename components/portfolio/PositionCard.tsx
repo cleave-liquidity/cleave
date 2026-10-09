@@ -97,8 +97,11 @@ export function PositionCard({
     !isFixed &&
     position.status !== "closed" &&
     (isActive || isMatured) &&
+    longPos?.executionEligibility?.claimYield !== false &&
     (longPos?.claimableYield || 0) > 0;
-  const canSell = canSellPosition(position);
+  const canSell =
+    canSellPosition(position) &&
+    position.executionEligibility?.sellEarly !== false;
   const entryDataAvailable = position.entryDataAvailable !== false;
   const fixedApy = fixedPos ? getFixedApyPresentation(fixedPos) : null;
   const openedLabel = formatPositionDate(position.openedAt);
@@ -466,7 +469,7 @@ export function PositionCard({
           )}
 
           {/* Fixed Strategy Redeem Action at Maturity */}
-          {isFixed && isMatured && !isRedeemed && position.status !== "closed" && (
+          {isFixed && isMatured && !isRedeemed && position.status !== "closed" && fixedPos?.executionEligibility?.redeemAtMaturity !== false && (
             <button
               type="button"
               disabled={!isMatured || isRedeemed || loadingAction !== null || isWrongNetwork || isNativeBalanceBlocking}

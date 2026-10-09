@@ -4,7 +4,7 @@ import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { YieldMarket } from "@/types/market";
 import { formatMarketApy, formatMarketUsd } from "@/lib/utils/formatters";
-import { getMarketStatus } from "@/lib/markets/status";
+import { getMarketStatus, isMarketExecutable } from "@/lib/markets/status";
 import { MarketCard } from "./MarketCard";
 import { AssetIcon } from "./AssetIcon";
 import { Search, ArrowUpDown, ArrowUpRight } from "lucide-react";
@@ -206,7 +206,7 @@ export function MarketTable({
                 if (isTrade && tradeHrefs) {
                   const hrefs = tradeHrefs(market);
                   const marketStatus = getMarketStatus(market);
-                  const canTrade = marketStatus === "active" || marketStatus === "maturing";
+                  const canTrade = isMarketExecutable(market);
                   return (
                     <div
                       key={market.id}
@@ -221,7 +221,9 @@ export function MarketTable({
                         </span>
                       ) : (
                         <Link href={marketHref(market)} className="justify-self-end text-[12px] text-muted hover:text-ice">
-                          {marketStatus === "matured" ? "Matured · View" : "Unavailable"}
+                          {marketStatus === "matured"
+                            ? "Matured · View"
+                            : "Read-only · View"}
                         </Link>
                       )}
                     </div>

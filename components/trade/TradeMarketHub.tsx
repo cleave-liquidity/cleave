@@ -93,7 +93,7 @@ export function TradeMarketHub() {
               <div className="rounded-2xl border border-white/10 bg-surface/60 px-6 py-20 text-center" role="status">
                 <div className="mono text-[11px] uppercase tracking-[0.14em] text-muted-dark">No markets open right now</div>
                 <p className="mx-auto mt-3 max-w-[420px] text-[14px] leading-6 text-muted">
-                  Every market is paused or past maturity right now. Explore Markets to see what&apos;s coming next.
+                  No market currently has a verified YELTRA execution route. Some markets may be read-only, paused, or past maturity; check their details for the current reason.
                 </p>
               </div>
             ) : (

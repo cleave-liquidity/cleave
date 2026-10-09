@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { YieldMarket } from "@/types/market";
 import { formatMarketApy, formatMarketUsd } from "@/lib/utils/formatters";
-import { getMarketStatus } from "@/lib/markets/status";
+import { getMarketStatus, isMarketExecutable } from "@/lib/markets/status";
 import { AssetIcon } from "./AssetIcon";
 import { getMarketSecondaryLabel } from "@/lib/markets/presentation";
 
@@ -93,7 +93,7 @@ export function MarketCard({
     </>
   );
 
-  const canTrade = marketStatus === "active" || marketStatus === "maturing";
+  const canTrade = isMarketExecutable(market);
 
   if (tradeHrefs && !isDiscoveryOnly && canTrade) {
     return (

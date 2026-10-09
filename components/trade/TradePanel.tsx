@@ -16,7 +16,7 @@ import { useOpenFixedPosition } from "@/hooks/useOpenFixedPosition";
 import { useOpenLongPosition } from "@/hooks/useOpenLongPosition";
 import { formatApy, formatNativeBalance, formatNetworkFee, formatPriceImpact, formatTokenAmount } from "@/lib/utils/formatters";
 import { toast } from "sonner";
-import { TransactionState } from "@/types/transaction";
+import { TransactionState, type TransactionHash } from "@/types/transaction";
 import { YieldDomainError, getYieldErrorMessage, normalizeYieldError } from "@/types/errors";
 import { AlertCircle, CheckCircle2, ChevronDown, Loader2 } from "lucide-react";
 import { yieldAdapter } from "@/lib/adapters/mock-adapter";
@@ -33,8 +33,6 @@ import {
   getQuoteUserMessage,
   isQuoteExecutionReady,
   isQuoteRouteUnavailableError,
-  QUOTE_ERROR_MESSAGE,
-  QUOTE_UNAVAILABLE_MESSAGE,
   QUOTE_UNAVAILABLE_TITLE,
   type QuoteUiState,
 } from "@/lib/markets/quote-state";
@@ -100,6 +98,7 @@ export function TradePanel({
   const initialTradeState = getTradeResetState(strategy, initialAmount);
   const [inputAmountStr, setInputAmountStr] = useState<string>(initialTradeState.inputAmount);
   const [txState, setTxState] = useState<TransactionState>(initialTradeState.transactionState);
+  const [confirmedApprovalHash, setConfirmedApprovalHash] = useState<TransactionHash | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [currentTime, setCurrentTime] = useState(() => Date.now());
   const [selectedShortcut, setSelectedShortcut] = useState<BalanceShortcut | null>(null);
@@ -122,6 +121,7 @@ export function TradePanel({
     setInputAmountStr(resetState.inputAmount);
     setShowAdvanced(resetState.showAdvanced);
     setTxState(resetState.transactionState);
+    setConfirmedApprovalHash(null);
     setSelectedShortcut(null);
     setQuoteRefreshRequired(false);
   }, [strategy, initialAmount]);
@@ -344,6 +344,7 @@ export function TradePanel({
     // A reset scheduled by the previous attempt must not wipe the state of this one.
     if (resetTimerRef.current !== null) window.clearTimeout(resetTimerRef.current);
 
+    let submittedTransactionHash: TransactionHash | undefined;
     try {
       setTxState({ step: "validating" });
 
@@ -411,14 +412,20 @@ export function TradePanel({
         }
         setTxState({ step: "approval-required" });
         setTxState({ step: "approving" });
-        await approveToken.mutateAsync({
+        const approval = await approveToken.mutateAsync({
           tokenAddress: quoteForExecution.approvalToken,
           owner: address,
           spender: approvalSpender,
           amount: quoteForExecution.approvalAmount,
           chainId: market.chainId,
           marketId: market.id,
+          onTransactionSubmitted: (hash) => {
+            submittedTransactionHash = hash;
+            setTxState({ step: "pending", txHash: hash, chainId: market.chainId });
+          },
         });
+        submittedTransactionHash = undefined;
+        setConfirmedApprovalHash(approval.txHash);
         await refreshAllowance();
         setTxState({ step: "approval-success" });
         toast.success(`${market.quoteAsset} approval granted`);
@@ -450,14 +457,17 @@ export function TradePanel({
           chainId,
           quoteAsset: market.quoteAsset,
           onTransactionSubmitted: (hash) => {
-            setTxState({ step: "pending", txHash: hash });
+            submittedTransactionHash = hash;
+            setTxState({ step: "pending", txHash: hash, chainId: market.chainId });
           },
         });
-        const txHash = openedPosition.txHash ?? openedPosition.mockTxHash;
-        setTxState({ step: "success", txHash });
-        toast.success(
-          `Successfully opened Fixed Yield position for ${inputAmount} ${market.quoteAsset}!`
-        );
+        if (yieldAdapter.mode === "live" && !openedPosition.txHash) {
+          throw new YieldDomainError("rpc-unavailable", "The position call completed without a confirmed on-chain transaction hash.");
+        }
+        setTxState({ step: "success", txHash: openedPosition.txHash, chainId: market.chainId });
+        toast.success(yieldAdapter.mode === "live"
+          ? `Fixed Yield confirmed on Robinhood Chain for ${inputAmount} ${market.quoteAsset}.`
+          : "Preview position added locally. No blockchain transaction was sent.");
       } else {
         const openedPosition = await openLongPosition.mutateAsync({
           marketId: market.id,
@@ -467,17 +477,31 @@ export function TradePanel({
           chainId,
           quoteAsset: market.quoteAsset,
           onTransactionSubmitted: (hash) => {
-            setTxState({ step: "pending", txHash: hash });
+            submittedTransactionHash = hash;
+            setTxState({ step: "pending", txHash: hash, chainId: market.chainId });
           },
         });
-        const txHash = openedPosition.txHash ?? openedPosition.mockTxHash;
-        setTxState({ step: "success", txHash });
-        toast.success(
-          `Successfully opened Trading Yield position for ${inputAmount} ${market.quoteAsset}!`
-        );
+        if (yieldAdapter.mode === "live" && !openedPosition.txHash) {
+          throw new YieldDomainError("rpc-unavailable", "The position call completed without a confirmed on-chain transaction hash.");
+        }
+        setTxState({ step: "success", txHash: openedPosition.txHash, chainId: market.chainId });
+        toast.success(yieldAdapter.mode === "live"
+          ? `Trading Yield confirmed on Robinhood Chain for ${inputAmount} ${market.quoteAsset}.`
+          : "Preview position added locally. No blockchain transaction was sent.");
       }
     } catch (err: unknown) {
       const normalizedError = err instanceof YieldDomainError ? err : normalizeYieldError(err);
+      if (submittedTransactionHash) {
+        const message = "Transaction submitted, but its receipt could not be verified. Check Blockscout before retrying.";
+        setTxState({
+          step: "pending",
+          txHash: submittedTransactionHash,
+          chainId: market.chainId,
+          errorMessage: message,
+        });
+        toast.error(message);
+        return;
+      }
       const message = isQuoteRouteUnavailableError(err)
         ? getQuoteUserMessage(err)
         : normalizedError.message || getYieldErrorMessage(err);
@@ -537,16 +561,19 @@ export function TradePanel({
     allowanceState: allowanceActionState,
     transactionStep: txState.step,
   });
+  const displayedPrimaryAction = yieldAdapter.mode === "mock" && primaryAction.kind === "success"
+    ? { ...primaryAction, label: "View Preview Position" }
+    : primaryAction;
   const handlePrimaryAction = () => {
-    if (primaryAction.kind === "connect") {
+    if (displayedPrimaryAction.kind === "connect") {
       handleConnectWallet();
-    } else if (primaryAction.kind === "switch-network") {
+    } else if (displayedPrimaryAction.kind === "switch-network") {
       void handleNetworkSwitch();
-    } else if (primaryAction.kind === "refresh-quote") {
+    } else if (displayedPrimaryAction.kind === "refresh-quote") {
       void handleRefreshQuote();
-    } else if (primaryAction.kind === "success") {
+    } else if (displayedPrimaryAction.kind === "success") {
       router.push("/portfolio");
-    } else if (primaryAction.kind === "write") {
+    } else if (displayedPrimaryAction.kind === "write") {
       void handleExecuteTrade();
     }
   };
@@ -688,6 +715,9 @@ export function TradePanel({
         isFixed ? (
         /* FIXED YIELD SECTION */
         <div className="flex flex-col gap-4 pt-2">
+          <p className="m-0 text-[12px] leading-5 text-muted-dark">
+            Indicative Pendle route quote. Output is checked again and wallet-specific calldata is refreshed before you sign.
+          </p>
           <div className="flex flex-col gap-1 p-3.5 border border-ice/20 bg-ice/5 rounded-lg">
             <span className="text-[13px] text-muted-dark">
               Estimated maturity value on {market.maturity}
@@ -707,7 +737,7 @@ export function TradePanel({
 
           <div className="flex flex-col text-[14px]">
             <div className="flex justify-between py-2.5 border-b border-white/10">
-              <span className="text-muted-dark">You receive (PT)</span>
+              <span className="text-muted-dark">Estimated output (PT)</span>
               <span className="mono text-right text-muted">{fixedQuote ? `${formatTokenAmount(fixedQuote.ptReceived)} ${market.symbol}` : "Available after quote"}</span>
             </div>
             <div className="flex justify-between py-2.5 border-b border-white/10">
@@ -742,9 +772,12 @@ export function TradePanel({
             </div>
           </div>
         </div>
-      ) : (
+        ) : (
         /* LONG YIELD SECTION */
         <div className="flex flex-col gap-4 pt-2">
+          <p className="m-0 text-[12px] leading-5 text-muted-dark">
+            Indicative Pendle route quote. Output is checked again and wallet-specific calldata is refreshed before you sign.
+          </p>
           <div className="flex flex-col gap-1 p-3.5 border border-amber/20 bg-amber/5 rounded-lg">
             <span className="text-[13px] text-muted-dark">
               Estimated Yield Exposure
@@ -867,7 +900,7 @@ export function TradePanel({
         </div>
           )
         ) : (
-          <QuoteStateNotice state={quoteState} isExpired={isQuoteExpired} />
+          <QuoteStateNotice state={quoteState} isExpired={isQuoteExpired} error={quoteError} />
         )}
 
       {txState.step === "error" && txState.errorMessage && !quoteRefreshRequired && (
@@ -949,26 +982,71 @@ export function TradePanel({
       {/* Primary Action Button */}
       <button
         type="button"
-        disabled={primaryAction.disabled}
-        onClick={primaryAction.disabled ? undefined : handlePrimaryAction}
+        disabled={displayedPrimaryAction.disabled}
+        onClick={displayedPrimaryAction.disabled ? undefined : handlePrimaryAction}
         className={`min-h-[52px] rounded-lg text-[15px] font-medium flex items-center justify-center gap-2 transition-all ${
-          primaryAction.disabled
+          displayedPrimaryAction.disabled
             ? "border border-white/20 bg-surface text-muted-dark cursor-not-allowed"
-            : primaryAction.kind === "write"
+            : displayedPrimaryAction.kind === "write"
               ? `border-0 text-[#0A0B0C] cursor-pointer ${isFixed ? "bg-ice hover:brightness-105" : "bg-amber hover:brightness-105"}`
-              : primaryAction.kind === "connect"
+              : displayedPrimaryAction.kind === "connect"
                 ? "border-0 bg-amber text-[#0A0B0C] hover:brightness-105 cursor-pointer"
-                : primaryAction.kind === "switch-network"
+                : displayedPrimaryAction.kind === "switch-network"
                   ? "border-0 bg-negative text-white hover:brightness-105 cursor-pointer"
-                  : primaryAction.kind === "success"
+                  : displayedPrimaryAction.kind === "success"
                     ? "border-0 bg-positive text-[#0A0B0C] hover:brightness-105 cursor-pointer"
                     : "border border-white/20 bg-surface text-foreground cursor-pointer"
         }`}
       >
-        {primaryAction.busy && <Loader2 className="w-4 h-4 animate-spin" />}
-        {primaryAction.kind === "success" && <CheckCircle2 className="w-4 h-4" />}
-        {primaryAction.label}
+        {displayedPrimaryAction.busy && <Loader2 className="w-4 h-4 animate-spin" />}
+        {displayedPrimaryAction.kind === "success" && <CheckCircle2 className="w-4 h-4" />}
+        {displayedPrimaryAction.label}
       </button>
+      {txState.step === "pending" && txState.txHash && (
+        <div role="status" className="border border-amber/25 bg-amber/5 px-3.5 py-3 text-[12px] leading-5 text-muted">
+          <span className="text-amber">Transaction submitted · waiting for confirmation.</span>{" "}
+          <a
+            href={`https://robinhoodchain.blockscout.com/tx/${txState.txHash}`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-ice underline underline-offset-2"
+          >
+            Check Blockscout
+          </a>
+          {txState.errorMessage && <p className="mb-0 mt-1 text-muted-dark">{txState.errorMessage}</p>}
+        </div>
+      )}
+      {txState.step === "success" && txState.txHash && yieldAdapter.mode === "live" && (
+        <div role="status" className="border border-positive/25 bg-positive/5 px-3.5 py-3 text-[12px] text-muted">
+          <span className="text-positive">Confirmed on-chain.</span>{" "}
+          <a
+            href={`https://robinhoodchain.blockscout.com/tx/${txState.txHash}`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-ice underline underline-offset-2"
+          >
+            View transaction
+          </a>
+        </div>
+      )}
+      {txState.step === "success" && yieldAdapter.mode === "mock" && (
+        <div role="status" className="border border-amber/25 bg-amber/5 px-3.5 py-3 text-[12px] text-amber">
+          Preview only — this position is stored locally. No blockchain transaction was sent.
+        </div>
+      )}
+      {confirmedApprovalHash && yieldAdapter.mode === "live" && (
+        <div role="status" className="text-[11px] text-muted-dark">
+          Token approval confirmed ·{" "}
+          <a
+            href={`https://robinhoodchain.blockscout.com/tx/${confirmedApprovalHash}`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-ice underline underline-offset-2"
+          >
+            View approval transaction
+          </a>
+        </div>
+      )}
     </div>
   );
 }
@@ -976,9 +1054,11 @@ export function TradePanel({
 function QuoteStateNotice({
   state,
   isExpired,
+  error,
 }: {
   state: QuoteUiState;
   isExpired: boolean;
+  error: unknown;
 }) {
   const content =
     state === "quoting"
@@ -987,11 +1067,13 @@ function QuoteStateNotice({
           message: "The live position details will appear when the quote is ready.",
         }
       : state === "unavailable"
-        ? { title: QUOTE_UNAVAILABLE_TITLE, message: QUOTE_UNAVAILABLE_MESSAGE }
+        ? { title: QUOTE_UNAVAILABLE_TITLE, message: getQuoteUserMessage(error) }
+        : state === "minimum-amount"
+          ? { title: "Amount below route minimum", message: getQuoteUserMessage(error) }
         : state === "error" && isExpired
           ? { title: "Quote expired", message: "Refresh the quote before confirming this position." }
           : state === "error"
-            ? { title: "Unable to fetch quote", message: QUOTE_ERROR_MESSAGE }
+            ? { title: "Quote request failed", message: getQuoteUserMessage(error) }
             : {
                 title: "Preview your live position",
                 message: "Enter an amount to preview your live position.",

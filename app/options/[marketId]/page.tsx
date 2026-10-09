@@ -2,9 +2,11 @@ import { OptionsMarketClient } from "@/components/options/OptionsMarketClient";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { ApplicationBackdrop } from "@/components/layout/ApplicationBackdrop";
+import { notFound } from "next/navigation";
 
 export default async function OptionsMarketPage({ params, searchParams }: { params: Promise<{ marketId: string }>; searchParams: Promise<{ optionId?: string }> }) {
-  await params;
+  const { marketId } = await params;
+  if (marketId !== "testnet-usdg-rate") notFound();
   const query = await searchParams;
   const optionId = query.optionId && /^\d+$/.test(query.optionId) ? BigInt(query.optionId) : undefined;
   return (

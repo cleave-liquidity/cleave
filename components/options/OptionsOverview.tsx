@@ -52,18 +52,19 @@ export function OptionsOverview() {
             Yield Rate Options
           </h1>
           <p className="mt-3 max-w-[660px] text-[14px] leading-6 text-muted">
-            European CALL and PUT positions settle against a fresh operator-published
-            yield-rate snapshot. Capacity is limited by the funded collateral vault.
+          The development market offers European CALL and PUT positions for one
+          30-day tenor. Its operator-published index is not a verified live yield
+          source or production oracle; capacity is limited by funded Testnet collateral.
           </p>
         </div>
         <span className={`mono rounded-full border px-3 py-1 text-[10px] uppercase tracking-[0.14em] ${options.readState?.fresh ? "border-positive/30 bg-positive/5 text-positive" : "border-amber/30 bg-amber/5 text-amber"}`}>
-          {options.readState?.fresh ? "RATE LIVE" : "RATE STALE"}
+          {options.readState?.fresh ? "DEV INDEX · FRESH" : "DEV INDEX · STALE / UNAVAILABLE"}
         </span>
       </div>
 
       <div className="mt-7 grid gap-3 sm:grid-cols-4">
         <div className="border border-white/10 bg-white/[0.02] p-4">
-          <div className="mono text-[10px] uppercase tracking-[0.14em] text-muted-dark">Current rate</div>
+          <div className="mono text-[10px] uppercase tracking-[0.14em] text-muted-dark">Development index rate</div>
           <div className="mt-2 font-mono text-[20px] text-amber">{rateLabel(options.readState?.currentRate)}</div>
         </div>
         <div className="border border-white/10 bg-white/[0.02] p-4">

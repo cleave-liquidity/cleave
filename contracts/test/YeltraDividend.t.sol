@@ -141,4 +141,19 @@ contract YeltraDividendTest {
         (bool success,) = address(caller).call(abi.encodeCall(caller.enable, (accounting, POSITION_ID)));
         assert(!success);
     }
+
+    function testRegistrySupportsMultipleIndependentCanonicalMarketIds() public {
+        bytes32 nvdaMarketId = keccak256(abi.encode(uint256(4663), keccak256("PENDLE"), address(0x1111)));
+        bytes32 sgovMarketId = keccak256(abi.encode(uint256(4663), keccak256("PENDLE"), address(0x2222)));
+
+        registry.configureMarket(nvdaMarketId, address(0x3333), SOURCE, 18, 6, 0);
+        registry.configureMarket(sgovMarketId, address(0x4444), SOURCE, 18, 6, 0);
+
+        YeltraDividendRegistry.MarketConfig memory nvda = registry.getMarket(nvdaMarketId);
+        YeltraDividendRegistry.MarketConfig memory sgov = registry.getMarket(sgovMarketId);
+        assert(nvda.enabled && sgov.enabled);
+        assert(nvda.underlying == address(0x3333));
+        assert(sgov.underlying == address(0x4444));
+        assert(nvdaMarketId != sgovMarketId);
+    }
 }

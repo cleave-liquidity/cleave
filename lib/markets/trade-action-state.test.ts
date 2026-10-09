@@ -50,6 +50,14 @@ describe("TradePanel CTA state", () => {
     });
   });
 
+  it("asks users to increase an amount below Pendle's minimum valuation", () => {
+    expect(action({ quoteState: "minimum-amount" })).toMatchObject({
+      kind: "disabled",
+      label: "Increase Amount",
+      disabled: true,
+    });
+  });
+
   it("shows the insufficient balance CTA for a partially funded wallet", () => {
     expect(action({ isTokenBalanceInsufficient: true }).label).toBe("Insufficient USDG Balance");
   });
