@@ -7,7 +7,7 @@ import { ViemBalanceAdapter } from "@/lib/adapters/balance-adapter";
 import { yieldAdapter } from "@/lib/adapters/mock-adapter";
 import { YieldDomainError } from "@/types/errors";
 import { isAddress } from "viem";
-import { useAccount, usePublicClient } from "wagmi";
+import { usePublicClient } from "wagmi";
 
 export function useTokenBalance(
   address: `0x${string}` | undefined,
@@ -16,13 +16,13 @@ export function useTokenBalance(
   tokenDecimals?: number,
   tokenChainId?: number,
 ) {
-  const { chainId } = useAccount();
-  const publicClient = usePublicClient();
+  const chainId = tokenChainId;
+  const publicClient = usePublicClient({ chainId });
   const query = useQuery({
     queryKey: queryKeys.balance(address, tokenAddress ?? token, chainId),
     queryFn: async () => {
       if (yieldAdapter.mode === "live") {
-        if (!address || !tokenAddress || !isAddress(tokenAddress) || !tokenChainId || !publicClient) {
+        if (!address || !tokenAddress || !isAddress(tokenAddress) || !chainId || !publicClient) {
           throw new YieldDomainError("live-source-unavailable", "Live token balance configuration is unavailable.");
         }
         const snapshot = await new ViemBalanceAdapter(publicClient).getTokenBalance(
@@ -31,7 +31,7 @@ export function useTokenBalance(
             symbol: token,
             name: token,
             decimals: tokenDecimals ?? 0,
-            chainId: tokenChainId as 4663 | 46630,
+            chainId: chainId as 4663 | 46630,
           },
           address,
         );

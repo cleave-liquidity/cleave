@@ -199,4 +199,89 @@ contract YeltraRateOptionsTest {
         market.claim(optionId);
         vm.stopPrank();
     }
+
+    function testFuzzPayoffNeverExceedsLockedNotional(uint256 rawSettlementRate, bool isCall) public {
+        vm.startPrank(BUYER);
+        token.approve(address(market), type(uint256).max);
+        (uint256 optionId,) = market.openOption(
+            isCall ? YeltraRateOptionsMarket.OptionKind.CALL : YeltraRateOptionsMarket.OptionKind.PUT,
+            INITIAL_RATE,
+            expiry,
+            NOTIONAL,
+            NOTIONAL,
+            expiry
+        );
+        vm.stopPrank();
+
+        uint256 settlementRate = rawSettlementRate % (1e18 + 1);
+        uint256 payout = market.previewPayoff(optionId, settlementRate);
+        assert(payout <= NOTIONAL);
+    }
+
+    function testFuzzSettlementAndClaimPreserveVaultSolvency(uint256 rawSettlementRate) public {
+        vm.startPrank(BUYER);
+        token.approve(address(market), type(uint256).max);
+        (uint256 optionId,) = market.openOption(
+            YeltraRateOptionsMarket.OptionKind.CALL,
+            INITIAL_RATE,
+            expiry,
+            NOTIONAL,
+            NOTIONAL,
+            expiry
+        );
+        vm.stopPrank();
+
+        vm.warp(expiry + 1);
+        uint256 settlementRate = rawSettlementRate % (1e18 + 1);
+        index.publishRate(settlementRate, uint64(block.timestamp));
+        uint256 payout = market.settle(optionId);
+        assert(payout <= NOTIONAL);
+        assert(vault.totalBalance() >= vault.lockedCollateral() + vault.reservedPayout());
+
+        vm.startPrank(BUYER);
+        market.claim(optionId);
+        vm.stopPrank();
+        assert(vault.totalBalance() >= vault.lockedCollateral() + vault.reservedPayout());
+    }
+
+    function testStressPayoutBoundsAcrossRateExtremes() public {
+        vm.startPrank(BUYER);
+        token.approve(address(market), type(uint256).max);
+        (uint256 callId,) = market.openOption(
+            YeltraRateOptionsMarket.OptionKind.CALL,
+            INITIAL_RATE,
+            expiry,
+            NOTIONAL,
+            NOTIONAL,
+            expiry
+        );
+        (uint256 putId,) = market.openOption(
+            YeltraRateOptionsMarket.OptionKind.PUT,
+            INITIAL_RATE,
+            expiry,
+            NOTIONAL,
+            NOTIONAL,
+            expiry
+        );
+        vm.stopPrank();
+
+        uint256[5] memory scenarios = [uint256(0), 1e16, 5e16, 5e17, 1e18];
+        for (uint256 i; i < scenarios.length; i++) {
+            uint256 callPayout = market.previewPayoff(callId, scenarios[i]);
+            uint256 putPayout = market.previewPayoff(putId, scenarios[i]);
+            assert(callPayout <= NOTIONAL);
+            assert(putPayout <= NOTIONAL);
+            assert(callPayout + putPayout <= 2 * NOTIONAL);
+        }
+    }
+
+    function testRateIndexRejectsUnauthorizedOrNonMonotonicObservation() public {
+        vm.startPrank(BUYER);
+        vm.expectRevert();
+        index.publishRate(INITIAL_RATE, uint64(block.timestamp + 1));
+        vm.stopPrank();
+
+        vm.expectRevert();
+        index.publishRate(INITIAL_RATE, uint64(INITIAL_OBSERVED_AT));
+    }
 }

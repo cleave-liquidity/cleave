@@ -16,6 +16,10 @@ export interface FixedYieldPosition {
   txHash?: `0x${string}`;
   /** Mock-only compatibility field. Live positions never populate this. */
   mockTxHash?: `0x${string}`;
+  executionEligibility?: {
+    sellEarly: boolean;
+    redeemAtMaturity: boolean;
+  };
   entryDataAvailable?: boolean;
   status: "active" | "matured" | "redeemed" | "closed";
 }
@@ -42,6 +46,10 @@ export interface LongYieldPosition {
   txHash?: `0x${string}`;
   /** Mock-only compatibility field. Live positions never populate this. */
   mockTxHash?: `0x${string}`;
+  executionEligibility?: {
+    sellEarly: boolean;
+    claimYield: boolean;
+  };
   entryDataAvailable?: boolean;
   status: "active" | "matured" | "closed";
 }

@@ -6,6 +6,7 @@ import { useAccount, usePublicClient } from "wagmi";
 import { robinhoodChainTestnet } from "@/lib/web3/chains";
 import {
   getOptionsDeployment,
+  optionsErc20Abi,
   optionsMarketAbi,
   OPTIONS_TESTNET_CHAIN_ID,
 } from "@/lib/options/options-contract";
@@ -23,6 +24,7 @@ export type OptionsPortfolioPosition = {
   payout: bigint;
   openedAt: bigint;
   transactionHash?: `0x${string}`;
+  collateralDecimals: number;
 };
 
 const optionOpenedEvent = parseAbiItem(
@@ -41,6 +43,16 @@ export function useOptionsPositions() {
     staleTime: 15_000,
     queryFn: async (): Promise<OptionsPortfolioPosition[]> => {
       if (!address || !publicClient || !deployment?.deploymentBlock) return [];
+      const collateralToken = deployment.collateralToken || await publicClient.readContract({
+        address: deployment.market,
+        abi: optionsMarketAbi,
+        functionName: "collateralToken",
+      });
+      const collateralDecimals = Number(await publicClient.readContract({
+        address: collateralToken,
+        abi: optionsErc20Abi,
+        functionName: "decimals",
+      }));
       const logs = await publicClient.getLogs({
         address: deployment.market,
         event: optionOpenedEvent,
@@ -69,6 +81,7 @@ export function useOptionsPositions() {
             payout: values[8],
             openedAt: values[9],
             transactionHash: log.transactionHash,
+            collateralDecimals,
           } satisfies OptionsPortfolioPosition;
         }),
       );
@@ -81,6 +94,7 @@ export function useOptionsPositions() {
     isLoading: query.isFetching,
     error: query.error,
     configured: Boolean(deployment),
+    historyConfigured: deployment?.deploymentBlock !== undefined,
     testnet: robinhoodChainTestnet,
     refresh: query.refetch,
   };

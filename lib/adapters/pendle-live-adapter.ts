@@ -71,6 +71,7 @@ type AssetResponse = {
     proIcon?: unknown;
   }>;
 };
+type MarketTokensResponse = { tokensIn?: unknown[] };
 
 type HistoricalResponse = {
   results?: Array<{
@@ -159,6 +160,17 @@ function lower(value: string): string {
   return value.toLowerCase();
 }
 
+export function pendleMarketSupportsInputToken(
+  tokensIn: readonly unknown[] | undefined,
+  inputToken: string,
+): boolean {
+  if (!isAddress(inputToken) || !Array.isArray(tokensIn)) return false;
+  const expected = lower(inputToken);
+  return tokensIn.some(
+    (token) => typeof token === "string" && isAddress(token) && lower(token) === expected,
+  );
+}
+
 function stripHtml(value: string): string {
   return value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 }
@@ -214,6 +226,27 @@ export function normalizePendleTransaction(
   } catch {
     throw new YieldDomainError("live-source-unavailable", `Pendle returned invalid ${label} value.`);
   }
+}
+
+export function selectPendleRouteOutput(
+  outputs: Array<{ token?: unknown; amount?: unknown }> | undefined,
+  expectedToken: Address,
+  minimumAmount?: bigint,
+): bigint {
+  const output = outputs?.find(
+    (item) => lower(String(item.token || "")) === lower(expectedToken),
+  );
+  const amount = parseRawAmount(output?.amount, "expected route output");
+  if (amount <= BigInt(0)) {
+    throw new YieldDomainError("live-source-unavailable", "Pendle returned zero for the selected output token.");
+  }
+  if (minimumAmount !== undefined && amount < minimumAmount) {
+    throw new YieldDomainError(
+      "quote-expired",
+      "The live route is now below the amount shown in your quote. Refresh and review the updated quote before trading.",
+    );
+  }
+  return amount;
 }
 
 function assetAddress(value: unknown, chainId: number): Address | undefined {
@@ -326,8 +359,9 @@ export function normalizePendleMarket(
       maturity: "verified",
     },
     execution: {
-      enabled: true,
+      enabled: false,
       providerId: "pendle",
+      reason: "YELTRA on-chain execution permission has not been verified yet.",
     },
     registration: {
       status: "unavailable",
@@ -419,7 +453,10 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
         const message = isRecord(payload) && typeof payload.message === "string"
           ? payload.message
           : `Pendle API returned HTTP ${response.status}.`;
-        throw new YieldDomainError("live-source-unavailable", message);
+        throw new YieldDomainError(
+          "live-source-unavailable",
+          `Pendle API HTTP ${response.status}: ${message}`,
+        );
       }
       return payload as T;
     } catch (error) {
@@ -553,9 +590,73 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
     const chainId = this.getChainId();
     const cached = this.marketsCache.get(chainId);
     if (cached && cached.expiresAt > Date.now()) return cached.markets;
-    const markets = await this.normalizeMarkets(await this.fetchRawMarkets(chainId), chainId, runtime);
+    const normalized = await this.normalizeMarkets(await this.fetchRawMarkets(chainId), chainId, runtime);
+    const markets = await this.verifyExecutionAvailability(normalized, runtime);
     this.marketsCache.set(chainId, { markets, expiresAt: Date.now() + 60_000 });
     return markets;
+  }
+
+  private async verifyExecutionAvailability(
+    markets: YieldMarket[],
+    runtime?: YieldAdapterRuntime,
+  ): Promise<YieldMarket[]> {
+    let publicClient: PublicClient;
+    try {
+      publicClient = this.resolvePublicClient(ROBINHOOD_CHAIN_ID, runtime);
+    } catch (error) {
+      const reason = normalizeYieldError(error).message;
+      return markets.map((market) => ({
+        ...market,
+        execution: { enabled: false, providerId: "pendle", reason },
+      }));
+    }
+
+    const verified: YieldMarket[] = [];
+    const batchSize = 5;
+    for (let start = 0; start < markets.length; start += batchSize) {
+      const batch = markets.slice(start, start + batchSize);
+      const results = await Promise.all(batch.map(async (market) => {
+        try {
+          await validateYeltraExecution(market.id, publicClient);
+          if (market.status !== "matured") {
+            await this.verifyMarketInputToken(market);
+          }
+          return {
+            ...market,
+            execution: { enabled: true, providerId: "pendle" as const },
+          };
+        } catch (error) {
+          return {
+            ...market,
+            execution: {
+              enabled: false,
+              providerId: "pendle" as const,
+              reason: normalizeYieldError(error).message,
+            },
+          };
+        }
+      }));
+      verified.push(...results);
+    }
+    return verified;
+  }
+
+  private async verifyMarketInputToken(market: YieldMarket): Promise<void> {
+    if (!market.marketAddress || !market.underlyingTokenAddress) {
+      throw new YieldDomainError(
+        "live-source-unavailable",
+        "This market is missing its verified market or underlying-token address.",
+      );
+    }
+    const response = await this.request<MarketTokensResponse>(
+      `/v1/sdk/${ROBINHOOD_CHAIN_ID}/markets/${market.marketAddress}/tokens`,
+    );
+    if (!pendleMarketSupportsInputToken(response.tokensIn, market.underlyingTokenAddress)) {
+      throw new YieldDomainError(
+        "unsupported-operation",
+        "Pendle does not accept this market's underlying token as a PT/YT input. Trading is read-only for this market.",
+      );
+    }
   }
 
   async getMarkets(): Promise<YieldMarket[]> {
@@ -563,15 +664,13 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
   }
 
   async getMarket(id: string): Promise<YieldMarket | null> {
-    const chainId = this.getChainId();
-    const rawMarkets = await this.fetchRawMarkets(chainId);
+    const markets = await this.getLiveMarkets();
     const alias = id.toLowerCase() === "usdg-morpho-26mar27"
       ? "0xc2b89e6eca583e2c232201ac557e9be58af55f4c"
       : id;
-    const raw = rawMarkets.find((candidate) => lower(String(candidate.address || "")) === lower(alias));
-    if (!raw) return null;
-    const markets = await this.normalizeMarkets([raw], chainId);
-    const market = markets[0];
+    const market = markets.find((candidate) =>
+      lower(candidate.marketAddress || "") === lower(alias),
+    );
     if (!market) return null;
     return { ...market, historicalData: await this.getHistoricalData(market.id) };
   }
@@ -834,6 +933,9 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
     owner: Address,
     chainId: 4663,
     expectedInputToken: Address,
+    expectedOutputToken: Address,
+    expectedInputAmount: bigint,
+    minimumOutputAmount: bigint | undefined,
     marketId: string,
     runtime?: YieldAdapterRuntime,
     options?: { allowApproval?: boolean },
@@ -847,8 +949,16 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
     if (transaction.from && lower(transaction.from) !== lower(owner)) {
       throw new YieldDomainError("live-source-unavailable", "Pendle returned calldata for a different wallet.");
     }
+    if (transaction.value !== BigInt(0)) {
+      throw new YieldDomainError("live-source-unavailable", "Pendle returned a native-token value for an ERC-20 trade.");
+    }
     const { publicClient, walletClient } = this.assertWalletRuntime(chainId, runtime);
     await this.assertNativeGasBalance(publicClient, owner);
+    const currentInputBalance = await this.readTokenBalance(publicClient, expectedInputToken, owner);
+    if (currentInputBalance < expectedInputAmount) {
+      throw new YieldDomainError("insufficient-token-balance", "Your token balance changed and is no longer sufficient for this trade.");
+    }
+    const outputAmount = selectPendleRouteOutput(route.outputs, expectedOutputToken, minimumOutputAmount);
     await validateYeltraExecution(marketId, publicClient);
     for (const approval of response.requiredApprovals || []) {
       const token = toAddress(approval.token);
@@ -865,7 +975,7 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
       });
       if (allowance < amount) {
         if (options?.allowApproval === false) {
-          throw new YieldDomainError("approval-required", "Approve the PT before selling this position.");
+          throw new YieldDomainError("approval-required", "The current wallet allowance is below the route requirement. Approve the input token and retry.");
         }
         const approvalHash = await walletClient.writeContract({
           account: owner,
@@ -875,6 +985,7 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
           args: [transaction.to, amount],
           chain: walletClient.chain,
         });
+        runtime?.onTransactionSubmitted?.(approvalHash);
         const approvalReceipt = await publicClient.waitForTransactionReceipt({ hash: approvalHash });
         if (approvalReceipt.status !== "success") {
           throw new YieldDomainError("approval-rejected", "The token approval transaction was reverted.");
@@ -902,11 +1013,10 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
     if (receipt.status !== "success") {
       throw new YieldDomainError("transaction-reverted", "The live transaction was reverted by the network.");
     }
-    const outputAmount = route.outputs?.[0]?.amount;
     return {
       txHash: hash,
       blockNumber: receipt.blockNumber,
-      outputAmount: outputAmount === undefined ? undefined : parseRawAmount(outputAmount, "transaction output"),
+      outputAmount,
     };
   }
 
@@ -984,37 +1094,26 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
   async getPositions(userAddress?: Address, chainId?: number, runtime?: YieldAdapterRuntime): Promise<YieldPosition[]> {
     if (!userAddress) return [];
     const selectedChain = this.getChainId(chainId);
-    const markets = await this.getLiveMarkets(runtime);
-    const snapshot = await this.apiPositions(userAddress, selectedChain);
+    const [markets, client] = await Promise.all([
+      this.getLiveMarkets(runtime),
+      Promise.resolve(this.resolvePublicClient(selectedChain, runtime)),
+    ]);
+    const snapshot = await this.apiPositions(userAddress, selectedChain).catch(() => undefined);
     const apiPositions = new Map<string, ApiMarketPosition>();
     for (const position of [...(snapshot?.openPositions || []), ...(snapshot?.closedPositions || [])]) {
       const rawId = asString(position.marketId);
       const address = rawId ? assetAddress(rawId, selectedChain) : undefined;
       if (address) apiPositions.set(lower(address), position);
     }
-    let client: PublicClient | undefined;
-    try {
-      client = this.resolvePublicClient(selectedChain, runtime);
-    } catch {
-      client = undefined;
-    }
     const output: YieldPosition[] = [];
     for (const market of markets) {
       if (!market.marketAddress || !market.ptAddress || !market.ytAddress || market.ptDecimals === undefined || market.ytDecimals === undefined) continue;
       const apiPosition = apiPositions.get(lower(market.marketAddress));
-      let ptRaw = apiPosition?.pt?.balance ? parseRawAmount(apiPosition.pt.balance, "PT balance") : BigInt(0);
-      let ytRaw = apiPosition?.yt?.balance ? parseRawAmount(apiPosition.yt.balance, "YT balance") : BigInt(0);
-      if (client) {
-        const [readPt, readYt] = await Promise.all([
-          this.readTokenBalance(client, market.ptAddress, userAddress).catch(() => undefined),
-          this.readTokenBalance(client, market.ytAddress, userAddress).catch(() => undefined),
-        ]);
-        if (readPt !== undefined) ptRaw = readPt;
-        if (readYt !== undefined) ytRaw = readYt;
-      }
-      const yeltraSummary = client
-        ? await readYeltraMarketSummary(market.id, client).catch(() => undefined)
-        : undefined;
+      const [ptRaw, ytRaw] = await Promise.all([
+        this.readTokenBalance(client, market.ptAddress, userAddress),
+        this.readTokenBalance(client, market.ytAddress, userAddress),
+      ]);
+      const yeltraSummary = await readYeltraMarketSummary(market.id, client).catch(() => undefined);
       const fallbackStatus = market.status === "matured" ? "matured" : "active";
       const fixedStatus = yeltraSummary
         ? yeltraSummary.fixedState >= 2 ? "matured" : yeltraSummary.fixedState === 1 ? "active" : fallbackStatus
@@ -1031,7 +1130,7 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
           strategy: "fixed",
           depositedAmount: 0,
           ptAmount: Number(formatUnits(ptRaw, market.ptDecimals)),
-          currentValue: asFiniteNumber(apiPosition?.pt?.valuation) || 0,
+          currentValue: asFiniteNumber(apiPosition?.pt?.valuation) ?? Number.NaN,
           pnl: 0,
           entryImpliedApy: market.impliedApy,
           quotedFixedApy: market.impliedApy,
@@ -1039,6 +1138,10 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
           maturityDate: market.maturityDate,
           openedAt: "Live source",
           txHash: undefined,
+          executionEligibility: {
+            sellEarly: yeltraSummary?.fixedSellEarlyEligible ?? false,
+            redeemAtMaturity: yeltraSummary?.fixedRedeemAtMaturityEligible ?? false,
+          },
           entryDataAvailable: false,
           status: fixedStatus,
         });
@@ -1052,9 +1155,11 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
           strategy: "long",
           depositedAmount: 0,
           ytAmount: Number(formatUnits(ytRaw, market.ytDecimals)),
-          currentValue: asFiniteNumber(apiPosition?.yt?.valuation) || 0,
+          currentValue: asFiniteNumber(apiPosition?.yt?.valuation) ?? Number.NaN,
           pnl: 0,
-          claimableYield: this.claimAmount(apiPosition?.yt, market),
+          claimableYield: yeltraSummary?.tradingYieldClaimYieldEligible
+            ? this.claimAmount(apiPosition?.yt, market)
+            : 0,
           entryUnderlyingApy: market.underlyingApy,
           entryImpliedApy: market.impliedApy,
           breakEvenApy: market.impliedApy,
@@ -1064,6 +1169,10 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
           openedAt: "Live source",
           lastClaimedAt: "Live source",
           txHash: undefined,
+          executionEligibility: {
+            sellEarly: yeltraSummary?.tradingYieldSellEarlyEligible ?? false,
+            claimYield: yeltraSummary?.tradingYieldClaimYieldEligible ?? false,
+          },
           entryDataAvailable: false,
           status: longStatus,
         });
@@ -1106,9 +1215,28 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
     const outputToken = strategy === "fixed" ? market.ptAddress : market.ytAddress;
     const outputDecimals = strategy === "fixed" ? market.ptDecimals : market.ytDecimals;
     if (!outputToken || outputDecimals === undefined) throw new YieldDomainError("live-source-unavailable", "This live market is missing PT/YT metadata.");
+    if (
+      quote.inputBaseUnits !== inputBaseUnits ||
+      quote.outputBaseUnits === undefined || quote.outputBaseUnits <= BigInt(0) ||
+      !quote.approvalToken || lower(quote.approvalToken) !== lower(market.underlyingTokenAddress) ||
+      quote.approvalAmount !== inputBaseUnits
+    ) {
+      throw new YieldDomainError("quote-expired", "This quote is missing matching token or amount details. Refresh it before trading.");
+    }
     await validateYeltraExecution(market.id, this.resolvePublicClient(selectedChain, runtime));
     const response = await this.convert(selectedChain, owner, market.underlyingTokenAddress, inputBaseUnits, [outputToken]);
-    const execution = await this.executeTransaction(response, owner, selectedChain, market.underlyingTokenAddress, market.id, runtime);
+    const execution = await this.executeTransaction(
+      response,
+      owner,
+      selectedChain,
+      market.underlyingTokenAddress,
+      outputToken,
+      inputBaseUnits,
+      quote.outputBaseUnits,
+      market.id,
+      runtime,
+      { allowApproval: false },
+    );
     const outputRaw = execution.outputAmount || BigInt(0);
     const outputAmount = Number(formatUnits(outputRaw, outputDecimals));
     const txHash = execution.txHash;
@@ -1186,6 +1314,7 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
         args: [request.spender, request.amount],
         chain: walletClient.chain,
       });
+      (request.onTransactionSubmitted ?? runtime?.onTransactionSubmitted)?.(txHash);
       const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
       if (receipt.status !== "success") throw new YieldDomainError("approval-rejected", "The approval transaction was reverted.");
       return { txHash, chainId: request.chainId, status: "confirmed", blockNumber: receipt.blockNumber, timestamp: Date.now() };
@@ -1234,7 +1363,17 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
     const amount = await this.readTokenBalance(publicClient, market.ptAddress, userAddress);
     if (amount <= BigInt(0)) throw new YieldDomainError("pt-already-redeemed", "No PT balance is available to redeem.");
     const response = await this.convert(ROBINHOOD_CHAIN_ID, userAddress, market.ptAddress, amount, [market.underlyingTokenAddress]);
-    const execution = await this.executeTransaction(response, userAddress, ROBINHOOD_CHAIN_ID, market.ptAddress, parts.marketId, runtime);
+    const execution = await this.executeTransaction(
+      response,
+      userAddress,
+      ROBINHOOD_CHAIN_ID,
+      market.ptAddress,
+      market.underlyingTokenAddress,
+      amount,
+      undefined,
+      parts.marketId,
+      runtime,
+    );
     const redeemedAmount = execution.outputAmount && market.underlyingDecimals !== undefined
       ? Number(formatUnits(execution.outputAmount, market.underlyingDecimals))
       : undefined;
@@ -1288,6 +1427,9 @@ export class PendleLiveYieldMarketAdapter implements YieldMarketAdapter {
       userAddress,
       ROBINHOOD_CHAIN_ID,
       token,
+      exitQuote.outputToken,
+      amount,
+      exitQuote.outputBaseUnits,
       parts.marketId,
       runtime,
       { allowApproval: false },

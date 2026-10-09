@@ -3,8 +3,10 @@ import {
   normalizePendleHistoricalData,
   normalizePendleMarket,
   normalizePendleTransaction,
+  pendleMarketSupportsInputToken,
   PendleLiveYieldMarketAdapter,
   pendleLiveYieldAdapter,
+  selectPendleRouteOutput,
 } from "./pendle-live-adapter";
 
 const underlying = {
@@ -20,7 +22,82 @@ const pendleAssets = new Map([
   ["0xf35ee6bd9a93fe42bc7e628bfc4ddbdc6de1f615", { decimals: 6, symbol: "YT-USDG-25MAR2027", name: "YT USDG", iconUrl: "https://storage.googleapis.com/prod-pendle-bucket-a/yt.svg" }],
 ]);
 
+const fixtureMarketAddress = "0xc2b89e6eca583e2c232201ac557e9be58af55f4c" as const;
+const fixturePtAddress = "0x6982e39521a070a3c40782548bfbed6dc8f566ef" as const;
+const fixtureYtAddress = "0xf35ee6bd9a93fe42bc7e628bfc4ddbdc6de1f615" as const;
+const fixtureOwner = "0x1111111111111111111111111111111111111111" as const;
+
+function mockPositionsFetch(): typeof fetch {
+  return async (input) => {
+    const url = String(input);
+    if (url.includes("/v2/markets/all")) {
+      return new Response(JSON.stringify({
+        total: 1,
+        results: [{
+          name: "USDG",
+          address: fixtureMarketAddress,
+          expiry: "2030-03-25T00:00:00.000Z",
+          pt: `4663-${fixturePtAddress}`,
+          yt: `4663-${fixtureYtAddress}`,
+          sy: "4663-0x8d3127aabf76f95fe2970a0480b8662b4ad4c286",
+          underlyingAsset: `4663-${underlying.address}`,
+          chainId: 4663,
+          details: { liquidity: 100_000, underlyingApy: 0.03, impliedApy: 0.04 },
+        }],
+      }), { status: 200 });
+    }
+    if (url.includes("/v1/assets/all")) {
+      return new Response(JSON.stringify({
+        assets: [
+          { address: fixturePtAddress, chainId: 4663, decimals: 6, symbol: "PT-USDG", name: "PT USDG" },
+          { address: fixtureYtAddress, chainId: 4663, decimals: 6, symbol: "YT-USDG", name: "YT USDG" },
+        ],
+      }), { status: 200 });
+    }
+    if (url.includes(`/v1/sdk/4663/markets/${fixtureMarketAddress}/tokens`)) {
+      return new Response(JSON.stringify({ tokensIn: [underlying.address] }), { status: 200 });
+    }
+    if (url.includes("/v1/dashboard/positions/database/")) {
+      return new Response(JSON.stringify({
+        positions: [{
+          chainId: 4663,
+          openPositions: [{
+            marketId: `4663-${fixtureMarketAddress}`,
+            pt: { balance: "5000000", valuation: "5" },
+            yt: { balance: "4000000", valuation: "4" },
+          }],
+        }],
+      }), { status: 200 });
+    }
+    return new Response("not found", { status: 404 });
+  };
+}
+
+function mockPositionsClient(balanceReader: (token: string) => bigint | Promise<bigint>) {
+  return {
+    chain: { id: 4663 },
+    readContract: async ({ functionName, address }: { functionName: string; address: string }) => {
+      if (functionName === "validateExecution") {
+        return [
+          true,
+          "0x50454e444c450000000000000000000000000000000000000000000000000000",
+          "0x888888888889758F76e7103c6CbF23ABbF58F946",
+        ];
+      }
+      if (functionName === "balanceOf") return balanceReader(address);
+      if (functionName === "getMarketSummary") throw new Error("Lens unavailable in isolated test");
+      throw new Error(`Unexpected contract read: ${functionName}`);
+    },
+  } as any;
+}
+
 describe("Pendle live market normalization", () => {
+  it("matches Pendle input support by canonical token address, not symbol", () => {
+    expect(pendleMarketSupportsInputToken([underlying.address], underlying.address)).toBe(true);
+    expect(pendleMarketSupportsInputToken(["0x0000000000000000000000000000000000000001"], underlying.address)).toBe(false);
+    expect(pendleMarketSupportsInputToken(undefined, underlying.address)).toBe(false);
+  });
+
   it("keeps official addresses and converts source APY fractions to display percentages", () => {
     const market = normalizePendleMarket(
       {
@@ -51,6 +128,7 @@ describe("Pendle live market normalization", () => {
       ytAddress: "0xf35ee6bd9a93fe42bc7e628bfc4ddbdc6de1f615",
       dataMode: "live",
       chainId: 4663,
+      execution: { enabled: false },
     });
     expect(market?.underlyingApy).toBeCloseTo(3.3, 8);
     expect(market?.impliedApy).toBeCloseTo(3.45, 8);
@@ -91,6 +169,61 @@ describe("Pendle live market normalization", () => {
       data: "0x",
     })).toThrow();
     expect(() => normalizePendleTransaction({ to: "0x0000000000000000000000000000000000000001", data: "0x1234", value: "-1" })).toThrow();
+  });
+
+  it("selects the requested output token and rejects output below the reviewed quote", () => {
+    const outputToken = "0x6982e39521a070a3c40782548bfbed6dc8f566ef" as const;
+    const outputs = [
+      { token: "0xf35ee6bd9a93fe42bc7e628bfc4ddbdc6de1f615", amount: "9000000" },
+      { token: outputToken, amount: "10000000" },
+    ];
+
+    expect(selectPendleRouteOutput(outputs, outputToken, BigInt(10_000_000))).toBe(BigInt(10_000_000));
+    expect(() => selectPendleRouteOutput(outputs, outputToken, BigInt(10_000_001))).toThrow(
+      "below the amount shown in your quote",
+    );
+    expect(() => selectPendleRouteOutput(outputs, underlying.address)).toThrow(
+      "invalid expected route output amount",
+    );
+  });
+
+  it("uses on-chain PT/YT balances as the source of truth even when the API reports balances", async () => {
+    const previousFetch = globalThis.fetch;
+    const previousNetwork = process.env.NEXT_PUBLIC_ROBINHOOD_CHAIN_ENV;
+    globalThis.fetch = mockPositionsFetch();
+    process.env.NEXT_PUBLIC_ROBINHOOD_CHAIN_ENV = "mainnet";
+    try {
+      const adapter = new PendleLiveYieldMarketAdapter();
+      const positions = await adapter.getPositions(
+        fixtureOwner,
+        4663,
+        { publicClient: mockPositionsClient(() => BigInt(0)) },
+      );
+      expect(positions).toEqual([]);
+    } finally {
+      globalThis.fetch = previousFetch;
+      if (previousNetwork === undefined) delete process.env.NEXT_PUBLIC_ROBINHOOD_CHAIN_ENV;
+      else process.env.NEXT_PUBLIC_ROBINHOOD_CHAIN_ENV = previousNetwork;
+    }
+  });
+
+  it("fails closed on PT/YT RPC read errors instead of falling back to API balances", async () => {
+    const previousFetch = globalThis.fetch;
+    const previousNetwork = process.env.NEXT_PUBLIC_ROBINHOOD_CHAIN_ENV;
+    globalThis.fetch = mockPositionsFetch();
+    process.env.NEXT_PUBLIC_ROBINHOOD_CHAIN_ENV = "mainnet";
+    try {
+      const adapter = new PendleLiveYieldMarketAdapter();
+      await expect(adapter.getPositions(
+        fixtureOwner,
+        4663,
+        { publicClient: mockPositionsClient(() => Promise.reject(new Error("RPC unavailable"))) },
+      )).rejects.toThrow("RPC unavailable");
+    } finally {
+      globalThis.fetch = previousFetch;
+      if (previousNetwork === undefined) delete process.env.NEXT_PUBLIC_ROBINHOOD_CHAIN_ENV;
+      else process.env.NEXT_PUBLIC_ROBINHOOD_CHAIN_ENV = previousNetwork;
+    }
   });
 
   it("normalizes verified historical APY fractions without synthesizing points", () => {

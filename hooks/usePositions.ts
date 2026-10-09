@@ -3,12 +3,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { yieldAdapter } from "@/lib/adapters/mock-adapter";
 import { queryKeys } from "@/lib/query-keys";
-import { useAccount } from "wagmi";
 import { usePublicClient } from "wagmi";
+import { getConfiguredChainId } from "@/lib/web3/environment";
 
 export function usePositions(userAddress?: `0x${string}`) {
-  const { chainId } = useAccount();
-  const publicClient = usePublicClient();
+  const chainId = getConfiguredChainId();
+  const publicClient = usePublicClient({ chainId });
   const query = useQuery({
     queryKey: queryKeys.positions(userAddress, chainId),
     queryFn: () => yieldAdapter.getPositions(userAddress, chainId, { publicClient }),

@@ -13,7 +13,11 @@ export function useApproveToken() {
   const { data: walletClient } = useWalletClient();
 
   return useMutation<PositionTransactionResult, Error, TokenApprovalRequest>({
-    mutationFn: (request) => yieldAdapter.approveToken(request, { publicClient, walletClient }),
+    mutationFn: (request) => yieldAdapter.approveToken(request, {
+      publicClient,
+      walletClient,
+      onTransactionSubmitted: request.onTransactionSubmitted,
+    }),
     onSuccess: (_, request) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.allowancePrefix(request.owner, request.chainId) });
       void queryClient.invalidateQueries({ queryKey: queryKeys.balancePrefix(request.owner, request.chainId) });

@@ -203,7 +203,7 @@ export class MultiSourceYieldMarketAdapter implements YieldMarketAdapter {
       if (canonicalQuery.provider === "pendle") {
         const detailed = await this.pendle.getMarket(canonicalQuery.marketAddress);
         return detailed && canonicalMarketIdentity(detailed) === canonicalMarketIdentity(market)
-          ? detailed
+          ? { ...market, historicalData: detailed.historicalData }
           : market;
       }
       return market;
