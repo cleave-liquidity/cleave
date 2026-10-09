@@ -7,7 +7,7 @@ import {
   type TerminalColor,
 } from "./terminal-branding";
 
-export type OptionsTerminalMode = "deployment" | "funding" | "status";
+export type OptionsTerminalMode = "deployment" | "funding" | "status" | "rate" | "preflight";
 
 const RULE_WIDTH = 66;
 const useColor = Boolean(process.stdout.isTTY);
@@ -16,6 +16,8 @@ const titles: Record<OptionsTerminalMode, string> = {
   deployment: "YIELD RATE OPTIONS / TESTNET DEPLOYMENT",
   funding: "YIELD RATE OPTIONS / TESTNET FUNDING",
   status: "YIELD RATE OPTIONS / TESTNET STATUS",
+  rate: "YIELD RATE OPTIONS / TESTNET RATE UPDATE",
+  preflight: "YIELD RATE OPTIONS / TESTNET PREFLIGHT",
 };
 
 export function optionsPaint(value: string, color: TerminalColor): string {
@@ -120,8 +122,8 @@ export async function optionsCinematicStep(
 
 async function main(): Promise<void> {
   const mode = process.argv[2] as OptionsTerminalMode | undefined;
-  if (mode !== "deployment" && mode !== "funding" && mode !== "status") {
-    throw new Error("Usage: bun scripts/options-terminal.ts <deployment|funding|status> [--cinematic]");
+  if (mode !== "deployment" && mode !== "funding" && mode !== "status" && mode !== "rate" && mode !== "preflight") {
+    throw new Error("Usage: bun scripts/options-terminal.ts <deployment|funding|status|rate|preflight> [--cinematic]");
   }
   await optionsHeader(mode, process.argv.includes("--cinematic"));
 }

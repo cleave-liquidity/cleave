@@ -107,23 +107,29 @@ function deploymentFromBroadcast(records: TransactionRecord[]): OptionsDeploymen
   return { market, rateIndex, collateralVault, collateralToken };
 }
 
-async function hasBytecode(client: PublicClient, address: Address): Promise<boolean> {
-  const bytecode = await client.getBytecode({ address }).catch(() => undefined);
-  return Boolean(bytecode && bytecode !== "0x");
+type BytecodeStatus = "PRESENT" | "ABSENT" | "UNAVAILABLE";
+
+async function readBytecodeStatus(client: PublicClient, address: Address): Promise<BytecodeStatus> {
+  try {
+    const bytecode = await client.getBytecode({ address });
+    return bytecode && bytecode !== "0x" ? "PRESENT" : "ABSENT";
+  } catch {
+    return "UNAVAILABLE";
+  }
 }
 
 async function printTransactions(
   client: PublicClient,
   records: TransactionRecord[],
-): Promise<boolean> {
+): Promise<"PASS" | "FAIL" | "UNAVAILABLE"> {
   optionsSection("TRANSACTIONS");
   if (!records.length) {
     optionsLine("Local receipts", "NOT AVAILABLE · LIVE STATUS ONLY");
-    return true;
+    return "PASS";
   }
 
   const latestBlock = await client.getBlockNumber().catch(() => undefined);
-  let allConfirmed = true;
+  let result: "PASS" | "FAIL" | "UNAVAILABLE" = latestBlock === undefined ? "UNAVAILABLE" : "PASS";
   for (const record of records) {
     console.log();
     console.log(
@@ -136,12 +142,12 @@ async function printTransactions(
     optionsLine("Explorer", `${optionsExplorerBase}/tx/${record.hash}`);
     const receipt = await client.getTransactionReceipt({ hash: record.hash }).catch(() => undefined);
     if (!receipt) {
-      allConfirmed = false;
-      optionsLine("Receipt", "PENDING / NOT FOUND");
+      if (result !== "FAIL") result = latestBlock === undefined ? "UNAVAILABLE" : "FAIL";
+      optionsLine("Receipt", latestBlock === undefined ? "UNAVAILABLE · RPC REQUEST FAILED" : "NOT FOUND · LIVE RECEIPT UNCONFIRMED");
       continue;
     }
     const success = receipt.status === "success";
-    if (!success) allConfirmed = false;
+    if (!success) result = "FAIL";
     const confirmations = latestBlock !== undefined && latestBlock >= receipt.blockNumber
       ? latestBlock - receipt.blockNumber + BigInt(1)
       : BigInt(0);
@@ -150,7 +156,7 @@ async function printTransactions(
       `${success ? "CONFIRMED" : "REVERTED"} · block #${receipt.blockNumber} · gas ${receipt.gasUsed.toLocaleString("en-US")} · ${confirmations} confirmations`,
     );
   }
-  return allConfirmed;
+  return result;
 }
 
 async function main(): Promise<void> {
@@ -167,8 +173,8 @@ async function main(): Promise<void> {
     cinematicMode,
   );
   await optionsCinematicStep(
-    "Checking live Options contracts",
-    [{ text: deployment ? "Deployment metadata resolved" : "Deployment metadata unavailable", tone: deployment ? "green" : "yellow" }],
+    "Resolving deployment metadata",
+    [{ text: deployment ? "Configured addresses resolved; live verification follows" : "Deployment metadata unavailable", tone: deployment ? "green" : "yellow" }],
     260,
     cinematicMode,
   );
@@ -201,18 +207,25 @@ async function main(): Promise<void> {
     ["Collateral Vault", deployment.collateralVault],
     ["Options Market", deployment.market],
   ];
-  const bytecodeResults = await Promise.all(
-    contractAddresses.map(async ([, address]) => hasBytecode(client, address)),
-  );
+  const bytecodeResults = await Promise.all(contractAddresses.map(async ([label, address]) =>
+    label === "yDEVUSD" && !deployment.collateralToken
+      ? "UNAVAILABLE" as const
+      : readBytecodeStatus(client, address),
+  ));
   for (const [index, [label, address]] of contractAddresses.entries()) {
-    const present = bytecodeResults[index];
-    optionsLine(label, `${address} · ${present ? "BYTECODE PRESENT" : "NO BYTECODE"}`);
+    const status = bytecodeResults[index];
+    const addressLabel = label === "yDEVUSD" && !deployment.collateralToken ? "NOT CONFIGURED" : address;
+    optionsLine(label, `${addressLabel} · ${status === "PRESENT" ? "BYTECODE PRESENT" : status === "ABSENT" ? "NO BYTECODE" : "RPC UNAVAILABLE · NOT VERIFIED"}`);
     if (label === "Options Market") optionsLine("Explorer", `${optionsExplorerBase}/address/${address}`);
   }
 
   optionsSection("VALIDATION");
-  const allBytecodePresent = bytecodeResults.every(Boolean);
-  optionsCheck("Contract bytecode", allBytecodePresent);
+  const allBytecodePresent = bytecodeResults.every((status) => status === "PRESENT");
+  const bytecodeUnavailable = bytecodeResults.some((status) => status === "UNAVAILABLE");
+  optionsLine(
+    "Contract bytecode",
+    bytecodeUnavailable ? "RPC UNAVAILABLE · NOT VERIFIED" : allBytecodePresent ? "ALL PRESENT" : "ONE OR MORE ABSENT",
+  );
 
   let capacity: bigint | undefined;
   let developmentOnly = false;
@@ -238,36 +251,41 @@ async function main(): Promise<void> {
     optionsLine("Collateral", `${symbol} · ${decimals} decimals`);
     optionsCheck("Development collateral marker", developmentOnly);
     optionsCheck("Market / token wiring", marketToken === deployment.collateralToken);
-  } catch (error) {
+  } catch {
     stateRead = false;
-    optionsLine("Readback", `READ FAILED · ${error instanceof Error ? error.message : "unknown error"}`);
+    optionsLine("Readback", "RPC UNAVAILABLE · LIVE CONTRACT STATE NOT VERIFIED");
   }
 
-  optionsCheck("Live contract readback", stateRead);
+  optionsLine("Live contract readback", stateRead ? "AVAILABLE" : "RPC UNAVAILABLE · NOT VERIFIED");
   optionsSection("FUNDING");
   optionsLine(
     "Available collateral",
-    capacity === undefined ? "UNAVAILABLE" : `${capacity.toString()} raw yDEVUSD units`,
+    capacity === undefined ? "UNAVAILABLE · RPC READ REQUIRED" : `${capacity.toString()} raw yDEVUSD units`,
   );
   optionsLine(
     "Trading capacity",
-    capacity && capacity > BigInt(0) ? "FUNDED" : "REQUIRED BEFORE OPEN OPTION",
+    capacity === undefined ? "UNAVAILABLE · RPC READ REQUIRED" : capacity > BigInt(0) ? "FUNDED" : "REQUIRED BEFORE OPEN OPTION",
   );
   if (tokenAddress) optionsLine("Collateral token", tokenAddress);
 
-  const transactionsConfirmed = await printTransactions(client, records);
+  const transactionStatus = await printTransactions(client, records);
+  const rpcUnavailable = bytecodeUnavailable || !stateRead || transactionStatus === "UNAVAILABLE";
   optionsSection("FINAL STATUS");
   optionsLine(
     "Status",
-    allBytecodePresent && transactionsConfirmed
-      ? "DEPLOYED · ROBINHOOD CHAIN TESTNET"
-      : "DEPLOYMENT REQUIRES ATTENTION",
+    rpcUnavailable
+      ? "RPC UNAVAILABLE · LIVE STATUS NOT VERIFIED"
+      : allBytecodePresent && transactionStatus === "PASS"
+        ? "DEPLOYED · ROBINHOOD CHAIN TESTNET"
+        : "DEPLOYMENT REQUIRES ATTENTION",
   );
   optionsLine(
     "Funding",
-    capacity && capacity > BigInt(0)
-      ? "READY FOR COLLATERALIZED OPTIONS"
-      : "REQUIRED · NO AVAILABLE COLLATERAL",
+    capacity === undefined
+      ? "UNAVAILABLE · RPC READ REQUIRED"
+      : capacity > BigInt(0)
+        ? "READY FOR COLLATERALIZED OPTIONS"
+        : "REQUIRED · NO AVAILABLE COLLATERAL",
   );
   console.log(optionsPaint("──────────────────────────────────────────────────────────────────", "dim"));
 }

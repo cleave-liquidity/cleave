@@ -62,6 +62,8 @@ export function getTradeActionState(input: TradeActionInput): TradeAction {
     return { kind: "refresh-quote", label: "Refresh Quote", disabled: false };
   }
 
+  if (input.quoteState === "minimum-amount") return disabled("Increase Amount");
+
   if (input.quoteState === "unavailable" || input.quoteState === "error") {
     return { kind: "refresh-quote", label: "Quote Unavailable", disabled: false };
   }

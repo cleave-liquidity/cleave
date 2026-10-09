@@ -2,6 +2,12 @@ import type { Address, Hex } from "viem";
 
 export const OPTIONS_TESTNET_CHAIN_ID = 46630 as const;
 
+// Read-only fallback from the successful Foundry Testnet broadcast receipt.
+// It is applied only when the configured market address matches exactly.
+const knownTestnetMarketStartBlocks: Record<string, bigint> = {
+  "0xd971bf7743d9c7ed76b8c68a17238080c0de14c4": BigInt(131_091_904),
+};
+
 export const optionsMarketAbi = [
   { type: "function", name: "rateIndex", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] },
   { type: "function", name: "collateralVault", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] },
@@ -65,6 +71,8 @@ export const optionsMarketAbi = [
 ] as const;
 
 export const rateIndexAbi = [
+  { type: "function", name: "accessManager", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] },
+  { type: "function", name: "publishRate", stateMutability: "nonpayable", inputs: [{ name: "rate", type: "uint256" }, { name: "observedAt", type: "uint64" }], outputs: [] },
   { type: "function", name: "latestRate", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
   { type: "function", name: "latestObservedAt", stateMutability: "view", inputs: [], outputs: [{ type: "uint64" }] },
   { type: "function", name: "isFresh", stateMutability: "view", inputs: [], outputs: [{ type: "bool" }] },
@@ -73,6 +81,10 @@ export const rateIndexAbi = [
 ] as const;
 
 export const optionsVaultAbi = [
+  { type: "function", name: "accessManager", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] },
+  { type: "function", name: "collateralToken", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] },
+  { type: "function", name: "market", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] },
+  { type: "function", name: "totalBalance", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
   { type: "function", name: "availableCollateral", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
   { type: "function", name: "lockedCollateral", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
   { type: "function", name: "reservedPayout", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
@@ -84,9 +96,11 @@ export const optionsErc20Abi = [
   { type: "function", name: "symbol", stateMutability: "view", inputs: [], outputs: [{ type: "string" }] },
   { type: "function", name: "DEVELOPMENT_ONLY", stateMutability: "view", inputs: [], outputs: [{ type: "bool" }] },
   { type: "function", name: "accessManager", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] },
+  { type: "function", name: "totalSupply", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
   { type: "function", name: "balanceOf", stateMutability: "view", inputs: [{ name: "account", type: "address" }], outputs: [{ type: "uint256" }] },
   { type: "function", name: "allowance", stateMutability: "view", inputs: [{ name: "owner", type: "address" }, { name: "spender", type: "address" }], outputs: [{ type: "uint256" }] },
   { type: "function", name: "approve", stateMutability: "nonpayable", inputs: [{ name: "spender", type: "address" }, { name: "amount", type: "uint256" }], outputs: [{ type: "bool" }] },
+  { type: "function", name: "mint", stateMutability: "nonpayable", inputs: [{ name: "recipient", type: "address" }, { name: "amount", type: "uint256" }], outputs: [] },
 ] as const;
 
 export type OptionsDeployment = {
@@ -110,7 +124,9 @@ export function getOptionsDeployment(chainId: number): OptionsDeployment | undef
   const collateralToken = asAddress(process.env.NEXT_PUBLIC_YELTRA_OPTIONS_COLLATERAL_TOKEN_TESTNET);
   if (!market || !rateIndex || !collateralVault) return undefined;
   const rawBlock = process.env.NEXT_PUBLIC_YELTRA_OPTIONS_DEPLOYMENT_BLOCK_TESTNET?.trim();
-  const deploymentBlock = rawBlock && /^\d+$/.test(rawBlock) ? BigInt(rawBlock) : undefined;
+  const configuredBlock = rawBlock && /^\d+$/.test(rawBlock) ? BigInt(rawBlock) : undefined;
+  const deploymentBlock = configuredBlock
+    ?? knownTestnetMarketStartBlocks[market.toLowerCase()];
   return { market, rateIndex, collateralVault, collateralToken, deploymentBlock };
 }
 

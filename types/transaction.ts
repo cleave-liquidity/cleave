@@ -19,6 +19,7 @@ export interface TokenApprovalRequest {
   chainId: number;
   /** Canonical live market ID used for YELTRA execution preflight. */
   marketId: string;
+  onTransactionSubmitted?: (hash: TransactionHash) => void;
 }
 
 export type TransactionStep =
