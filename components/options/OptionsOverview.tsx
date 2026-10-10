@@ -2,54 +2,41 @@ import Link from "next/link";
 
 export function OptionsOverview() {
   return (
-    <section className="border border-white/15 bg-surface/70 p-6 sm:p-8">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div className="mono text-[10px] uppercase tracking-[0.16em] text-amber">
-            Robinhood Chain Mainnet · product preview
-          </div>
-          <h1 className="mt-3 text-[30px] font-normal tracking-[-0.03em] text-foreground sm:text-[40px]">
-            Yield Rate Options
-          </h1>
-          <p className="mt-4 max-w-[700px] text-[14px] leading-6 text-muted">
-            Explore European CALL and PUT terms. Mainnet trading is not live: no
-            production Options contracts, selected underlying, approved rate
-            oracle, or settlement methodology is configured. Nothing on this
-            page is an executable quote or position.
-          </p>
-        </div>
-        <span className="mono rounded-full border border-amber/30 bg-amber/5 px-3 py-1 text-[10px] uppercase tracking-[0.14em] text-amber">
-          MAINNET · NOT LIVE
+    <section className="relative overflow-hidden border border-white/15 bg-surface/70 p-5 sm:p-8 lg:p-10">
+      <div className="absolute bottom-0 right-0 h-px w-1/3 bg-gradient-to-l from-amber/60 to-transparent" aria-hidden="true" />
+      <div className="relative max-w-[780px]">
+        <span className="mono inline-flex min-h-8 items-center gap-2 border border-amber/30 bg-amber/[0.04] px-3 text-[9px] uppercase tracking-[0.14em] text-amber">
+          <span className="h-1.5 w-1.5 rounded-full bg-amber" aria-hidden="true" />
+          Product Preview · Mainnet Trading Not Live
         </span>
-      </div>
-
-      <div className="mt-7 grid gap-3 sm:grid-cols-3">
-        {[
-          ["Production rate source", "Not selected / verified"],
-          ["Collateral asset", "Not configured"],
-          ["Mainnet execution", "Disabled"],
-        ].map(([label, value]) => (
-          <div key={label} className="border border-white/10 bg-white/[0.02] p-4">
-            <div className="mono text-[10px] uppercase tracking-[0.14em] text-muted-dark">{label}</div>
-            <div className="mt-2 text-[13px] text-amber">{value}</div>
-          </div>
-        ))}
-      </div>
-
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-white/10 pt-5">
-        <p className="m-0 max-w-[620px] text-[12px] leading-5 text-muted-dark">
-          The interactive preview uses explicitly illustrative assumptions only.
-          It creates no contract quote, wallet transaction, or Portfolio holding.
+        <h1 className="mt-6 max-w-[700px] text-[38px] font-normal leading-[1.08] tracking-[-0.045em] text-foreground sm:text-[52px]">
+          Express a view on where yield rates are headed.
+        </h1>
+        <p className="mt-4 max-w-[610px] text-[14px] leading-6 text-muted">
+          Explore European CALL and PUT scenarios against a reference rate. Adjust the strike and notional, then compare possible outcomes at expiry.
         </p>
-        <Link href="/options/robinhood-mainnet-preview" className="inline-flex h-10 items-center rounded-md border border-amber/40 px-4 text-[12px] text-amber hover:bg-amber/10">
-          Explore Mainnet preview →
+
+        <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 border-y border-white/[0.08] py-4">
+          <span className="inline-flex items-center gap-2 font-mono text-[11px] tracking-[0.12em] text-amber"><span aria-hidden="true">↗</span> CALL <span className="font-sans tracking-normal text-muted">rate rises</span></span>
+          <span className="hidden h-4 border-l border-white/15 sm:block" aria-hidden="true" />
+          <span className="inline-flex items-center gap-2 font-mono text-[11px] tracking-[0.12em] text-amber"><span aria-hidden="true">↘</span> PUT <span className="font-sans tracking-normal text-muted">rate falls</span></span>
+        </div>
+
+        <Link
+          href="/options/robinhood-mainnet-preview"
+          className="mt-7 inline-flex h-12 min-w-[190px] items-center justify-center gap-4 bg-amber px-5 text-[12px] font-medium text-background transition-colors hover:bg-amber-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-ice"
+        >
+          Explore Options <span aria-hidden="true">↗</span>
         </Link>
+        <p className="mb-0 mt-3 text-[10px] text-muted-dark">Interactive calculations only · no Mainnet quote or position</p>
       </div>
 
-      <div className="mt-5 border-t border-white/10 pt-4 text-[11px] text-muted-dark">
-        A separate Testnet development deployment exists; it is not the Mainnet product or its oracle.
-        <Link href="/options/testnet-usdg-rate" className="ml-2 text-ice hover:text-white">Open Testnet development view →</Link>
-      </div>
+      <details className="relative mt-8 border-t border-white/10 pt-4 text-[11px] text-muted-dark">
+        <summary className="cursor-pointer list-none text-muted hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice">Market status & technical details</summary>
+        <p className="mb-0 mt-3 max-w-[920px] leading-5">
+          Mainnet Options contracts, a production rate source, realized-rate settlement methodology, collateral, and reviewed production pricing are not configured. Preview values use a fixed reference assumption and deterministic illustrative formula. No wallet transaction, settlement, claim, or Portfolio holding is created. A separate Testnet development environment is available at <Link href="/options/testnet-usdg-rate" className="text-ice underline underline-offset-2 hover:text-white">the Testnet inspection route</Link>.
+        </p>
+      </details>
     </section>
   );
 }

@@ -125,6 +125,15 @@ export function Navbar({ isLanding = false }: { isLanding?: boolean }) {
 
         <div className={isLanding ? "flex items-center gap-3" : "flex shrink-0 items-center gap-2 lg:gap-3"}>
           {!isLanding && <ContractAddress />}
+          {isLanding && (
+            <Link
+              href="/options"
+              aria-current={isOptions ? "page" : undefined}
+              className="inline-flex min-h-[38px] items-center px-2 text-[12px] text-muted transition-colors hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice md:hidden"
+            >
+              Options
+            </Link>
+          )}
           <a
             href={X_URL}
             target="_blank"
