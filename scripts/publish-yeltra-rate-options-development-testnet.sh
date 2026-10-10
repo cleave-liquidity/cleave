@@ -4,6 +4,11 @@ set -euo pipefail
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 contracts_dir="$repo_dir/contracts"
 source "$repo_dir/scripts/options-terminal.sh"
+options_load_local_env "$repo_dir" \
+  ROBINHOOD_TESTNET_RPC_URL NEXT_PUBLIC_ROBINHOOD_CHAIN_TESTNET_RPC_URL \
+  YELTRA_RATE_OPTIONS_PUBLISH_TESTNET_CONFIRMATION YELTRA_OPTIONS_RATE_PUBLISHER_TESTNET \
+  YELTRA_OPTIONS_DEPLOYMENT_KEYSTORE_TESTNET YELTRA_OPTIONS_DEPLOYMENT_KEYSTORE_PATH_TESTNET \
+  YELTRA_OPTIONS_UPDATED_RATE_TESTNET NEXT_PUBLIC_YELTRA_OPTIONS_RATE_INDEX_TESTNET
 
 cinematic=false
 for arg in "$@"; do
@@ -14,9 +19,10 @@ options_header "$repo_dir" rate "$cinematic"
 options_step "Validating Testnet target"
 
 : "${YELTRA_RATE_OPTIONS_PUBLISH_TESTNET_CONFIRMATION:?Set YELTRA_RATE_OPTIONS_PUBLISH_TESTNET_CONFIRMATION=YELTRA_RATE_OPTIONS_PUBLISH_TESTNET_46630 only after approving this development-rate update.}"
-: "${YELTRA_OPTIONS_RATE_PUBLISHER_TESTNET:?Set an existing CLEAVE_ADMIN or CLEAVE_OPERATOR address; sign with Ledger or an authorized account.}"
+: "${YELTRA_OPTIONS_RATE_PUBLISHER_TESTNET:?Set the fresh YELTRA Testnet admin public address.}"
 : "${NEXT_PUBLIC_YELTRA_OPTIONS_RATE_INDEX_TESTNET:?Set the deployed Testnet development Rate Index address.}"
 : "${YELTRA_OPTIONS_UPDATED_RATE_TESTNET:?Set the explicitly chosen development rate in 1e18 units. This is not live oracle data.}"
+options_validate_yeltra_testnet_keystore "$YELTRA_OPTIONS_RATE_PUBLISHER_TESTNET"
 
 if [[ ! "$YELTRA_OPTIONS_UPDATED_RATE_TESTNET" =~ ^[0-9]+$ ]] || (( YELTRA_OPTIONS_UPDATED_RATE_TESTNET > 1000000000000000000 )); then
   options_status_marker "✕" red; printf ' Refusing rate update: rate must be an integer from 0 through 1e18.\n' >&2
@@ -66,7 +72,7 @@ cd "$contracts_dir"
 forge build
 forge script script/PublishYeltraRateOptionsDevelopmentRateTestnet.s.sol:PublishYeltraRateOptionsDevelopmentRateTestnet \
   --rpc-url "$rpc_url" \
-  --ledger \
+  --keystore "$OPTIONS_YELTRA_TESTNET_KEYSTORE_PATH" \
   --sender "$YELTRA_OPTIONS_RATE_PUBLISHER_TESTNET" \
   --broadcast \
   -vvvv

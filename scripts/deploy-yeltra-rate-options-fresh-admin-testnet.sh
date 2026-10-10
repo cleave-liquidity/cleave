@@ -4,6 +4,11 @@ set -euo pipefail
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 contracts_dir="$repo_dir/contracts"
 source "$repo_dir/scripts/options-terminal.sh"
+options_load_local_env "$repo_dir" \
+  ROBINHOOD_TESTNET_RPC_URL NEXT_PUBLIC_ROBINHOOD_CHAIN_TESTNET_RPC_URL \
+  YELTRA_OPTIONS_FRESH_ADMIN_TESTNET YELTRA_OPTIONS_DEPLOYMENT_KEYSTORE_TESTNET \
+  YELTRA_OPTIONS_DEPLOYMENT_KEYSTORE_PATH_TESTNET YELTRA_OPTIONS_INITIAL_RATE_TESTNET \
+  YELTRA_OPTIONS_FRESH_ADMIN_DEPLOY_TESTNET_CONFIRMATION YELTRA_OPTIONS_MAX_STALENESS_TESTNET
 
 cinematic=false
 broadcast=false
@@ -38,30 +43,7 @@ if [[ "$YELTRA_OPTIONS_FRESH_ADMIN_DEPLOY_TESTNET_CONFIRMATION" != "YELTRA_OPTIO
   exit 1
 fi
 
-keystore_dir="$HOME/.foundry/keystores"
-keystore_path="$keystore_dir/$YELTRA_OPTIONS_DEPLOYMENT_KEYSTORE_TESTNET"
-if [[ "$YELTRA_OPTIONS_DEPLOYMENT_KEYSTORE_TESTNET" != "yeltra-options-testnet-admin" ]]; then
-  options_status_marker "✕" red; printf ' Refusing deployment: this workflow only accepts yeltra-options-testnet-admin.\n' >&2
-  exit 1
-fi
-if [[ ! -f "$keystore_path" ]]; then
-  options_status_marker "✕" red; printf ' Encrypted Foundry keystore is not present in the default keystore directory.\n' >&2
-  exit 1
-fi
-if ! command -v jq >/dev/null 2>&1; then
-  options_status_marker "✕" red; printf ' jq is required to validate only the keystore public-address metadata.\n' >&2
-  exit 1
-fi
-keystore_address="$(jq -er '(.address | tostring | ascii_downcase | sub("^0x"; "")) as $a | select($a | test("^[0-9a-f]{40}$")) | "0x" + $a' "$keystore_path" 2>/dev/null || true)"
-if [[ -z "$keystore_address" || "${keystore_address,,}" != "${YELTRA_OPTIONS_FRESH_ADMIN_TESTNET,,}" ]]; then
-  options_status_marker "✕" red; printf ' Keystore is missing valid public-address metadata or does not match the configured admin address.\n' >&2
-  exit 1
-fi
-if ! wallet_list="$(cast wallet list --dir "$keystore_dir" 2>/dev/null)" \
-  || ! printf '%s\n' "$wallet_list" | awk -v wanted="$YELTRA_OPTIONS_DEPLOYMENT_KEYSTORE_TESTNET" '$1 == wanted { found=1 } END { exit !found }'; then
-  options_status_marker "✕" red; printf ' Foundry does not enumerate the requested keystore as a usable account.\n' >&2
-  exit 1
-fi
+options_validate_yeltra_testnet_keystore "$YELTRA_OPTIONS_FRESH_ADMIN_TESTNET"
 
 rpc_url="${ROBINHOOD_TESTNET_RPC_URL:-${NEXT_PUBLIC_ROBINHOOD_CHAIN_TESTNET_RPC_URL:-}}"
 if [[ -z "$rpc_url" ]]; then
@@ -87,9 +69,18 @@ options_line "Broadcast mode" "$([[ "$broadcast" == true ]] && printf 'EXPLICITL
 
 options_step "Simulating and validating new contract wiring"
 cd "$contracts_dir"
+if [[ ! -f foundry.toml ]]; then
+  options_status_marker "✕" red; printf ' Foundry root not found at %s.\n' "$contracts_dir" >&2
+  exit 1
+fi
+script_target="script/DeployYeltraRateOptionsFreshAdminTestnet.s.sol:DeployYeltraRateOptionsFreshAdminTestnet"
+if [[ ! -f "${script_target%%:*}" ]]; then
+  options_status_marker "✕" red; printf ' Foundry script source not found: %s/%s\n' "$contracts_dir" "${script_target%%:*}" >&2
+  exit 1
+fi
 forge build
 forge_args=(
-  script script/DeployYeltraRateOptionsFreshAdminTestnet.s.sol:DeployYeltraRateOptionsFreshAdminTestnet
+  "$script_target"
   --rpc-url "$rpc_url"
   --sender "$YELTRA_OPTIONS_FRESH_ADMIN_TESTNET"
   -vvvv
@@ -97,7 +88,7 @@ forge_args=(
 if [[ "$broadcast" == true ]]; then
   options_line "Approval guard" "EXACT DEPLOYMENT CONFIRMATION PRESENT"
   forge script "${forge_args[@]}" \
-    --account "$YELTRA_OPTIONS_DEPLOYMENT_KEYSTORE_TESTNET" \
+    --keystore "$OPTIONS_YELTRA_TESTNET_KEYSTORE_PATH" \
     --broadcast \
     --slow
 else

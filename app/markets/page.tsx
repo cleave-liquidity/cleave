@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { MarketTable } from "@/components/markets/MarketTable";
@@ -94,6 +95,17 @@ export default function MarketsPage() {
             </div>
           </div>
         </div>
+
+        <Link
+          href="/options"
+          className="mt-6 flex flex-wrap items-center justify-between gap-4 border border-amber/20 bg-amber/[0.035] px-5 py-4 transition-colors hover:border-amber/40"
+        >
+          <span>
+            <span className="block text-[14px] text-foreground">Yield Rate Options</span>
+            <span className="mt-1 block text-[12px] text-muted-dark">CALL / PUT · Mainnet product preview · trading not live</span>
+          </span>
+          <span className="mono text-[11px] uppercase tracking-[0.12em] text-amber">Explore Options preview →</span>
+        </Link>
 
         {/* Market Table */}
         <div className="mt-8">

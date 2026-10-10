@@ -165,20 +165,22 @@ positions, vault accounting, and read-only gas estimates. It must pass before a
 wallet signs any state-changing operation.
 
 The rate index is intentionally operator-published development input. A
-publisher must be a current `CLEAVE_ADMIN` or `CLEAVE_OPERATOR`; select an
-account already shown as authorized by the preflight. To publish an explicitly
-chosen development value, set `YELTRA_OPTIONS_UPDATED_RATE_TESTNET` in raw
-`1e18` units and use the guarded command below only after separately approving
-that exact value:
+publisher must be a current `CLEAVE_ADMIN` or `CLEAVE_OPERATOR`; configure the
+fresh admin address and use only the matching `yeltra-options-testnet-admin`
+encrypted keystore. To publish an explicitly chosen development value, set
+`YELTRA_OPTIONS_UPDATED_RATE_TESTNET` in raw `1e18` units and use the guarded
+command below only after separately approving that exact value:
 
 ```bash
 bun run options:rate:publish:development:testnet
 ```
 
 This command is chain-gated to 46630, checks the actual index AccessManager and
-role, requires the exact confirmation string, and signs with `--ledger`. The
-published value is not external oracle data and must remain labeled as
-development-only.
+role, requires the exact confirmation string, validates the keystore’s public
+address metadata, and signs with Foundry `--account`. Foundry prompts locally
+for the encrypted-keystore password; never put it in a shell command or env
+file. The published value is not external oracle data and must remain labeled
+as development-only.
 
 For a small two-sided demonstration, explicitly choose both notionals in raw
 6-decimal yDEVUSD units, for example `1000000` for one yDEVUSD each. The
@@ -200,8 +202,10 @@ wallet premium buffer. The exact on-chain quote is still fetched again by the
 website at purchase time. These are simulated Testnet tokens, not USDG or
 production funds.
 
-After confirming the preflight values and choosing a current `CLEAVE_ADMIN`
-funding account backed by Ledger, set the demo wallet and both raw notionals,
+After confirming the preflight values, use the fresh admin address tied to the
+`yeltra-options-testnet-admin` encrypted Foundry account. Foundry unlocks that
+keystore interactively when broadcasting; never pass a password or key through
+an argument or environment variable. Set the demo wallet and both raw notionals,
 then use the separately guarded funding command:
 
 ```bash
@@ -211,7 +215,9 @@ bun run options:fund:development:testnet
 The script recomputes the exact required mint/deposit from live balances and
 obligations, rejects mismatched contract addresses or wiring, mints only the
 minimum premium shortfall to the named demo wallet, and deposits only the
-minimum vault amount. It uses a Ledger signer; no raw key is read or printed.
+minimum vault amount. It validates the configured manager and live wiring, then
+uses the named encrypted Foundry account; no raw key or keystore password is
+read by the scripts or printed.
 
 The original Options deployment broadcast shows sender
 `0x1e1ad136fb877ab473834e869407c7ae59fcfe8b`; the Testnet AccessManager

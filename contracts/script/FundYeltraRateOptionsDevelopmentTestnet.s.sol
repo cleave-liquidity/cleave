@@ -20,7 +20,7 @@ interface IYeltraRateOptionsFundingAccess {
 
 /// @title FundYeltraRateOptionsDevelopmentTestnet
 /// @notice Exact-minimum minting and vault-funding workflow for an authorized demo.
-/// @dev Testnet-only. The operator signs with a Ledger/account; no raw key is read.
+/// @dev Testnet-only. Foundry encrypted-keystore signing; no raw-key env is read.
 contract FundYeltraRateOptionsDevelopmentTestnet {
     uint256 private constant TESTNET_CHAIN_ID = 46630;
     uint256 private constant BPS = 10_000;

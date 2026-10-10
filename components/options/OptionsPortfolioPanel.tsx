@@ -17,10 +17,36 @@ function expiryLabel(value: bigint): string {
 
 export function OptionsPortfolioPanel() {
   const { positions, configured, historyConfigured, connectedAddress, isLoading, error } = useOptionsPositions();
+  const mainnetStatus = (
+    <section className="mt-8 border border-amber/20 bg-amber/[0.025] p-5 sm:p-6">
+      <div className="mono text-[10px] uppercase tracking-[0.16em] text-amber">Robinhood Chain Mainnet · Options not live</div>
+      <h2 className="mt-2 text-[20px] font-normal text-foreground">Yield Rate Options</h2>
+      <p className="mb-0 mt-3 max-w-[720px] text-[12px] leading-5 text-muted-dark">
+        No Mainnet Options deployment is configured, so this page cannot read Mainnet Options holdings. Preview calculations are never shown as positions.
+      </p>
+      <Link href="/options" className="mt-4 inline-block text-[12px] text-ice hover:text-white">View Mainnet product status →</Link>
+    </section>
+  );
 
-  if (!configured) return null;
+  if (!configured) {
+    return (
+      <>
+      {mainnetStatus}
+      <section className="mt-8 border border-white/10 bg-surface/50 p-5 sm:p-6">
+        <div className="mono text-[10px] uppercase tracking-[0.16em] text-muted-dark">Testnet development preview · not a holding</div>
+        <h2 className="mt-2 text-[20px] font-normal text-foreground">Yield Rate Options</h2>
+        <p className="mb-0 mt-3 max-w-[720px] text-[12px] leading-5 text-muted-dark">
+          No Options deployment is configured for this environment. Preview selections do not create positions, and this panel is not reporting wallet holdings.
+        </p>
+        <Link href="/options" className="mt-4 inline-block text-[12px] text-ice hover:text-white">Explore the development preview →</Link>
+      </section>
+      </>
+    );
+  }
 
   return (
+    <>
+    {mainnetStatus}
     <section className="mt-8 border border-white/10 bg-surface/50 p-5 sm:p-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
@@ -69,5 +95,6 @@ export function OptionsPortfolioPanel() {
         </div>
       )}
     </section>
+    </>
   );
 }

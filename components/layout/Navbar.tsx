@@ -30,16 +30,25 @@ const NAV_LANDING = "hidden md:flex items-center gap-4 lg:gap-9 text-[14px] lg:t
 // Same look as the landing nav when there is room (max width = the old natural width), and the links
 // pull closer together (never below the minimum gap) when the right-hand cluster needs the space.
 const NAV_APP =
-  "hidden md:flex min-w-0 flex-1 items-center justify-between gap-x-3 lg:gap-x-4 mx-auto md:max-w-[338px] lg:max-w-[437px] whitespace-nowrap text-[14px] lg:text-[15px]";
+  "hidden md:flex min-w-0 flex-1 items-center justify-between gap-x-3 lg:gap-x-4 mx-auto md:max-w-[390px] lg:max-w-[480px] whitespace-nowrap text-[14px] lg:text-[15px]";
 
 export function Navbar({ isLanding = false }: { isLanding?: boolean }) {
   const pathname = usePathname();
 
   const isMarkets = pathname?.startsWith("/markets");
   const isTrade = pathname?.startsWith("/trade");
+  const isOptions = pathname?.startsWith("/options");
   const isPortfolio = pathname === "/portfolio";
   const isDocs = pathname?.startsWith("/docs");
   const isContracts = pathname?.startsWith("/contracts");
+  const mobileLinks = [
+    { label: "Markets", href: "/markets", active: Boolean(isMarkets) },
+    { label: "Trade Yield", href: "/trade", active: Boolean(isTrade) },
+    { label: "Options", href: "/options", active: Boolean(isOptions) },
+    { label: "Portfolio", href: "/portfolio", active: Boolean(isPortfolio) },
+    { label: "Docs", href: "/docs", active: Boolean(isDocs) },
+    { label: "Contracts", href: "/contracts", active: Boolean(isContracts) },
+  ];
 
   return (
     <header
@@ -82,6 +91,13 @@ export function Navbar({ isLanding = false }: { isLanding?: boolean }) {
             className={`transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ice ${isTrade ? "text-foreground font-medium" : "text-muted hover:text-foreground"}`}
           >
             Trade Yield
+          </Link>
+          <Link
+            href="/options"
+            aria-current={isOptions ? "page" : undefined}
+            className={`transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ice ${isOptions ? "text-foreground font-medium" : "text-muted hover:text-foreground"}`}
+          >
+            Options
           </Link>
           <Link
             href="/portfolio"
@@ -134,6 +150,23 @@ export function Navbar({ isLanding = false }: { isLanding?: boolean }) {
           )}
         </div>
       </div>
+      {!isLanding && (
+        <nav
+          aria-label="Primary mobile"
+          className="flex gap-5 overflow-x-auto border-t border-white/[0.06] px-4 py-2.5 whitespace-nowrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:hidden"
+        >
+          {mobileLinks.map(({ label, href, active }) => (
+            <Link
+              key={href}
+              href={href}
+              aria-current={active ? "page" : undefined}
+              className={`shrink-0 text-[12px] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice ${active ? "font-medium text-foreground" : "text-muted hover:text-foreground"}`}
+            >
+              {label}
+            </Link>
+          ))}
+        </nav>
+      )}
       {!isLanding && <EnvironmentStrip />}
     </header>
   );

@@ -44,30 +44,30 @@ type TransactionRecord = BroadcastTransaction & {
   hash: Hex;
 };
 
-const broadcastPaths = [
-  [
-    "DEPLOYMENT",
-    join(
-      repoDir,
-      "contracts",
-      "broadcast",
-      "DeployYeltraRateOptionsDevelopmentTestnet.s.sol",
-      "46630",
-      "run-latest.json",
-    ),
-  ],
-  [
-    "FUNDING",
-    join(
-      repoDir,
-      "contracts",
-      "broadcast",
-      "FundYeltraRateOptionsDevelopmentTestnet.s.sol",
-      "46630",
-      "run-latest.json",
-    ),
-  ],
-] as const;
+const freshDeploymentBroadcastPath = join(
+  repoDir,
+  "contracts",
+  "broadcast",
+  "DeployYeltraRateOptionsFreshAdminTestnet.s.sol",
+  "46630",
+  "run-latest.json",
+);
+const legacyDeploymentBroadcastPath = join(
+  repoDir,
+  "contracts",
+  "broadcast",
+  "DeployYeltraRateOptionsDevelopmentTestnet.s.sol",
+  "46630",
+  "run-latest.json",
+);
+const fundingBroadcastPath = join(
+  repoDir,
+  "contracts",
+  "broadcast",
+  "FundYeltraRateOptionsDevelopmentTestnet.s.sol",
+  "46630",
+  "run-latest.json",
+);
 
 function asAddress(value: string | undefined): Address | undefined {
   return value && /^0x[0-9a-fA-F]{40}$/.test(value)
@@ -78,7 +78,17 @@ function asAddress(value: string | undefined): Address | undefined {
 async function readBroadcastTransactions(): Promise<TransactionRecord[]> {
   const records: TransactionRecord[] = [];
   const seen = new Set<string>();
-  for (const [source, path] of broadcastPaths) {
+  let deploymentPath = legacyDeploymentBroadcastPath;
+  try {
+    const freshPayload = JSON.parse(await readFile(freshDeploymentBroadcastPath, "utf8")) as BroadcastFile;
+    if (freshPayload.transactions?.some(
+      (transaction) => transaction.transactionType === "CREATE" && transaction.contractName === "YeltraAccessManager",
+    )) deploymentPath = freshDeploymentBroadcastPath;
+  } catch {
+    // Keep the existing deployment metadata as fallback when no fresh stack has been broadcast.
+  }
+
+  for (const [source, path] of [["DEPLOYMENT", deploymentPath], ["FUNDING", fundingBroadcastPath]] as const) {
     try {
       const payload = JSON.parse(await readFile(path, "utf8")) as BroadcastFile;
       for (const transaction of payload.transactions || []) {

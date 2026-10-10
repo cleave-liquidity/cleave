@@ -4,6 +4,14 @@ set -euo pipefail
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 contracts_dir="$repo_dir/contracts"
 source "$repo_dir/scripts/options-terminal.sh"
+options_load_local_env "$repo_dir" \
+  ROBINHOOD_TESTNET_RPC_URL NEXT_PUBLIC_ROBINHOOD_CHAIN_TESTNET_RPC_URL \
+  YELTRA_RATE_OPTIONS_FUND_DEVELOPMENT_TESTNET_CONFIRMATION YELTRA_OPTIONS_FUNDING_ADMIN_TESTNET \
+  YELTRA_OPTIONS_DEPLOYMENT_KEYSTORE_TESTNET YELTRA_OPTIONS_DEPLOYMENT_KEYSTORE_PATH_TESTNET \
+  YELTRA_OPTIONS_ACCESS_MANAGER_TESTNET YELTRA_OPTIONS_DEMO_WALLET_TESTNET \
+  YELTRA_OPTIONS_CALL_NOTIONAL_TESTNET YELTRA_OPTIONS_PUT_NOTIONAL_TESTNET \
+  NEXT_PUBLIC_YELTRA_OPTIONS_COLLATERAL_TOKEN_TESTNET NEXT_PUBLIC_YELTRA_OPTIONS_COLLATERAL_VAULT_TESTNET \
+  NEXT_PUBLIC_YELTRA_OPTIONS_RATE_INDEX_TESTNET NEXT_PUBLIC_YELTRA_OPTIONS_MARKET_TESTNET
 
 cinematic=false
 for arg in "$@"; do
@@ -14,7 +22,7 @@ options_header "$repo_dir" funding "$cinematic"
 options_step "Validating network"
 
 : "${YELTRA_RATE_OPTIONS_FUND_DEVELOPMENT_TESTNET_CONFIRMATION:?Set YELTRA_RATE_OPTIONS_FUND_DEVELOPMENT_TESTNET_CONFIRMATION=YELTRA_RATE_OPTIONS_FUND_DEVELOPMENT_TESTNET_46630 only after reviewing the funding inputs.}"
-: "${YELTRA_OPTIONS_FUNDING_ADMIN_TESTNET:?Set an already-authorized Testnet CLEAVE_ADMIN address; use a hardware wallet signer.}"
+: "${YELTRA_OPTIONS_FUNDING_ADMIN_TESTNET:?Set the authorized YELTRA Testnet admin address.}"
 : "${NEXT_PUBLIC_YELTRA_OPTIONS_COLLATERAL_TOKEN_TESTNET:?Set the deployed yDEVUSD address.}"
 : "${NEXT_PUBLIC_YELTRA_OPTIONS_COLLATERAL_VAULT_TESTNET:?Set the deployed Options collateral vault address.}"
 : "${NEXT_PUBLIC_YELTRA_OPTIONS_RATE_INDEX_TESTNET:?Set the deployed development rate index address.}"
@@ -37,6 +45,7 @@ fi
 
 options_step "Checking authorized funding account"
 funding_admin="$YELTRA_OPTIONS_FUNDING_ADMIN_TESTNET"
+options_validate_yeltra_testnet_keystore "$funding_admin"
 balance_wei="$(cast balance "$funding_admin" --rpc-url "$rpc_url")"
 
 options_step "Verifying admin permissions"
@@ -70,7 +79,7 @@ cd "$contracts_dir"
 forge build
 forge script script/FundYeltraRateOptionsDevelopmentTestnet.s.sol:FundYeltraRateOptionsDevelopmentTestnet \
   --rpc-url "$rpc_url" \
-  --ledger \
+  --keystore "$OPTIONS_YELTRA_TESTNET_KEYSTORE_PATH" \
   --sender "$funding_admin" \
   --broadcast \
   -vvvv

@@ -93,8 +93,14 @@ export function optionsErrorMessage(error: unknown): string {
   if (/userrejected|user rejected|denied/i.test(`${errorName} ${errorText}`)) {
     return "Wallet signature was rejected. No transaction was confirmed.";
   }
+  if (/insufficient funds for gas|gas required exceeds|intrinsic transaction cost|transaction costs exceed/i.test(errorText)) {
+    return "Insufficient native ETH for Testnet transaction gas. No transaction receipt was confirmed.";
+  }
+  if (/erc20insufficientbalance|insufficient balance|transfer amount exceeds balance/i.test(errorText)) {
+    return "Insufficient yDEVUSD collateral for this Options action.";
+  }
   if (/insufficient funds/i.test(errorText)) {
-    return "Insufficient Testnet collateral or native gas balance.";
+    return "Transaction could not be funded. Check both native ETH for gas and yDEVUSD collateral; no receipt was confirmed.";
   }
   if (/chain mismatch|wrong chain|chain id/i.test(errorText)) {
     return "Switch the connected wallet to Robinhood Chain Testnet (46630).";
@@ -118,11 +124,11 @@ async function requireSuccessfulReceipt(client: PublicClient, hash: Hex) {
   return receipt;
 }
 
-export function useYieldRateOptions(optionId?: bigint) {
+export function useYieldRateOptions(optionId?: bigint, enabled = true) {
   const { address, chainId } = useAccount();
   const { data: walletClient } = useWalletClient({ chainId: OPTIONS_TESTNET_CHAIN_ID });
   const publicClient = usePublicClient({ chainId: OPTIONS_TESTNET_CHAIN_ID });
-  const deployment = getOptionsDeployment(OPTIONS_TESTNET_CHAIN_ID);
+  const deployment = enabled ? getOptionsDeployment(OPTIONS_TESTNET_CHAIN_ID) : undefined;
   const marketAddress = deployment?.market;
   const rateIndexAddress = deployment?.rateIndex;
   const collateralVaultAddress = deployment?.collateralVault;
@@ -214,7 +220,7 @@ export function useYieldRateOptions(optionId?: bigint) {
     } catch {
       setReadState(undefined);
       setPosition(undefined);
-      setError("Robinhood Testnet RPC read failed. Contract state is unavailable; no simulated state is shown.");
+      setError("Robinhood Testnet RPC read failed. Live contract state is unavailable; no on-chain result is inferred.");
     } finally {
       setIsLoading(false);
     }
